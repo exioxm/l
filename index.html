@@ -2,181 +2,191 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer: Apex Shapes</title>
+    <title>Nitro Racer: Apex Duo</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { background: #020205; border: 2px solid #00f2ff; box-shadow: 0 0 50px rgba(0, 242, 255, 0.4); cursor: crosshair; }
-        #ui { position: absolute; top: 30px; width: 400px; display: flex; justify-content: space-between; color: #fff; pointer-events: none; }
+        canvas { background: #020205; border: 2px solid #00f2ff; box-shadow: 0 0 50px rgba(0, 242, 255, 0.4); }
+        #ui { position: absolute; top: 30px; width: 400px; display: flex; justify-content: space-between; color: #fff; pointer-events: none; visibility: hidden; }
         .label { font-size: 10px; color: #00f2ff; margin-bottom: 2px; text-transform: uppercase; }
-        .val { font-size: 22px; font-weight: 900; text-shadow: 0 0 10px #00f2ff; font-family: 'Courier New', Courier, monospace; }
+        .val { font-size: 22px; font-weight: 900; text-shadow: 0 0 10px #00f2ff; font-family: monospace; }
+        .controls-hint { position: absolute; bottom: 20px; color: rgba(0, 242, 255, 0.5); font-size: 12px; text-align: center; width: 100%; visibility: hidden; }
     </style>
 </head>
 <body>
     <div id="ui">
         <div><div class="label">Distance</div><div class="val" id="score">0</div></div>
-        <div><div class="label">Speed</div><div class="val" id="speedDisplay">0</div></div>
+        <div><div class="label">Best</div><div class="val" id="highScoreUI">0</div></div>
     </div>
+    <div id="hint" class="controls-hint">P1: A/D | P2: ARROWS</div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    const ui = document.getElementById("ui");
+    const hint = document.getElementById("hint");
     const scoreVal = document.getElementById("score");
-    const speedVal = document.getElementById("speedDisplay");
+    const highVal = document.getElementById("highScoreUI");
 
     canvas.width = 440;
     canvas.height = 750;
 
+    let gameState = 'START';
+    let isTwoPlayer = false;
     let score = 0;
+    let highScore = localStorage.getItem('nitroHigh') || 0;
     let speed = 9;
     let frames = 0;
-    let shake = 0;
     let enemies = [];
-    let speedLines = [];
+    let keys = {};
 
-    const player = { x: 220, y: 580, w: 44, h: 88, color: "#00f2ff", targetX: 220 };
+    const p1 = { x: 150, y: 580, w: 42, h: 84, color: "#00f2ff", alive: true };
+    const p2 = { x: 250, y: 580, w: 42, h: 84, color: "#ffcc00", alive: true };
 
-    window.addEventListener("mousemove", (e) => {
-        const rect = canvas.getBoundingClientRect();
-        player.targetX = e.clientX - rect.left - player.w / 2;
+    window.addEventListener("keydown", (e) => {
+        keys[e.code] = true;
+        if(gameState === 'START') {
+            if(e.code === 'Digit1') startMode(false);
+            if(e.code === 'Digit2') startMode(true);
+        }
     });
+    window.addEventListener("keyup", (e) => keys[e.code] = false);
 
-    // Drawing a sleeker, aerodynamic shape instead of a box
-    function drawFuturisticCar(x, y, w, h, color, isPlayer) {
+    function startMode(twoPlayer) {
+        isTwoPlayer = twoPlayer;
+        gameState = 'PLAYING';
+        score = 0;
+        speed = 9;
+        enemies = [];
+        p1.x = isTwoPlayer ? 120 : 200; p1.alive = true;
+        p2.x = 280; p2.alive = true;
+        ui.style.visibility = 'visible';
+        hint.style.visibility = 'visible';
+        highVal.innerText = Number(highScore).toLocaleString();
+    }
+
+    function drawFuturisticCar(car) {
         ctx.save();
-        if(shake > 0) ctx.translate(Math.random()*shake - shake/2, Math.random()*shake - shake/2);
-        
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = color;
-        ctx.strokeStyle = color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = car.color;
+        ctx.strokeStyle = car.color;
         ctx.lineWidth = 2;
 
-        // MAIN BODY SHAPE (Polygon)
         ctx.beginPath();
-        if(isPlayer) {
-            // Player: Sleek Supercar Shape
-            ctx.moveTo(x + w/2, y); // Nose
-            ctx.lineTo(x + w, y + h*0.3); // Right Front
-            ctx.lineTo(x + w*0.8, y + h*0.5); // Mid-in
-            ctx.lineTo(x + w, y + h*0.8); // Right Rear
-            ctx.lineTo(x + w*0.1, y + h*0.8); // Left Rear
-            ctx.lineTo(x + w*0.2, y + h*0.5); // Mid-in Left
-            ctx.lineTo(x, y + h*0.3); // Left Front
-        } else {
-            // Enemy: Aggressive Interceptor Shape
-            ctx.moveTo(x + w*0.2, y);
-            ctx.lineTo(x + w*0.8, y);
-            ctx.lineTo(x + w, y + h*0.4);
-            ctx.lineTo(x + w*0.9, y + h);
-            ctx.lineTo(x + w*0.1, y + h);
-            ctx.lineTo(x, y + h*0.4);
-        }
+        ctx.moveTo(car.x + car.w/2, car.y);
+        ctx.lineTo(car.x + car.w, car.y + car.h*0.3);
+        ctx.lineTo(car.x + car.w*0.8, car.y + car.h*0.9);
+        ctx.lineTo(car.x + car.w*0.2, car.y + car.h*0.9);
+        ctx.lineTo(car.x, car.y + car.h*0.3);
         ctx.closePath();
         
         ctx.fillStyle = "#050505";
         ctx.fill();
         ctx.stroke();
 
-        // COCKPIT GLOW
-        ctx.fillStyle = isPlayer ? "rgba(0, 242, 255, 0.4)" : "rgba(255, 0, 85, 0.4)";
-        ctx.beginPath();
-        ctx.ellipse(x + w/2, y + h*0.4, w*0.25, h*0.15, 0, 0, Math.PI*2);
-        ctx.fill();
-
-        // REAR SPOILER (Only for Player)
-        if(isPlayer) {
-            ctx.strokeRect(x, y + h*0.85, w, 4);
-            // Engine Flame
-            if(frames % 4 === 0) {
-                ctx.fillStyle = "#ff0055";
-                ctx.fillRect(x + w*0.4, y + h, w*0.2, Math.random()*15);
-            }
-        }
+        // Windshield
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.fillRect(car.x + 10, car.y + 25, car.w - 20, 15);
         ctx.restore();
     }
 
+    function drawMenu() {
+        ctx.fillStyle = "#020208";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.textAlign = "center";
+        
+        ctx.shadowBlur = 20; ctx.shadowColor = "#00f2ff";
+        ctx.fillStyle = "#00f2ff";
+        ctx.font = "900 42px Arial";
+        ctx.fillText("NITRO RACER", canvas.width/2, 220);
+        
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#fff";
+        ctx.font = "16px monospace";
+        ctx.fillText("HIGH SCORE: " + Number(highScore).toLocaleString() + "M", canvas.width/2, 260);
+
+        ctx.fillStyle = "#00f2ff";
+        ctx.fillText("[1] SINGLE PLAYER", canvas.width/2, 400);
+        ctx.fillStyle = "#ffcc00";
+        ctx.fillText("[2] TWO PLAYER DUO", canvas.width/2, 450);
+        
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.font = "12px Arial";
+        ctx.fillText("P1: A/D | P2: ARROWS", canvas.width/2, 600);
+    }
+
     function update() {
+        if(gameState !== 'PLAYING') return;
         frames++;
-        score += Math.floor(speed / 3);
+        score += Math.floor(speed / 4);
         scoreVal.innerText = score.toLocaleString();
-        speedVal.innerText = Math.floor(speed * 18) + " KM/H";
 
-        if(shake > 0) shake *= 0.85;
+        // Player 1 Movement (A/D)
+        if(keys['KeyA']) p1.x -= 7;
+        if(keys['KeyD']) p1.x += 7;
+        p1.x = Math.max(20, Math.min(canvas.width - p1.w - 20, p1.x));
 
-        // Smooth Movement
-        player.x += (player.targetX - player.x) * 0.15;
-        player.x = Math.max(25, Math.min(canvas.width - player.w - 25, player.x));
-
-        // Speed Lines (Visual Velocity)
-        if(frames % 5 === 0) {
-            speedLines.push({x: Math.random()*canvas.width, y: -20, h: Math.random()*30+10});
+        // Player 2 Movement (Arrows)
+        if(isTwoPlayer) {
+            if(keys['ArrowLeft']) p2.x -= 7;
+            if(keys['ArrowRight']) p2.x += 7;
+            p2.x = Math.max(20, Math.min(canvas.width - p2.w - 20, p2.x));
         }
-        speedLines.forEach((l, i) => {
-            l.y += speed * 2;
-            if(l.y > canvas.height) speedLines.splice(i, 1);
-        });
 
-        // Spawn Enemies
-        if (frames % Math.max(12, 45 - Math.floor(speed)) === 0) {
-            enemies.push({ 
-                x: 40 + Math.random() * (canvas.width - 120), 
-                y: -150, 
-                color: (frames % 100 === 0) ? "#39ff14" : "#ff0055" 
-            });
+        // Difficulty & Spawning
+        if (frames % Math.max(15, 50 - Math.floor(speed)) === 0) {
+            enemies.push({ x: 30 + Math.random() * (canvas.width - 90), y: -100 });
         }
 
         enemies.forEach((e, i) => {
-            e.y += speed + 4;
+            e.y += speed + 3;
             if(e.y > canvas.height) enemies.splice(i, 1);
 
-            // Precision Collision Detection
-            if (player.x < e.x + 40 && player.x + player.w > e.x + 4 &&
-                player.y < e.y + 80 && player.y + player.h > e.y + 4) {
-                gameOver();
-            }
+            // Collision Check
+            [p1, isTwoPlayer ? p2 : null].forEach(p => {
+                if(p && p.alive && p.x < e.x + 35 && p.x + p.w > e.x + 5 && p.y < e.y + 75 && p.y + p.h > e.y + 5) {
+                    endGame();
+                }
+            });
         });
 
-        if(score % 800 === 0) speed += 0.3;
+        if(score % 1000 === 0) speed += 0.2;
     }
 
     function draw() {
-        ctx.fillStyle = "rgba(2, 2, 8, 0.4)"; // Trail effect
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if(gameState === 'START') {
+            drawMenu();
+        } else {
+            ctx.fillStyle = "#020208";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Road
+            ctx.strokeStyle = "rgba(0, 242, 255, 0.1)";
+            for(let i=0; i<5; i++) {
+                ctx.beginPath(); ctx.moveTo(i * 110, 0); ctx.lineTo(i * 110, canvas.height); ctx.stroke();
+            }
 
-        // Moving Perspective Road
-        ctx.strokeStyle = "rgba(0, 242, 255, 0.1)";
-        ctx.lineWidth = 1;
-        for(let i = 0; i <= 10; i++) {
-            let x = (i * canvas.width/10);
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvas.height);
-            ctx.stroke();
+            enemies.forEach(e => {
+                ctx.fillStyle = "#ff0055";
+                ctx.shadowBlur = 10; ctx.shadowColor = "#ff0055";
+                ctx.fillRect(e.x, e.y, 40, 80);
+            });
+
+            drawFuturisticCar(p1);
+            if(isTwoPlayer) drawFuturisticCar(p2);
         }
-
-        // Speed Lines
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-        speedLines.forEach(l => {
-            ctx.beginPath();
-            ctx.moveTo(l.x, l.y);
-            ctx.lineTo(l.x, l.y + l.h);
-            ctx.stroke();
-        });
-
-        // Draw Entities
-        enemies.forEach(e => drawFuturisticCar(e.x, e.y, 44, 88, e.color, false));
-        drawFuturisticCar(player.x, player.y, player.w, player.h, player.color, true);
-
         update();
         requestAnimationFrame(draw);
     }
 
-    function gameOver() {
-        shake = 30;
-        setTimeout(() => {
-            alert("SYSTEM OVERRIDE: CRASH DETECTED\nSCORE: " + score);
-            location.reload();
-        }, 50);
+    function endGame() {
+        if(score > highScore) {
+            highScore = score;
+            localStorage.setItem('nitroHigh', highScore);
+        }
+        gameState = 'START';
+        ui.style.visibility = 'hidden';
+        hint.style.visibility = 'hidden';
     }
 
     draw();
