@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nitro Racer: Apex Protocol v3.0</title>
+    <style>
+        @import url('fonts.googleapis.com');
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #game-container { position: relative; width: 440px; height: 750px; background: #020205; border: 4px solid #ff0044; box-shadow: 0 0 80px rgba(255, 0, 68, 0.4); border-radius: 15px; }
+        canvas { display: block; width: 100%; height: 100%; border-radius: 12px; }
+        
+        #ui, .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; z-index: 10; }
+        #ui { justify-content: flex-start; padding-top: 25px; visibility: hidden; }
+        .overlay { pointer-events: auto; background: rgba(1, 1, 5, 0.98); backdrop-filter: blur(20px); }
+        .hidden { display: none !important; }
+        
+        .stat-row { width: 92%; display: flex; justify-content: space-between; background: linear-gradient(90deg, rgba(255,0,68,0.15), rgba(0,0,0,0)); padding: 15px; border-left: 4px solid #ff0044; box-sizing: border-box; margin-bottom: 5px; }
+        .label { font-size: 10px; color: #ff0044; text-transform: uppercase; letter-spacing: 3px; }
+        .val { font-size: 26px; font-weight: 900; text-shadow: 0 0 15px #ff0044; }
+        
+        #mission-objective { position: absolute; top: 120px; color: #00ff88; font-size: 16px; width: 100%; text-align: center; text-shadow: 0 0 10px #00ff88; padding: 10px; background: rgba(0, 0, 0, 0.6); visibility: hidden; }
+        #objective-timer { font-weight: bold; font-size: 20px; }
+
+        h1 { font-size: 42px; font-weight: 900; color: #ff0044; text-shadow: 0 0 30px #ff0044; margin: 0; letter-spacing: -2px; }
+        .btn { width: 280px; padding: 18px; margin: 10px; background: #000; border: 2px solid #ff0044; color: #ff0044; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 2px; border-radius: 4px; }
+        .btn:hover { background: #ff0044; color: #000; box-shadow: 0 0 50px #ff0044; transform: skewX(-5deg) scale(1.05); }
+
+        .garage-container { width: 100%; overflow-x: auto; display: flex; padding: 40px 0; }
+        .car-card { flex: 0 0 190px; height: 240px; margin: 0 15px; background: rgba(255,255,255,0.02); border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 15px; }
+        .car-card.selected { border-color: #ff0044; background: rgba(255, 0, 68, 0.15); box-shadow: 0 0 30px #ff0044; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="mission-objective">MISSION: SURVIVE <span id="objective-timer">0</span>s</div>
+
+    <div id="ui">
+        <div class="stat-row">
+            <div><div class="label">Velocity</div><div class="val" id="speedDisp">0</div></div>
+            <div><div class="label">Credits</div><div class="val" id="creditsUI">0</div></div>
+        </div>
+        <div id="wanted" style="margin-top:15px; letter-spacing: 8px; text-align:center; font-size: 22px;"></div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="menu" class="overlay">
+        <p style="color:#ff0044; letter-spacing: 5px; margin-bottom: 5px;">APEX PROTOCOL V3.0</p>
+        <h1>NITRO RACER</h1>
+        <div style="color:#ffcc00; margin: 20px 0;">$ <span id="crMenu">0</span></div>
+        <button class="btn" onclick="startGame('NORMAL')">Arcade Grid</button>
+        <button class="btn" style="border-color:#ffaa00; color:#ffaa00;" onclick="openPanel('henchman-menu')">Career Mode</button>
+        <button class="btn" style="border-color:#00ff88; color:#00ff88;" onclick="openPanel('garage')">Garage</button>
+    </div>
+
+    <!-- Henchman/Career Menu (Reused UI for efficiency) -->
+    <div id="henchman-menu" class="overlay hidden">
+        <h1 style="color:#ffaa00; font-size: 32px;">CAREER: TIER 1</h1>
+        <p style="color:#888;">Complete the following objective:</p>
+        <div style="background: rgba(0,0,0,0.5); padding:15px; border: 1px solid #00ff88; margin: 10px 0;">
+            <p style="color:#00ff88;">OBJECTIVE: Survive 30 seconds at Heat Level 4.</p>
+            <p style="color:#ffcc00;">REWARD: $2500 Credits</p>
+        </div>
+        <button class="btn" style="border-color:#ffaa00;" onclick="startCareer()">Accept Mission</button>
+        <button class="btn" style="border-color:#333; color:#666;" onclick="openPanel('menu')">Back</button>
+    </div>
+
+    <div id="garage" class="overlay hidden">
+        <h1>GARAGE</h1>
+        <canvas id="carPreviewCanvas" width="150" height="250" style="border: 1px solid #ff0044; margin-bottom: 15px;"></canvas>
+        <div style="display:flex; overflow-x:auto; width:100%;" id="carGrid"></div>
+        <button class="btn" onclick="openPanel('menu')">Confirm Selection</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = 440; canvas.height = 750;
+    const ptx = document.getElementById("carPreviewCanvas").getContext("2d");
+
+    const VERSION = "3.0";
+    let credits = parseInt(localStorage.getItem('nitroCr')) || 2500;
+    let unlockedCars = JSON.parse(localStorage.getItem('nitroCars')) || ['Specter'];
+    let currentCar = localStorage.getItem('nitroActiveCar') || 'Specter';
+    let gameState = 'MENU', gameMode = 'NORMAL', score = 0, speed = 0, frames = 0;
+    let shake = 0, dash = 100, isDashing = false, wantedLevel = 0, lastTime = 0, fps = 0;
+    let enemies = [], henchmen = [], keys = {};
+    let p1 = { x: 190, y: 600, alive: true };
+    
+    let missionTime = 0, missionDuration = 30;
+
+    const carData = {
+        'Specter': { w: 42, h: 84, price: 0, speed: 10, color: '#00f2ff' },
+        'Interceptor': { w: 38, h: 90, price: 5000, speed: 13, color: '#ff0044' },
+        'Goliath': { w: 56, h: 88, price: 12000, speed: 7, color: '#00ff88' },
+        'Venom': { w: 40, h: 95, price: 25000, speed: 19, color: '#ffff00' },
+        'Hyperion': { w: 44, h: 100, price: 50000, speed: 22, color: '#ff00ff' },
+        'SWAT': { w: 80, h: 120, color: '#ffffff' },
+        'TANK': { w: 105, h: 150, color: '#ffaa00' },
+        'HUMVEE': { w: 85, h: 130, color: '#999' }
+    };
+
+    const Audio = new (window.AudioContext || window.webkitAudioContext)();
+    function playSfx(freq, type, duration, vol = 0.1) {
+        if (Audio.state === 'suspended') Audio.resume();
+        const osc = Audio.createOscillator(); const gain = Audio.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, Audio.currentTime);
+        gain.gain.setValueAtTime(vol, Audio.currentTime); gain.gain.linearRampToValueAtTime(0, Audio.currentTime + duration);
+        osc.connect(gain); gain.connect(Audio.destination); osc.start(); osc.stop(Audio.currentTime + duration);
+    }
+    
+    window.addEventListener("keydown", (e) => { keys[e.code] = true; if(e.code === 'Space' && dash >= 100 && gameState === 'PLAY') { isDashing = true; dash = 0; shake = 25; playSfx(500, 'square', 0.4, 0.2); setTimeout(() => isDashing = false, 600); } });
+    window.addEventListener("keyup", (e) => keys[e.code] = false);
+
+    function openPanel(id) {
+        document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if(id === 'garage') { renderGarage(); drawPreview(); }
+        updateCurrencyUI();
+    }
+
+    // Garage 3D Preview (Simulated Rotation)
+    let previewAngle = 0;
+    function drawPreview() {
+        ptx.clearRect(0, 0, 150, 250);
+        ptx.save();
+        ptx.translate(75, 125);
+        ptx.rotate(previewAngle);
+        drawCar(ptx, -carData[currentCar].w/2, -carData[currentCar].h/2, currentCar, carData[currentCar].color);
+        ptx.restore();
+        previewAngle += 0.01;
+        if(gameState === 'MENU' && document.getElementById('garage').classList.contains('hidden') === false) requestAnimationFrame(drawPreview);
+    }
+
+    function renderGarage() {
+        const grid = document.getElementById('carGrid'); grid.innerHTML = '';
+        for(let name in carData) {
+            if(['SWAT','TANK','HUMVEE'].includes(name)) continue;
+            const data = carData[name];
+            const card = document.createElement('div');
+            card.className = `car-card ${currentCar === name ? 'selected' : ''}`;
+            card.innerHTML = `<h3 style="color:${data.color}">${name}</h3><p>$${data.price}</p>`;
+            card.onclick = () => {
+                if(unlockedCars.includes(name) || credits >= data.price) {
+                    if(!unlockedCars.includes(name)) { credits -= data.price; unlockedCars.push(name); }
+                    currentCar = name;
+                    localStorage.setItem('nitroCr', credits); localStorage.setItem('nitroCars', JSON.stringify(unlockedCars)); localStorage.setItem('nitroActiveCar', currentCar);
+                    renderGarage(); updateCurrencyUI();
+                }
+            };
+            grid.appendChild(card);
+        }
+    }
+
+    function drawCar(ctx, x, y, name, color, alpha = 1) {
+        const d = carData[name] || carData['Specter'];
+        ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y);
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, d.w, d.h);
+        ctx.strokeStyle = color; ctx.lineWidth = 3;
+        ctx.shadowBlur = alpha > 0.6 ? 15 : 0; ctx.shadowColor = color;
+        ctx.strokeRect(0, 0, d.w, d.h);
+        ctx.restore();
+    }
+
+    function startGame(mode) {
+        gameState = 'PLAY'; gameMode = mode;
+        score = 0; speed = carData[currentCar].speed;
+        enemies = []; henchmen = []; frames = 0; dash = 100;
+        p1 = { x: 190, y: 600, alive: true };
+        document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden'));
+        document.getElementById('ui').style.visibility = 'visible';
+        gameLoop();
+    }
+
+    function startCareer() {
+        startGame('PURSUIT');
+        missionTime = 0;
+        document.getElementById('mission-objective').style.visibility = 'visible';
+    }
+
+    function gameLoop() {
+        if(gameState !== 'PLAY') return;
+        frames++; score++; speed += 0.004;
+
+        if(gameMode === 'PURSUIT' && document.getElementById('mission-objective').style.visibility === 'visible') {
+            missionTime += 1/60; // Assumes ~60fps
+            document.getElementById('objective-timer').innerText = Math.max(0, missionDuration - Math.floor(missionTime));
+            if(missionTime >= missionDuration) {
+                // Mission Success!
+                alert("MISSION SUCCESS! +$2500 CREDITS");
+                credits += 2500;
+                endGame();
+            }
+        }
+        
+        if(dash < 100) dash += 0.35;
+
+        const d = carData[currentCar];
+        if(keys['ArrowLeft'] && p1.x > 40) p1.x -= 9;
+        if(keys['ArrowRight'] && p1.x < 400 - d.w) p1.x += 9;
+
+        wantedLevel = gameMode === 'PURSUIT' ? Math.min(6, Math.floor(score / 1500)) : 0;
+
+        if(frames % 40 === 0) {
+            let type = (gameMode === 'PURSUIT' && Math.random() > 0.3) ? (wantedLevel >= 6 ? 'TANK' : (wantedLevel >= 3 ? 'SWAT' : 'POLICE')) : 'CIV';
+            enemies.push({ x: 60 + Math.floor(Math.random()*4)*85, y: -150, type, color: type==='TANK'?'#ffaa00':(type==='POLICE'?'#ff0044':(type==='SWAT'?'#fff':'#333')), v: 2 + Math.random()*2 });
+        }
+
+        enemies.forEach((e, i) => {
+            e.y += (speed - e.v);
+            if(e.type === 'TANK' && Math.abs(p1.x - e.x) < 150) e.x += (p1.x < e.x ? -1 : 1);
+            if(e.type !== 'CIV' && e.y < p1.y) e.x += (e.x < p1.x ? 1.7 : -1.7);
+            const ed = carData[e.type] || carData['Specter'];
+            if(!isDashing && p1.alive && p1.x < e.x + ed.w && p1.x + d.w > e.x && p1.y < e.y + ed.h && p1.y + d.h > e.y) {
+                shake = 60; endGame();
+            }
+            if(e.y > 800) { enemies.splice(i, 1); credits += 25; }
+        });
+
+        // DRAW
+        ctx.fillStyle = "#010103"; ctx.fillRect(0,0,440,750);
+        if(wantedLevel > 0) {
+            ctx.fillStyle = wantedLevel >= 6 ? `rgba(255, 170, 0, ${0.1 + Math.sin(frames/10)*0.05})` : `rgba(255, 0, 68, ${wantedLevel * 0.03})`;
+            ctx.fillRect(0,0,440,750);
+        }
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+        for(let i=0; i<12; i++) {
+            let gy = (frames*speed + i*80) % 960;
+            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(440, gy); ctx.stroke();
+        }
+
+        if(p1.alive) drawCar(ctx, p1.x, p1.y, currentCar, d.color, isDashing ? 0.4 : 1);
+        enemies.forEach(e => drawCar(ctx, e.x, e.y, e.type, e.color));
+
+        const wC = wantedLevel >= 6 ? '#ffaa00' : '#ff0044';
+        document.getElementById('wanted').innerHTML = '★'.repeat(wantedLevel).fontcolor(wC) + '★'.repeat(Math.max(0, 5-wantedLevel)).fontcolor('#222');
+        document.getElementById('speedDisp').innerText = Math.floor(speed * 20);
+        
+        ctx.save();
+        if(shake > 0) { ctx.translate(Math.random()*shake-shake/2, Math.random()*shake-shake/2); shake *= 0.9; }
+        ctx.restore();
+
+        updateCurrencyUI();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+        gameState = 'MENU'; credits += Math.floor(score/10);
+        localStorage.setItem('nitroCr', credits);
+        document.getElementById('mission-objective').style.visibility = 'hidden';
+        setTimeout(() => { document.getElementById('ui').style.visibility='hidden'; openPanel('menu'); }, 600);
+    }
+
+    function updateCurrencyUI() {
+        document.getElementById('crMenu').innerText = credits.toLocaleString();
+        document.getElementById('creditsUI').innerText = credits.toLocaleString();
+    }
+    updateCurrencyUI();
+</script>
+</body>
+</html>
