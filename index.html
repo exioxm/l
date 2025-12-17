@@ -2,15 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer: Fullscreen Fix</title>
+    <title>Nitro Racer: Final Edition</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
         
-        /* The container now centers the game at a fixed aspect ratio */
         #game-container { position: relative; width: 440px; height: 750px; background: #020208; box-shadow: 0 0 50px rgba(0, 242, 255, 0.4); }
         canvas { display: block; width: 100%; height: 100%; border: none; }
         
-        /* UI Panels */
         #ui, .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; z-index: 10; }
         #ui { justify-content: flex-start; padding-top: 20px; visibility: hidden; }
         .overlay { pointer-events: auto; background: rgba(2, 2, 12, 0.95); transition: 0.3s; }
@@ -21,11 +19,12 @@
         .val { font-size: 22px; font-weight: 900; text-shadow: 0 0 10px #00f2ff; font-family: monospace; }
         
         h1 { color: #00f2ff; font-size: 40px; margin: 0; font-style: italic; text-shadow: 0 0 20px #00f2ff; }
-        .credits-info { margin: 10px 0 30px; font-family: monospace; color: #ffcc00; }
+        .credits-info { margin: 10px 0 20px; font-family: monospace; color: #ffcc00; }
         
         .btn { width: 240px; padding: 12px; margin: 5px; background: rgba(0, 242, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
         
-        .garage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; width: 90%; }
+        .garage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; width: 90%; max-height: 200px; overflow-y: auto; padding: 5px; }
+        .car-card { border: 1px solid #333; padding: 10px; cursor: pointer; text-align: center; font-size: 11px; background: rgba(255,255,255,0.05); }
         .car-card.selected { border-color: #00f2ff; box-shadow: 0 0 10px #00f2ff; background: rgba(0,242,255,0.1); }
         .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; margin: 5px; }
 
@@ -69,8 +68,11 @@
     <div id="garage" class="overlay hidden">
         <h1>GARAGE</h1>
         <div class="credits-info">CREDITS: <span id="crGarage">0</span></div>
+        <!-- Car Preview Canvas -->
+        <canvas id="carPreviewCanvas" width="150" height="200" style="border: 1px solid #00f2ff; margin-bottom: 10px;"></canvas>
+
         <div class="garage-grid" id="carGrid"></div>
-        <div style="display:flex; margin-bottom: 15px;">
+        <div style="display:flex;">
             <div class="color-dot" style="background:#00f2ff" onclick="setColor('#00f2ff')"></div>
             <div class="color-dot" style="background:#ff00ff" onclick="setColor('#ff00ff')"></div>
             <div class="color-dot" style="background:#ffff00" onclick="setColor('#ffff00')"></div>
@@ -85,6 +87,10 @@
     const ctx = canvas.getContext("2d");
     canvas.width = 440; canvas.height = 750;
     
+    // Preview Canvas
+    const previewCanvas = document.getElementById("carPreviewCanvas");
+    const ptx = previewCanvas.getContext("2d");
+
     let credits = parseInt(localStorage.getItem('nitroCr')) || 0;
     let unlockedCars = JSON.parse(localStorage.getItem('nitroCars')) || ['Specter'];
     let currentCar = localStorage.getItem('nitroActiveCar') || 'Specter';
@@ -135,8 +141,11 @@
             card.className = `car-card ${currentCar === name ? 'selected' : ''}`;
             card.innerHTML = `<b>${name}</b><br>${isUnlocked ? '(OWNED)' : '$'+data.price}`;
             card.onclick = () => {
-                if(isUnlocked) { currentCar = name; localStorage.setItem('nitroActiveCar', name); renderGarage(); }
-                else if (credits >= data.price) {
+                if(isUnlocked) { 
+                    currentCar = name; 
+                    localStorage.setItem('nitroActiveCar', name); 
+                    renderGarage(); 
+                } else if (credits >= data.price) {
                     credits -= data.price; unlockedCars.push(name);
                     localStorage.setItem('nitroCr', credits); localStorage.setItem('nitroCars', JSON.stringify(unlockedCars));
                     updateCurrencyUI(); renderGarage();
@@ -144,9 +153,14 @@
             };
             grid.appendChild(card);
         }
+        drawCar(50, 60, p1Color, currentCar, 'player', ptx);
     }
 
-    function setColor(c) { p1Color = c; localStorage.setItem('nitroColor', c); }
+    function setColor(c) { 
+        p1Color = c; 
+        localStorage.setItem('nitroColor', c); 
+        drawCar(50, 60, p1Color, currentCar, 'player', ptx);
+    }
 
     function startGame(mode, count) {
         gameMode = mode; playerCount = count; gameState = 'PLAYING';
@@ -157,30 +171,31 @@
         document.getElementById('ui').style.visibility = 'visible';
     }
 
-    function drawCar(x, y, color, carName, type) {
+    // Pass the context to the draw function
+    function drawCar(x, y, color, carName, type, context = ctx) {
         const d = carData[carName] || carData['Specter'];
-        ctx.save();
+        context.save();
         let displayColor = color;
         if (carName === 'Rainbow') {
             const colors = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
             displayColor = colors[Math.floor(frames / 5) % colors.length];
         }
-        ctx.shadowBlur = 15; ctx.shadowColor = displayColor;
-        ctx.strokeStyle = displayColor; ctx.lineWidth = 2;
-        ctx.beginPath();
+        context.shadowBlur = 10; context.shadowColor = displayColor;
+        context.strokeStyle = displayColor; context.lineWidth = 2;
+        context.beginPath();
         if(carName === 'Specter' || carName === 'Rainbow') {
-            ctx.moveTo(x + d.w/2, y); ctx.lineTo(x + d.w, y + d.h*0.3); ctx.lineTo(x + d.w*0.8, y + d.h*0.9); ctx.lineTo(x + d.w*0.2, y + d.h*0.9); ctx.lineTo(x, y + d.h*0.3);
+            context.moveTo(x + d.w/2, y); context.lineTo(x + d.w, y + d.h*0.3); context.lineTo(x + d.w*0.8, y + d.h*0.9); context.lineTo(x + d.w*0.2, y + d.h*0.9); context.lineTo(x, y + d.h*0.3);
         } else if(carName === 'Interceptor') {
-            ctx.moveTo(x + d.w/2, y); ctx.lineTo(x + d.w, y + d.h); ctx.lineTo(x, y + d.h);
+            context.moveTo(x + d.w/2, y); context.lineTo(x + d.w, y + d.h); context.lineTo(x, y + d.h);
         } else if (carName === 'Goliath') {
-            ctx.rect(x, y, d.w, d.h);
+            context.rect(x, y, d.w, d.h);
         }
-        ctx.closePath(); ctx.fillStyle = "#050505"; ctx.fill(); ctx.stroke();
+        context.closePath(); context.fillStyle = "#050505"; context.fill(); context.stroke();
         if(type === 'police') {
-            ctx.fillStyle = (Math.floor(frames/8)%2) ? "#ff0044" : "#00aaff";
-            ctx.fillRect(x + d.w*0.2, y + 5, d.w*0.6, 5);
+            context.fillStyle = (Math.floor(frames/8)%2) ? "#ff0044" : "#00aaff";
+            context.fillRect(x + d.w*0.2, y + 5, d.w*0.6, 5);
         }
-        ctx.restore();
+        context.restore();
     }
 
     function update() {
@@ -212,14 +227,12 @@
             e.y += targetSpeed + 2;
             if(e.y > canvas.height) enemies.splice(i, 1);
             if(p1.alive) {
-                if(p1.x < e.x + e.w && p1.x + p1Dims.w > e.x && p1.y < e.y + e.h && p1.y + p1Dims.h > e.y) p1.alive = false;
+                if(p1.x < e.x + e.w && p1.x + p1Dims.w > e.x && p1.y < e.y + e.h && p1.y + p1Dims.h > e.y) endGame();
             }
             if(p2.alive && playerCount === 2) {
-                if(p2.x < e.x + e.w && p2.x + p1Dims.w > e.x && p2.y < e.y + e.h && p2.y + p1Dims.h > e.y) p2.alive = false;
+                if(p2.x < e.x + e.w && p2.x + p1Dims.w > e.x && p2.y < e.y + e.h && p2.y + p1Dims.h > e.y) endGame();
             }
         });
-
-        if(!p1.alive && (!p2.alive || playerCount === 1)) endGame();
         
         if (gameMode === 'PURSUIT') {
             const wl = Math.min(5, Math.floor(score / 2000) + 1);
@@ -228,23 +241,22 @@
     }
 
     function draw() {
-        ctx.clearRect(0,0, canvas.width, canvas.height); // Clear the canvas fully before drawing
-        
-        // Strobe effect for high wanted levels
-        if(gameMode === 'PURSUIT' && Math.floor(frames/15)%2===0) {
-           const wl = Math.min(5, Math.floor(score / 2000) + 1);
-           if(wl >= 4) {
-               ctx.fillStyle = (Math.floor(frames/8)%2) ? "rgba(255, 0, 68, 0.15)" : "rgba(0, 85, 255, 0.15)";
-               ctx.fillRect(0,0, canvas.width, canvas.height);
-           }
-        }
-        
+        ctx.clearRect(0,0, canvas.width, canvas.height); 
+        ctx.fillStyle = "#020208"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         if(gameState === 'PLAYING') {
+             if(gameMode === 'PURSUIT' && Math.floor(frames/15)%2===0) {
+                const wl = Math.min(5, Math.floor(score / 2000) + 1);
+                if(wl >= 4) {
+                    ctx.fillStyle = (Math.floor(frames/8)%2) ? "rgba(255, 0, 68, 0.15)" : "rgba(0, 85, 255, 0.15)";
+                    ctx.fillRect(0,0, canvas.width, canvas.height);
+                }
+            }
             enemies.forEach(e => drawCar(e.x, e.y, e.isPolice ? "#00aaff" : "#ff0044", 'Specter', e.isPolice ? 'police' : 'traffic'));
             if(p1.alive) drawCar(p1.x, p1.y, p1Color, currentCar, 'player');
             if(p2.alive && playerCount === 2) drawCar(p2.x, p2.y, "#ffcc00", currentCar, 'player');
         }
-        update(); requestAnimationFrame(draw);
+        requestAnimationFrame(draw);
     }
 
     function endGame() {
