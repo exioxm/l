@@ -2,37 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer: Velocity Pursuit</title>
+    <title>Nitro Racer: Custom Velocity</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
         #game-container { position: relative; width: 440px; height: 750px; }
         canvas { background: #020208; border: 2px solid #00f2ff; box-shadow: 0 0 50px rgba(0, 242, 255, 0.4); display: block; }
         
-        #ui, #menu, #pursuit-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        /* UI Panels */
+        #ui, .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
         #ui { justify-content: flex-start; padding-top: 20px; visibility: hidden; }
-        .stat-row { width: 380px; display: flex; justify-content: space-between; color: #fff; }
-        .label { font-size: 10px; color: #00f2ff; text-transform: uppercase; letter-spacing: 1px; }
-        .val { font-size: 22px; font-weight: 900; text-shadow: 0 0 10px #00f2ff; font-family: monospace; }
-        
-        #menu, #pursuit-menu { pointer-events: auto; background: rgba(2, 2, 12, 0.95); z-index: 20; }
+        .overlay { pointer-events: auto; background: rgba(2, 2, 12, 0.95); }
         .hidden { display: none !important; }
         
-        h1 { color: #00f2ff; font-size: 42px; margin: 0; text-shadow: 0 0 20px #00f2ff; font-style: italic; }
-        .record { color: #fff; font-family: monospace; margin-bottom: 30px; opacity: 0.8; }
+        .stat-row { width: 380px; display: flex; justify-content: space-between; }
+        .label { font-size: 10px; color: #00f2ff; text-transform: uppercase; }
+        .val { font-size: 22px; font-weight: 900; text-shadow: 0 0 10px #00f2ff; font-family: monospace; }
         
-        .btn {
-            width: 240px; padding: 15px; margin: 8px;
-            background: rgba(0, 242, 255, 0.05); border: 1px solid #00f2ff; color: #00f2ff;
-            font-weight: bold; text-transform: uppercase; cursor: pointer;
-            transition: 0.2s; letter-spacing: 2px;
-        }
-        .btn:hover { background: #00f2ff; color: #000; box-shadow: 0 0 30px #00f2ff; }
-        .btn.pursuit { border-color: #ff0044; color: #ff0044; }
-        .btn.pursuit:hover { background: #ff0044; color: #fff; box-shadow: 0 0 30px #ff0044; }
-
-        #wanted { margin-top: 10px; font-size: 24px; color: #222; letter-spacing: 5px; }
-        .star-active { color: #ff0044; text-shadow: 0 0 10px #ff0044; }
-        .hint { position: absolute; bottom: 30px; color: #555; font-size: 11px; text-align: center; width: 100%; }
+        h1 { color: #00f2ff; font-size: 40px; margin: 0; font-style: italic; text-shadow: 0 0 20px #00f2ff; }
+        .credits-info { margin: 10px 0 30px; font-family: monospace; color: #ffcc00; }
+        
+        .btn { width: 240px; padding: 12px; margin: 5px; background: rgba(0, 242, 255, 0.05); border: 1px solid #00f2ff; color: #00f2ff; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .btn:hover { background: #00f2ff; color: #000; box-shadow: 0 0 20px #00f2ff; }
+        
+        /* Customization Styles */
+        .garage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .car-card { border: 1px solid #333; padding: 10px; cursor: pointer; text-align: center; font-size: 12px; }
+        .car-card.selected { border-color: #00f2ff; box-shadow: 0 0 10px #00f2ff; }
+        .color-row { display: flex; gap: 15px; margin-bottom: 20px; }
+        .color-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; }
     </style>
 </head>
 <body>
@@ -40,101 +37,152 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
+    <!-- In-Game HUD -->
     <div id="ui">
         <div class="stat-row">
             <div><div class="label">Distance</div><div class="val" id="score">0</div></div>
-            <div><div class="label">Velocity</div><div class="val" id="speedDisp">0 <span style="font-size:12px">MPH</span></div></div>
-            <div><div class="label">Record</div><div class="val" id="highScoreUI">0</div></div>
+            <div><div class="label">MPH</div><div class="val" id="speedDisp">0</div></div>
+            <div><div class="label">Credits</div><div class="val" id="creditsUI">0</div></div>
         </div>
-        <div id="wanted">
+        <div id="wanted" style="margin-top:10px; font-size:24px; color:#222; letter-spacing:5px;">
             <span id="s1">★</span><span id="s2">★</span><span id="s3">★</span><span id="s4">★</span><span id="s5">★</span>
         </div>
     </div>
 
-    <div id="menu">
+    <!-- Main Menu -->
+    <div id="menu" class="overlay">
         <h1>NITRO RACER</h1>
-        <div class="record">TOP RECORD: <span id="highScoreMenu">0</span>M</div>
-        <button class="btn" onclick="startMode('NORMAL', 1)">Single Drive</button>
-        <button class="btn" onclick="startMode('DUO', 2)">Duo Drive</button>
-        <button class="btn pursuit" onclick="showPursuitMenu()">Police Pursuit</button>
-        <div class="hint">W/S or UP/DOWN to control Speed</div>
+        <div class="credits-info">CREDITS: <span id="crMenu">0</span></div>
+        <button class="btn" onclick="startGame('NORMAL', 1)">Single Drive</button>
+        <button class="btn" onclick="startGame('DUO', 2)">Duo Drive</button>
+        <button class="btn" style="border-color:#ff0044; color:#ff0044;" onclick="openPanel('pursuit-menu')">Police Pursuit</button>
+        <button class="btn" style="border-color:#fff; color:#fff;" onclick="openPanel('garage')">Customize Garage</button>
     </div>
 
-    <div id="pursuit-menu" class="hidden">
-        <h1 style="color:#ff0044; text-shadow: 0 0 20px #ff0044;">WANTED</h1>
-        <div class="record" style="color:#ff0044">SELECT UNIT COUNT</div>
-        <button class="btn pursuit" onclick="startMode('PURSUIT', 1)">Solo Escape</button>
-        <button class="btn pursuit" onclick="startMode('PURSUIT', 2)">Duo Escape</button>
-        <button class="btn" style="border-color:#555; color:#555;" onclick="showMainMenu()">Back</button>
+    <!-- Pursuit Sub-Menu -->
+    <div id="pursuit-menu" class="overlay hidden">
+        <h1 style="color:#ff0044;">PURSUIT</h1>
+        <p>SELECT UNIT COUNT</p>
+        <button class="btn" onclick="startGame('PURSUIT', 1)">Solo Escape</button>
+        <button class="btn" onclick="startGame('PURSUIT', 2)">Duo Escape</button>
+        <button class="btn" onclick="openPanel('menu')">Back</button>
+    </div>
+
+    <!-- Garage Panel -->
+    <div id="garage" class="overlay hidden">
+        <h1>GARAGE</h1>
+        <div class="credits-info">CREDITS: <span id="crGarage">0</span></div>
+        
+        <div class="garage-grid" id="carGrid">
+            <!-- Cars generated by JS -->
+        </div>
+
+        <div class="color-row">
+            <div class="color-dot" style="background:#00f2ff" onclick="setColor('#00f2ff')"></div>
+            <div class="color-dot" style="background:#ff00ff" onclick="setColor('#ff00ff')"></div>
+            <div class="color-dot" style="background:#ffff00" onclick="setColor('#ffff00')"></div>
+            <div class="color-dot" style="background:#00ff00" onclick="setColor('#00ff00')"></div>
+        </div>
+
+        <button class="btn" onclick="openPanel('menu')">Save & Back</button>
     </div>
 </div>
 
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    const ui = document.getElementById("ui");
-    const menu = document.getElementById("menu");
-    const pursuitMenu = document.getElementById("pursuit-menu");
-    const scoreVal = document.getElementById("score");
-    const speedVal = document.getElementById("speedDisp");
-    const highVal = document.getElementById("highScoreUI");
-    const highMenuVal = document.getElementById("highScoreMenu");
-
-    canvas.width = 440;
-    canvas.height = 750;
-
-    let gameState = 'START';
-    let gameMode = 'NORMAL'; 
-    let playerCount = 1;
-    let score = 0;
-    let wantedLevel = 0;
+    
+    // Game Data
+    let credits = parseInt(localStorage.getItem('nitroCr')) || 0;
     let highScore = localStorage.getItem('nitroHigh') || 0;
-    let speedMPH = 0;
-    let targetSpeed = 8;
-    let frames = 0;
-    let enemies = [];
-    let keys = {};
+    let unlockedCars = JSON.parse(localStorage.getItem('nitroCars')) || ['Specter'];
+    let currentCar = localStorage.getItem('nitroActiveCar') || 'Specter';
+    let p1Color = localStorage.getItem('nitroColor') || '#00f2ff';
 
-    highMenuVal.innerText = Number(highScore).toLocaleString();
+    const carData = {
+        'Specter': { w: 42, h: 84, price: 0, desc: 'Balanced' },
+        'Interceptor': { w: 34, h: 90, price: 5000, desc: 'Slim & Fast' },
+        'Goliath': { w: 52, h: 80, price: 10000, desc: 'Heavy Tank' }
+    };
+
+    let gameState = 'START', gameMode = 'NORMAL', playerCount = 1;
+    let score = 0, targetSpeed = 8, frames = 0, enemies = [], keys = {};
+    const p1 = { x: 200, y: 580, alive: true }, p2 = { x: 280, y: 580, alive: true };
+
+    // Initialization
+    function updateCurrencyUI() {
+        document.getElementById('crMenu').innerText = credits;
+        document.getElementById('crGarage').innerText = credits;
+        document.getElementById('creditsUI').innerText = credits;
+    }
+    updateCurrencyUI();
 
     window.addEventListener("keydown", (e) => keys[e.code] = true);
     window.addEventListener("keyup", (e) => keys[e.code] = false);
 
-    function showPursuitMenu() { menu.classList.add('hidden'); pursuitMenu.classList.remove('hidden'); }
-    function showMainMenu() { pursuitMenu.classList.add('hidden'); menu.classList.remove('hidden'); }
-
-    const p1 = { x: 200, y: 580, w: 42, h: 84, color: "#00f2ff", alive: true };
-    const p2 = { x: 280, y: 580, w: 42, h: 84, color: "#ffcc00", alive: true };
-
-    function startMode(mode, count) {
-        gameMode = mode; playerCount = count; gameState = 'PLAYING';
-        score = 0; speedMPH = 60; targetSpeed = 8; wantedLevel = 0; enemies = [];
-        p1.x = playerCount === 2 ? 120 : 200; p1.alive = true;
-        p2.x = 280; p2.alive = playerCount === 2;
-        menu.classList.add('hidden'); pursuitMenu.classList.add('hidden');
-        ui.style.visibility = 'visible';
-        document.getElementById('wanted').style.visibility = mode === 'PURSUIT' ? 'visible' : 'hidden';
-        highVal.innerText = Number(highScore).toLocaleString();
+    function openPanel(id) {
+        document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if(id === 'garage') renderGarage();
     }
 
-    function drawCar(x, y, w, h, color, type) {
+    function renderGarage() {
+        const grid = document.getElementById('carGrid');
+        grid.innerHTML = '';
+        for(let name in carData) {
+            const isUnlocked = unlockedCars.includes(name);
+            const card = document.createElement('div');
+            card.className = `car-card ${currentCar === name ? 'selected' : ''}`;
+            card.innerHTML = `
+                <b>${name}</b><br>${carData[name].desc}<br>
+                ${isUnlocked ? '(OWNED)' : '<span style="color:#ffcc00">$' + carData[name].price + '</span>'}
+            `;
+            card.onclick = () => {
+                if(isUnlocked) {
+                    currentCar = name;
+                    localStorage.setItem('nitroActiveCar', name);
+                    renderGarage();
+                } else if (credits >= carData[name].price) {
+                    credits -= carData[name].price;
+                    unlockedCars.push(name);
+                    localStorage.setItem('nitroCr', credits);
+                    localStorage.setItem('nitroCars', JSON.stringify(unlockedCars));
+                    updateCurrencyUI();
+                    renderGarage();
+                }
+            };
+            grid.appendChild(card);
+        }
+    }
+
+    function setColor(c) { p1Color = c; localStorage.setItem('nitroColor', c); }
+
+    function startGame(mode, count) {
+        gameMode = mode; playerCount = count; gameState = 'PLAYING';
+        score = 0; targetSpeed = 8; enemies = [];
+        p1.x = playerCount === 2 ? 120 : 200; p1.alive = true;
+        p2.x = 280; p2.alive = playerCount === 2;
+        document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden'));
+        document.getElementById('ui').style.visibility = 'visible';
+    }
+
+    function drawCar(x, y, color, name, type) {
+        const d = carData[name] || {w: 42, h: 84};
         ctx.save();
         ctx.shadowBlur = 15; ctx.shadowColor = color;
         ctx.strokeStyle = color; ctx.lineWidth = 2;
         ctx.beginPath();
-        if (type === 'player') {
-            ctx.moveTo(x + w/2, y); ctx.lineTo(x + w, y + h*0.3); ctx.lineTo(x + w*0.8, y + h*0.9);
-            ctx.lineTo(x + w*0.2, y + h*0.9); ctx.lineTo(x, y + h*0.3);
-        } else {
-            ctx.moveTo(x + w*0.1, y); ctx.lineTo(x + w*0.9, y); ctx.lineTo(x + w, y + h*0.2);
-            ctx.lineTo(x + w, y + h*0.8); ctx.lineTo(x + w*0.7, y + h); ctx.lineTo(x + w*0.3, y + h);
-            ctx.lineTo(x, y + h*0.8); ctx.lineTo(x, y + h*0.2);
+        if(name === 'Specter') {
+            ctx.moveTo(x + d.w/2, y); ctx.lineTo(x + d.w, y + d.h*0.3); ctx.lineTo(x + d.w*0.8, y + d.h*0.9); ctx.lineTo(x + d.w*0.2, y + d.h*0.9); ctx.lineTo(x, y + d.h*0.3);
+        } else if(name === 'Interceptor') {
+            ctx.moveTo(x + d.w/2, y); ctx.lineTo(x + d.w, y + d.h); ctx.lineTo(x, y + d.h);
+        } else { // Goliath
+            ctx.rect(x, y, d.w, d.h);
         }
         ctx.closePath(); ctx.fillStyle = "#050505"; ctx.fill(); ctx.stroke();
         if(type === 'police') {
-            const flash = Math.floor(frames / 8) % 2 === 0;
-            ctx.fillStyle = flash ? "#ff0044" : "#00aaff";
-            ctx.fillRect(x + w*0.2, y + h*0.1, w*0.6, 6);
+            ctx.fillStyle = (Math.floor(frames/8)%2) ? "#ff0044" : "#00aaff";
+            ctx.fillRect(x + d.w*0.2, y + 5, d.w*0.6, 5);
         }
         ctx.restore();
     }
@@ -143,49 +191,37 @@
         if(gameState !== 'PLAYING') return;
         frames++;
         
-        // MPH and Base Speed Logic
-        let baseMax = 12 + (gameMode === 'PURSUIT' ? wantedLevel : 0);
-        let currentThrottle = 0;
-        if (keys['KeyW'] || keys['ArrowUp']) currentThrottle = 1;
-        if (keys['KeyS'] || keys['ArrowDown']) currentThrottle = -1;
-
-        if (currentThrottle > 0) targetSpeed += 0.05;
-        else if (currentThrottle < 0) targetSpeed -= 0.1;
-        else targetSpeed *= 0.99; // Natural drag
-
-        targetSpeed = Math.max(6, Math.min(baseMax, targetSpeed));
-        speedMPH = Math.floor(targetSpeed * 15);
-        speedVal.innerHTML = `${speedMPH} <span style="font-size:12px">MPH</span>`;
-
-        score += Math.floor(targetSpeed / 5);
-        scoreVal.innerText = score.toLocaleString();
-
-        if (gameMode === 'PURSUIT') {
-            wantedLevel = Math.min(5, Math.floor(score / 2500) + 1);
-            for(let i=1; i<=5; i++) document.getElementById('s'+i).className = i <= wantedLevel ? 'star-active' : '';
-        }
+        let throttle = (keys['KeyW'] || keys['ArrowUp']) ? 0.08 : (keys['KeyS'] || keys['ArrowDown']) ? -0.12 : -0.02;
+        targetSpeed = Math.max(5, Math.min(15, targetSpeed + throttle));
+        
+        score += Math.floor(targetSpeed * 0.1);
+        credits += Math.floor(targetSpeed * 0.05); // Earn credits
+        document.getElementById('score').innerText = score;
+        document.getElementById('speedDisp').innerText = Math.floor(targetSpeed * 15);
+        updateCurrencyUI();
 
         // Steering
+        const speedMult = 8;
         if(p1.alive) {
-            if(keys['KeyA']) p1.x -= 8; if(keys['KeyD']) p1.x += 8;
-            p1.x = Math.max(20, Math.min(canvas.width - p1.w - 20, p1.x));
+            if(keys['KeyA']) p1.x -= speedMult; if(keys['KeyD']) p1.x += speedMult;
+            p1.x = Math.max(10, Math.min(canvas.width - carData[currentCar].w - 10, p1.x));
         }
         if(p2.alive && playerCount === 2) {
-            if(keys['ArrowLeft']) p2.x -= 8; if(keys['ArrowRight']) p2.x += 8;
-            p2.x = Math.max(20, Math.min(canvas.width - p2.w - 20, p2.x));
+            if(keys['ArrowLeft']) p2.x -= speedMult; if(keys['ArrowRight']) p2.x += speedMult;
+            p2.x = Math.max(10, Math.min(canvas.width - carData[currentCar].w - 10, p2.x));
         }
 
         // Enemies
-        let spawnRate = gameMode === 'PURSUIT' ? Math.max(7, 35 - (wantedLevel * 5)) : 40;
-        if (frames % Math.floor(spawnRate) === 0) {
-            enemies.push({ x: 30 + Math.random() * (canvas.width - 90), y: -100, w: 46, h: 80, isPolice: gameMode === 'PURSUIT' });
+        if (frames % 35 === 0) {
+            enemies.push({ x: 30 + Math.random() * 350, y: -100, w: 40, h: 80, isPolice: gameMode === 'PURSUIT' });
         }
 
         enemies.forEach((e, i) => {
-            e.y += targetSpeed + (gameMode === 'PURSUIT' ? wantedLevel * 0.4 : 1);
+            e.y += targetSpeed + 2;
             if(e.y > canvas.height) enemies.splice(i, 1);
             [p1, p2].forEach(p => {
-                if(p.alive && p.x < e.x + e.w-5 && p.x + p.w > e.x+5 && p.y < e.y + e.h-5 && p.y + p.h > e.y+5) p.alive = false;
+                const d = carData[currentCar];
+                if(p.alive && p.x < e.x + e.w && p.x + d.w > e.x && p.y < e.y + e.h && p.y + d.h > e.y) p.alive = false;
             });
         });
 
@@ -193,30 +229,21 @@
     }
 
     function draw() {
-        ctx.fillStyle = (gameMode === 'PURSUIT' && wantedLevel >= 4 && Math.floor(frames/15)%2===0) ? "#1a0000" : "#020208";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+        ctx.fillStyle = "#020208"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         if(gameState === 'PLAYING') {
-            ctx.strokeStyle = "rgba(0, 242, 255, 0.05)";
-            for(let i=0; i<8; i++) {
-                let scroll = (frames * targetSpeed) % 63;
-                ctx.beginPath(); ctx.moveTo(i * 63, 0); ctx.lineTo(i * 63, canvas.height); ctx.stroke();
-            }
-            enemies.forEach(e => drawCar(e.x, e.y, e.w, e.h, e.isPolice ? "#00aaff" : "#ff0044", e.isPolice ? 'police' : 'traffic'));
-            if(p1.alive) drawCar(p1.x, p1.y, p1.w, p1.h, p1.color, 'player');
-            if(p2.alive && playerCount === 2) drawCar(p2.x, p2.y, p2.w, p2.h, p2.color, 'player');
+            enemies.forEach(e => drawCar(e.x, e.y, e.isPolice ? "#00aaff" : "#ff0044", 'Specter', e.isPolice ? 'police' : 'traffic'));
+            if(p1.alive) drawCar(p1.x, p1.y, p1Color, currentCar, 'player');
+            if(p2.alive && playerCount === 2) drawCar(p2.x, p2.y, "#ffcc00", currentCar, 'player');
         }
         update(); requestAnimationFrame(draw);
     }
 
     function endGame() {
-        if(score > highScore) { 
-            highScore = score; 
-            localStorage.setItem('nitroHigh', highScore);
-            highMenuVal.innerText = Number(highScore).toLocaleString();
-        }
-        gameState = 'START'; ui.style.visibility = 'hidden'; 
-        menu.classList.remove('hidden');
+        localStorage.setItem('nitroCr', credits);
+        if(score > highScore) localStorage.setItem('nitroHigh', score);
+        gameState = 'START'; 
+        document.getElementById('ui').style.visibility = 'hidden';
+        openPanel('menu');
     }
     draw();
 </script>
