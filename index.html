@@ -1,1 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nitro Racer: Cyber Night</title>
+    <style>
+        body { margin: 0; background: #050510; overflow: hidden; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { background: #0a0a1a; border: 3px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; border-radius: 8px; }
+        #ui { position: absolute; top: 20px; left: 20px; color: #00f2ff; text-transform: uppercase; letter-spacing: 2px; pointer-events: none; }
+        .score-box { font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #00f2ff; }
+    </style>
+</head>
+<body>
+    <div id="ui"><div class="score-box">DISTANCE: <span id="score">0</span>m</div></div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreVal = document.getElementById("score");
+
+    canvas.width = 400;
+    canvas.height = 700;
+
+    let score = 0;
+    let speed = 8;
+    let frames = 0;
+    let particles = [];
+    let enemies = [];
+    let roadLines = [];
+
+    const player = { x: 175, y: 550, w: 45, h: 85, color: "#ff0055", targetX: 175 };
+
+    // Handle Input
+    window.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        player.targetX = e.clientX - rect.left - player.w / 2;
+    });
+
+    function createParticle(x, y) {
+        particles.push({ x, y, size: Math.random() * 4, speedY: speed * 0.5, life: 1 });
+    }
+
+    function drawCar(x, y, w, h, color, isPlayer) {
+        ctx.save();
+        // Car Body Shadow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = color;
+        
+        // Body
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, w, h);
+        
+        // Windows & Details
+        ctx.fillStyle = "rgba(0, 242, 255, 0.4)";
+        ctx.fillRect(x + 5, y + 10, w - 10, 25); // Windshield
+        
+        // Glowy Headlights
+        ctx.fillStyle = isPlayer ? "#00f2ff" : "#ffcc00";
+        ctx.fillRect(x + 5, y, 8, 4);
+        ctx.fillRect(x + w - 13, y, 8, 4);
+
+        if(isPlayer) { // Thruster particles
+            for(let i=0; i<2; i++) createParticle(x + (i===0 ? 10 : 35), y + h);
+        }
+        ctx.restore();
+    }
+
+    function update() {
+        frames++;
+        score += Math.floor(speed / 5);
+        scoreVal.innerText = score;
+
+        // Smooth Movement
+        player.x += (player.targetX - player.x) * 0.15;
+        if(player.x < 15) player.x = 15;
+        if(player.x > canvas.width - player.w - 15) player.x = canvas.width - player.w - 15;
+
+        // Obstacle Spawning
+        if (frames % Math.max(15, 60 - Math.floor(score/100)) === 0) {
+            enemies.push({ x: Math.random() * (canvas.width - 50), y: -100, color: "#5500ff" });
+        }
+
+        // Particle Logic
+        particles.forEach((p, i) => {
+            p.y += p.speedY;
+            p.life -= 0.02;
+            if(p.life <= 0) particles.splice(i, 1);
+        });
+
+        // Enemy Logic
+        enemies.forEach((e, i) => {
+            e.y += speed + 2;
+            if(e.y > canvas.height) enemies.splice(i, 1);
+
+            // Collision
+            if (player.x < e.x + 45 && player.x + player.w > e.x &&
+                player.y < e.y + 85 && player.y + player.h > e.y) {
+                alert("GAME OVER! SCORE: " + score);
+                location.reload();
+            }
+        });
+
+        if(score % 100 === 0) speed += 0.1; // Slow speed increase
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Road Glow
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.1)";
+        ctx.lineWidth = 4;
+        for(let i=0; i<4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * 100, 0);
+            ctx.lineTo(i * 100, canvas.height);
+            ctx.stroke();
+        }
+
+        // Particles
+        particles.forEach(p => {
+            ctx.fillStyle = `rgba(0, 242, 255, ${p.life})`;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+
+        // Entities
+        drawCar(player.x, player.y, player.w, player.h, player.color, true);
+        enemies.forEach(e => drawCar(e.x, e.y, 45, 85, e.color, false));
+
+        update();
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
+</body>
+</html>
 
