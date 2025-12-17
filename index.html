@@ -3,105 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Car Game</title>
+    <title>Nitro Racer Pro</title>
     <style>
-        body { margin: 0; background: #333; overflow: hidden; font-family: sans-serif; }
-        canvas { display: block; margin: 0 auto; background: #555; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
+        body { margin: 0; background: #222; overflow: hidden; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #game-wrap { position: relative; border: 4px solid #444; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        canvas { display: block; background: #333; cursor: crosshair; }
+        #hud { position: absolute; top: 10px; left: 10px; color: #0f0; text-shadow: 1px 1px #000; pointer-events: none; }
+        .stat { font-size: 18px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
-    <div id="ui">Score: <span id="score">0</span><br>Use WASD or Arrows to Move</div>
-    <canvas id="gameCanvas"></canvas>
+    <div id="game-wrap">
+        <div id="hud">
+            <div class="stat">SCORE: <span id="score">0</span></div>
+            <div class="stat">SPEED: <span id="speed">0</span> MPH</div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
 
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const scoreElement = document.getElementById("score");
+    const speedElement = document.getElementById("speed");
 
-    canvas.width = 400;
-    canvas.height = window.innerHeight;
+    canvas.width = 360;
+    canvas.height = 600;
 
     let score = 0;
+    let gameSpeed = 5;
     let gameRunning = true;
-    let keys = {};
+    let roadOffset = 0;
+    let mouseX = canvas.width / 2;
 
-    // Player car properties
-    const player = {
-        x: canvas.width / 2 - 25,
-        y: canvas.height - 120,
-        w: 50,
-        h: 80,
-        speed: 5,
-        color: "#e94560"
-    };
+    const player = { x: 155, y: 480, w: 50, h: 90, color: "#ff3e3e" };
+    let enemies = [];
 
-    // Obstacle (enemy cars) properties
-    let obstacles = [];
-    function spawnObstacle() {
-        const x = Math.random() * (canvas.width - 50);
-        obstacles.push({ x: x, y: -100, w: 50, h: 80, speed: 3 + Math.random() * 4, color: "#0f3460" });
+    // Controls: Track mouse/touch for steering
+    canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left - player.w / 2;
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.touches[0].clientX - rect.left - player.w / 2;
+        e.preventDefault();
+    }, {passive: false});
+
+    function spawnEnemy() {
+        if (Math.random() < 0.02 + (score / 5000)) {
+            const lanes = [40, 130, 220, 280];
+            const laneX = lanes[Math.floor(Math.random() * lanes.length)];
+            enemies.push({
+                x: laneX, y: -100, w: 50, h: 90, 
+                speed: gameSpeed + (Math.random() * 2),
+                color: `hsl(${Math.random() * 360}, 70%, 50%)`
+            });
+        }
     }
 
-    // Keyboard listeners
-    window.addEventListener("keydown", (e) => keys[e.code] = true);
-    window.addEventListener("keyup", (e) => keys[e.code] = false);
+    function drawCar(x, y, w, h, color, isPlayer) {
+        // Main Body
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, w, h);
+        
+        // Windows
+        ctx.fillStyle = "#333";
+        ctx.fillRect(x + 5, y + 15, w - 10, 20); // Front windshield
+        ctx.fillRect(x + 5, y + 60, w - 10, 15); // Back window
+
+        // Tires
+        ctx.fillStyle = "#000";
+        ctx.fillRect(x - 5, y + 10, 10, 20);
+        ctx.fillRect(x + w - 5, y + 10, 10, 20);
+        ctx.fillRect(x - 5, y + 60, 10, 20);
+        ctx.fillRect(x + w - 5, y + 60, 10, 20);
+
+        // Headlights / Tail-lights
+        ctx.fillStyle = isPlayer ? "white" : "red";
+        ctx.fillRect(x + 5, y, 10, 5);
+        ctx.fillRect(x + w - 15, y, 10, 5);
+    }
 
     function update() {
         if (!gameRunning) return;
 
-        // Player Movement
-        if ((keys["ArrowLeft"] || keys["KeyA"]) && player.x > 0) player.x -= player.speed;
-        if ((keys["ArrowRight"] || keys["KeyD"]) && player.x < canvas.width - player.w) player.x += player.speed;
-        if ((keys["ArrowUp"] || keys["KeyW"]) && player.y > 0) player.y -= player.speed;
-        if ((keys["ArrowDown"] || keys["KeyS"]) && player.y < canvas.height - player.h) player.y += player.speed;
+        // Smooth steering
+        player.x += (mouseX - player.x) * 0.15;
+        if (player.x < 10) player.x = 10;
+        if (player.x > canvas.width - player.w - 10) player.x = canvas.width - player.w - 10;
 
-        // Obstacle Logic
-        if (Math.random() < 0.02) spawnObstacle();
+        // Road movement
+        roadOffset += gameSpeed;
+        if (roadOffset > 100) roadOffset = 0;
 
-        obstacles.forEach((obs, index) => {
+        // Difficulty scaling
+        gameSpeed = 5 + Math.floor(score / 20);
+        speedElement.innerText = Math.floor(gameSpeed * 10);
+
+        enemies.forEach((obs, index) => {
             obs.y += obs.speed;
 
-            // Collision Detection
+            // Collision check
             if (player.x < obs.x + obs.w && player.x + player.w > obs.x &&
                 player.y < obs.y + obs.h && player.y + player.h > obs.y) {
                 gameRunning = false;
-                alert("Game Over! Final Score: " + score);
-                location.reload();
+                setTimeout(() => {
+                    alert("WRECKED! Final Score: " + score);
+                    location.reload();
+                }, 10);
             }
 
-            // Remove off-screen obstacles and increase score
             if (obs.y > canvas.height) {
-                obstacles.splice(index, 1);
-                score++;
+                enemies.splice(index, 1);
+                score += 10;
                 scoreElement.innerText = score;
             }
         });
+        spawnEnemy();
     }
 
     function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Draw Road
+        ctx.fillStyle = "#444";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Road Lines
-        ctx.strokeStyle = "white";
-        ctx.setLineDash([20, 20]);
+        // Road Lines (Scrolling effect)
+        ctx.strokeStyle = "#fff";
+        ctx.setLineDash([40, 60]);
+        ctx.lineDashOffset = -roadOffset;
+        ctx.lineWidth = 6;
+        
         ctx.beginPath();
         ctx.moveTo(canvas.width / 2, 0);
         ctx.lineTo(canvas.width / 2, canvas.height);
         ctx.stroke();
 
-        // Draw Player Car
-        ctx.fillStyle = player.color;
-        ctx.fillRect(player.x, player.y, player.w, player.h);
-
-        // Draw Obstacles
-        obstacles.forEach(obs => {
-            ctx.fillStyle = obs.color;
-            ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-        });
+        // Draw Entities
+        drawCar(player.x, player.y, player.w, player.h, player.color, true);
+        enemies.forEach(obs => drawCar(obs.x, obs.y, obs.w, obs.h, obs.color, false));
 
         update();
-        requestAnimationFrame(draw); // Game Loop
+        requestAnimationFrame(draw);
     }
 
     draw();
