@@ -1,1 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Car Game</title>
+    <style>
+        body { margin: 0; background: #333; overflow: hidden; font-family: sans-serif; }
+        canvas { display: block; margin: 0 auto; background: #555; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="ui">Score: <span id="score">0</span><br>Use WASD or Arrows to Move</div>
+    <canvas id="gameCanvas"></canvas>
 
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreElement = document.getElementById("score");
+
+    canvas.width = 400;
+    canvas.height = window.innerHeight;
+
+    let score = 0;
+    let gameRunning = true;
+    let keys = {};
+
+    // Player car properties
+    const player = {
+        x: canvas.width / 2 - 25,
+        y: canvas.height - 120,
+        w: 50,
+        h: 80,
+        speed: 5,
+        color: "#e94560"
+    };
+
+    // Obstacle (enemy cars) properties
+    let obstacles = [];
+    function spawnObstacle() {
+        const x = Math.random() * (canvas.width - 50);
+        obstacles.push({ x: x, y: -100, w: 50, h: 80, speed: 3 + Math.random() * 4, color: "#0f3460" });
+    }
+
+    // Keyboard listeners
+    window.addEventListener("keydown", (e) => keys[e.code] = true);
+    window.addEventListener("keyup", (e) => keys[e.code] = false);
+
+    function update() {
+        if (!gameRunning) return;
+
+        // Player Movement
+        if ((keys["ArrowLeft"] || keys["KeyA"]) && player.x > 0) player.x -= player.speed;
+        if ((keys["ArrowRight"] || keys["KeyD"]) && player.x < canvas.width - player.w) player.x += player.speed;
+        if ((keys["ArrowUp"] || keys["KeyW"]) && player.y > 0) player.y -= player.speed;
+        if ((keys["ArrowDown"] || keys["KeyS"]) && player.y < canvas.height - player.h) player.y += player.speed;
+
+        // Obstacle Logic
+        if (Math.random() < 0.02) spawnObstacle();
+
+        obstacles.forEach((obs, index) => {
+            obs.y += obs.speed;
+
+            // Collision Detection
+            if (player.x < obs.x + obs.w && player.x + player.w > obs.x &&
+                player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+                gameRunning = false;
+                alert("Game Over! Final Score: " + score);
+                location.reload();
+            }
+
+            // Remove off-screen obstacles and increase score
+            if (obs.y > canvas.height) {
+                obstacles.splice(index, 1);
+                score++;
+                scoreElement.innerText = score;
+            }
+        });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Road Lines
+        ctx.strokeStyle = "white";
+        ctx.setLineDash([20, 20]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+
+        // Draw Player Car
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+
+        // Draw Obstacles
+        obstacles.forEach(obs => {
+            ctx.fillStyle = obs.color;
+            ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+        });
+
+        update();
+        requestAnimationFrame(draw); // Game Loop
+    }
+
+    draw();
+</script>
+</body>
+</html>
