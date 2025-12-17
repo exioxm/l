@@ -2,203 +2,221 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer: Multi-Mode Edition</title>
+    <title>Nitro Racer: Velocity Pursuit</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { background: #020208; border: 2px solid #00f2ff; box-shadow: 0 0 50px rgba(0, 242, 255, 0.4); }
-        #ui { position: absolute; top: 20px; width: 400px; display: flex; justify-content: space-between; color: #fff; pointer-events: none; visibility: hidden; z-index: 10; }
-        .label { font-size: 10px; color: #00f2ff; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+        #game-container { position: relative; width: 440px; height: 750px; }
+        canvas { background: #020208; border: 2px solid #00f2ff; box-shadow: 0 0 50px rgba(0, 242, 255, 0.4); display: block; }
+        
+        #ui, #menu, #pursuit-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #ui { justify-content: flex-start; padding-top: 20px; visibility: hidden; }
+        .stat-row { width: 380px; display: flex; justify-content: space-between; color: #fff; }
+        .label { font-size: 10px; color: #00f2ff; text-transform: uppercase; letter-spacing: 1px; }
         .val { font-size: 22px; font-weight: 900; text-shadow: 0 0 10px #00f2ff; font-family: monospace; }
-        #wanted { position: absolute; top: 70px; width: 100%; text-align: center; font-size: 24px; color: #555; letter-spacing: 5px; visibility: hidden; }
+        
+        #menu, #pursuit-menu { pointer-events: auto; background: rgba(2, 2, 12, 0.95); z-index: 20; }
+        .hidden { display: none !important; }
+        
+        h1 { color: #00f2ff; font-size: 42px; margin: 0; text-shadow: 0 0 20px #00f2ff; font-style: italic; }
+        .record { color: #fff; font-family: monospace; margin-bottom: 30px; opacity: 0.8; }
+        
+        .btn {
+            width: 240px; padding: 15px; margin: 8px;
+            background: rgba(0, 242, 255, 0.05); border: 1px solid #00f2ff; color: #00f2ff;
+            font-weight: bold; text-transform: uppercase; cursor: pointer;
+            transition: 0.2s; letter-spacing: 2px;
+        }
+        .btn:hover { background: #00f2ff; color: #000; box-shadow: 0 0 30px #00f2ff; }
+        .btn.pursuit { border-color: #ff0044; color: #ff0044; }
+        .btn.pursuit:hover { background: #ff0044; color: #fff; box-shadow: 0 0 30px #ff0044; }
+
+        #wanted { margin-top: 10px; font-size: 24px; color: #222; letter-spacing: 5px; }
         .star-active { color: #ff0044; text-shadow: 0 0 10px #ff0044; }
-        .controls-hint { position: absolute; bottom: 20px; color: rgba(0, 242, 255, 0.5); font-size: 12px; text-align: center; width: 100%; visibility: hidden; }
+        .hint { position: absolute; bottom: 30px; color: #555; font-size: 11px; text-align: center; width: 100%; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <div><div class="label">Distance</div><div class="val" id="score">0</div></div>
-        <div><div class="label">Record</div><div class="val" id="highScoreUI">0</div></div>
-    </div>
-    <div id="wanted">
-        <span id="s1">★</span><span id="s2">★</span><span id="s3">★</span><span id="s4">★</span><span id="s5">★</span>
-    </div>
-    <div id="hint" class="controls-hint">P1: [A][D] | P2: [←][→]</div>
+
+<div id="game-container">
     <canvas id="gameCanvas"></canvas>
+
+    <div id="ui">
+        <div class="stat-row">
+            <div><div class="label">Distance</div><div class="val" id="score">0</div></div>
+            <div><div class="label">Velocity</div><div class="val" id="speedDisp">0 <span style="font-size:12px">MPH</span></div></div>
+            <div><div class="label">Record</div><div class="val" id="highScoreUI">0</div></div>
+        </div>
+        <div id="wanted">
+            <span id="s1">★</span><span id="s2">★</span><span id="s3">★</span><span id="s4">★</span><span id="s5">★</span>
+        </div>
+    </div>
+
+    <div id="menu">
+        <h1>NITRO RACER</h1>
+        <div class="record">TOP RECORD: <span id="highScoreMenu">0</span>M</div>
+        <button class="btn" onclick="startMode('NORMAL', 1)">Single Drive</button>
+        <button class="btn" onclick="startMode('DUO', 2)">Duo Drive</button>
+        <button class="btn pursuit" onclick="showPursuitMenu()">Police Pursuit</button>
+        <div class="hint">W/S or UP/DOWN to control Speed</div>
+    </div>
+
+    <div id="pursuit-menu" class="hidden">
+        <h1 style="color:#ff0044; text-shadow: 0 0 20px #ff0044;">WANTED</h1>
+        <div class="record" style="color:#ff0044">SELECT UNIT COUNT</div>
+        <button class="btn pursuit" onclick="startMode('PURSUIT', 1)">Solo Escape</button>
+        <button class="btn pursuit" onclick="startMode('PURSUIT', 2)">Duo Escape</button>
+        <button class="btn" style="border-color:#555; color:#555;" onclick="showMainMenu()">Back</button>
+    </div>
+</div>
 
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const ui = document.getElementById("ui");
-    const wantedUI = document.getElementById("wanted");
+    const menu = document.getElementById("menu");
+    const pursuitMenu = document.getElementById("pursuit-menu");
     const scoreVal = document.getElementById("score");
+    const speedVal = document.getElementById("speedDisp");
     const highVal = document.getElementById("highScoreUI");
+    const highMenuVal = document.getElementById("highScoreMenu");
 
     canvas.width = 440;
     canvas.height = 750;
 
     let gameState = 'START';
-    let gameMode = 'NORMAL'; // 'NORMAL', 'DUO', 'PURSUIT'
+    let gameMode = 'NORMAL'; 
+    let playerCount = 1;
     let score = 0;
     let wantedLevel = 0;
     let highScore = localStorage.getItem('nitroHigh') || 0;
-    let speed = 9;
+    let speedMPH = 0;
+    let targetSpeed = 8;
     let frames = 0;
     let enemies = [];
     let keys = {};
 
-    const p1 = { x: 150, y: 580, w: 42, h: 84, color: "#00f2ff", alive: true };
-    const p2 = { x: 250, y: 580, w: 42, h: 84, color: "#ffcc00", alive: true };
+    highMenuVal.innerText = Number(highScore).toLocaleString();
 
-    window.addEventListener("keydown", (e) => {
-        keys[e.code] = true;
-        if(gameState === 'START') {
-            if(e.code === 'Digit1') startMode('NORMAL');
-            if(e.code === 'Digit2') startMode('DUO');
-            if(e.code === 'Digit3') startMode('PURSUIT');
-        }
-    });
+    window.addEventListener("keydown", (e) => keys[e.code] = true);
     window.addEventListener("keyup", (e) => keys[e.code] = false);
 
-    function startMode(mode) {
-        gameMode = mode;
-        gameState = 'PLAYING';
-        score = 0; speed = 9; wantedLevel = 0; enemies = [];
-        const isTwoPlayerMode = mode === 'DUO' || mode === 'PURSUIT';
-        
-        p1.x = isTwoPlayerMode ? 120 : 200; p1.alive = true;
-        p2.x = 280; p2.alive = isTwoPlayerMode;
+    function showPursuitMenu() { menu.classList.add('hidden'); pursuitMenu.classList.remove('hidden'); }
+    function showMainMenu() { pursuitMenu.classList.add('hidden'); menu.classList.remove('hidden'); }
 
+    const p1 = { x: 200, y: 580, w: 42, h: 84, color: "#00f2ff", alive: true };
+    const p2 = { x: 280, y: 580, w: 42, h: 84, color: "#ffcc00", alive: true };
+
+    function startMode(mode, count) {
+        gameMode = mode; playerCount = count; gameState = 'PLAYING';
+        score = 0; speedMPH = 60; targetSpeed = 8; wantedLevel = 0; enemies = [];
+        p1.x = playerCount === 2 ? 120 : 200; p1.alive = true;
+        p2.x = 280; p2.alive = playerCount === 2;
+        menu.classList.add('hidden'); pursuitMenu.classList.add('hidden');
         ui.style.visibility = 'visible';
-        document.getElementById("hint").style.visibility = 'visible';
-        wantedUI.style.visibility = mode === 'PURSUIT' ? 'visible' : 'hidden';
+        document.getElementById('wanted').style.visibility = mode === 'PURSUIT' ? 'visible' : 'hidden';
         highVal.innerText = Number(highScore).toLocaleString();
     }
 
-    function drawCarShape(x, y, w, h, color, type) {
+    function drawCar(x, y, w, h, color, type) {
         ctx.save();
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = color;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.shadowBlur = 15; ctx.shadowColor = color;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
         ctx.beginPath();
-
         if (type === 'player') {
-            // Sleek Arrow Shape
             ctx.moveTo(x + w/2, y); ctx.lineTo(x + w, y + h*0.3); ctx.lineTo(x + w*0.8, y + h*0.9);
             ctx.lineTo(x + w*0.2, y + h*0.9); ctx.lineTo(x, y + h*0.3);
         } else {
-            // Heavy Interceptor Shape (Enemy)
             ctx.moveTo(x + w*0.1, y); ctx.lineTo(x + w*0.9, y); ctx.lineTo(x + w, y + h*0.2);
             ctx.lineTo(x + w, y + h*0.8); ctx.lineTo(x + w*0.7, y + h); ctx.lineTo(x + w*0.3, y + h);
             ctx.lineTo(x, y + h*0.8); ctx.lineTo(x, y + h*0.2);
         }
         ctx.closePath(); ctx.fillStyle = "#050505"; ctx.fill(); ctx.stroke();
-
-        if(type === 'enemy_police') {
-            const flash = Math.floor(frames / 10) % 2 === 0;
-            ctx.fillStyle = flash ? "#ff0000" : "#0055ff";
-            ctx.fillRect(x + w*0.25, y + h*0.1, w*0.5, 6);
-        } else if (type === 'enemy_traffic') {
-             ctx.fillStyle = "rgba(255, 0, 85, 0.4)";
-             ctx.fillRect(x + w*0.2, y + h*0.25, w*0.6, h*0.15);
+        if(type === 'police') {
+            const flash = Math.floor(frames / 8) % 2 === 0;
+            ctx.fillStyle = flash ? "#ff0044" : "#00aaff";
+            ctx.fillRect(x + w*0.2, y + h*0.1, w*0.6, 6);
         }
         ctx.restore();
-    }
-
-    function drawMenu() {
-        ctx.fillStyle = "#020208";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.textAlign = "center";
-        
-        ctx.shadowBlur = 20; ctx.shadowColor = "#00f2ff";
-        ctx.fillStyle = "#00f2ff";
-        ctx.font = "900 42px Arial";
-        ctx.fillText("NITRO RACER", canvas.width/2, 180);
-        
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = "#fff";
-        ctx.font = "16px monospace";
-        ctx.fillText("BEST RECORD: " + Number(highScore).toLocaleString() + "M", canvas.width/2, 220);
-
-        ctx.font = "20px Arial";
-        ctx.fillStyle = "#00f2ff";
-        ctx.fillText(" [1] NORMAL TRAFFIC", canvas.width/2, 350);
-        ctx.fillStyle = "#ffcc00";
-        ctx.fillText(" [2] DUO MODE", canvas.width/2, 400);
-        ctx.fillStyle = "#ff0044";
-        ctx.fillText(" [3] POLICE PURSUIT", canvas.width/2, 450);
-        
-        ctx.fillStyle = "rgba(255,255,255,0.4)";
-        ctx.font = "12px Arial";
-        ctx.fillText("USE KEYS 1, 2, 3 TO SELECT MODE", canvas.width/2, 600);
     }
 
     function update() {
         if(gameState !== 'PLAYING') return;
         frames++;
-        score += Math.floor(speed / 4);
+        
+        // MPH and Base Speed Logic
+        let baseMax = 12 + (gameMode === 'PURSUIT' ? wantedLevel : 0);
+        let currentThrottle = 0;
+        if (keys['KeyW'] || keys['ArrowUp']) currentThrottle = 1;
+        if (keys['KeyS'] || keys['ArrowDown']) currentThrottle = -1;
+
+        if (currentThrottle > 0) targetSpeed += 0.05;
+        else if (currentThrottle < 0) targetSpeed -= 0.1;
+        else targetSpeed *= 0.99; // Natural drag
+
+        targetSpeed = Math.max(6, Math.min(baseMax, targetSpeed));
+        speedMPH = Math.floor(targetSpeed * 15);
+        speedVal.innerHTML = `${speedMPH} <span style="font-size:12px">MPH</span>`;
+
+        score += Math.floor(targetSpeed / 5);
         scoreVal.innerText = score.toLocaleString();
 
         if (gameMode === 'PURSUIT') {
-            wantedLevel = Math.min(5, Math.floor(score / 1500) + 1);
-            for(let i=1; i<=5; i++) { document.getElementById('s'+i).className = i <= wantedLevel ? 'star-active' : ''; }
+            wantedLevel = Math.min(5, Math.floor(score / 2500) + 1);
+            for(let i=1; i<=5; i++) document.getElementById('s'+i).className = i <= wantedLevel ? 'star-active' : '';
         }
 
-        // Inputs
-        if(p1.alive) { if(keys['KeyA']) p1.x -= 8; if(keys['KeyD']) p1.x += 8; p1.x = Math.max(20, Math.min(canvas.width - p1.w - 20, p1.x)); }
-        if((gameMode === 'DUO' || gameMode === 'PURSUIT') && p2.alive) {
-            if(keys['ArrowLeft']) p2.x -= 8; if(keys['ArrowRight']) p2.x += 8; p2.x = Math.max(20, Math.min(canvas.width - p2.w - 20, p2.x));
+        // Steering
+        if(p1.alive) {
+            if(keys['KeyA']) p1.x -= 8; if(keys['KeyD']) p1.x += 8;
+            p1.x = Math.max(20, Math.min(canvas.width - p1.w - 20, p1.x));
+        }
+        if(p2.alive && playerCount === 2) {
+            if(keys['ArrowLeft']) p2.x -= 8; if(keys['ArrowRight']) p2.x += 8;
+            p2.x = Math.max(20, Math.min(canvas.width - p2.w - 20, p2.x));
         }
 
-        // Spawning Logic varies by mode
-        let spawnRate = 45;
-        if (gameMode === 'PURSUIT') {
-            spawnRate = Math.max(8, 40 - (wantedLevel * 6));
-        } else {
-            spawnRate = Math.max(12, 60 - Math.floor(speed));
-        }
-        
+        // Enemies
+        let spawnRate = gameMode === 'PURSUIT' ? Math.max(7, 35 - (wantedLevel * 5)) : 40;
         if (frames % Math.floor(spawnRate) === 0) {
-            enemies.push({ x: 30 + Math.random() * (canvas.width - 90), y: -100, w: 46, h: 80, type: gameMode === 'PURSUIT' ? 'enemy_police' : 'enemy_traffic' });
+            enemies.push({ x: 30 + Math.random() * (canvas.width - 90), y: -100, w: 46, h: 80, isPolice: gameMode === 'PURSUIT' });
         }
 
         enemies.forEach((e, i) => {
-            e.y += speed + (gameMode === 'PURSUIT' ? (wantedLevel * 0.5) : 3);
+            e.y += targetSpeed + (gameMode === 'PURSUIT' ? wantedLevel * 0.4 : 1);
             if(e.y > canvas.height) enemies.splice(i, 1);
-            [p1, (gameMode === 'DUO' || gameMode === 'PURSUIT') ? p2 : null].forEach(p => {
-                if(p && p.alive && p.x < e.x + e.w-5 && p.x + p.w > e.x+5 && p.y < e.y + e.h-5 && p.y + p.h > e.y+5) p.alive = false;
+            [p1, p2].forEach(p => {
+                if(p.alive && p.x < e.x + e.w-5 && p.x + p.w > e.x+5 && p.y < e.y + e.h-5 && p.y + p.h > e.y+5) p.alive = false;
             });
         });
 
-        if(!p1.alive && (!p2.alive && (gameMode === 'DUO' || gameMode === 'PURSUIT') || (gameMode === 'NORMAL'))) endGame();
-        if(score % 1000 === 0) speed += 0.2;
+        if(!p1.alive && (!p2.alive || playerCount === 1)) endGame();
     }
 
     function draw() {
-        if(gameState === 'START') {
-            drawMenu();
-        } else {
-            ctx.fillStyle = (gameMode === 'PURSUIT' && wantedLevel >= 4 && Math.floor(frames/20)%2===0) ? "#150000" : "#020208";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+        ctx.fillStyle = (gameMode === 'PURSUIT' && wantedLevel >= 4 && Math.floor(frames/15)%2===0) ? "#1a0000" : "#020208";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if(gameState === 'PLAYING') {
             ctx.strokeStyle = "rgba(0, 242, 255, 0.05)";
-            for(let i=0; i<8; i++) { ctx.beginPath(); ctx.moveTo(i * 63, 0); ctx.lineTo(i * 63, canvas.height); ctx.stroke(); }
-
-            enemies.forEach(e => {
-                const enemyColor = e.type === 'enemy_police' ? "#00aaff" : "#ff0044";
-                drawCarShape(e.x, e.y, e.w, e.h, enemyColor, e.type);
-            });
-
-            if(p1.alive) drawCarShape(p1.x, p1.y, p1.w, p1.h, p1.color, 'player');
-            if((gameMode === 'DUO' || gameMode === 'PURSUIT') && p2.alive) drawCarShape(p2.x, p2.y, p2.w, p2.h, p2.color, 'player');
+            for(let i=0; i<8; i++) {
+                let scroll = (frames * targetSpeed) % 63;
+                ctx.beginPath(); ctx.moveTo(i * 63, 0); ctx.lineTo(i * 63, canvas.height); ctx.stroke();
+            }
+            enemies.forEach(e => drawCar(e.x, e.y, e.w, e.h, e.isPolice ? "#00aaff" : "#ff0044", e.isPolice ? 'police' : 'traffic'));
+            if(p1.alive) drawCar(p1.x, p1.y, p1.w, p1.h, p1.color, 'player');
+            if(p2.alive && playerCount === 2) drawCar(p2.x, p2.y, p2.w, p2.h, p2.color, 'player');
         }
         update(); requestAnimationFrame(draw);
     }
 
     function endGame() {
-        if(score > highScore) { highScore = score; localStorage.setItem('nitroHigh', highScore); }
-        gameState = 'START'; ui.style.visibility = 'hidden'; wantedUI.style.visibility = 'hidden';
-        document.getElementById("hint").style.visibility = 'hidden';
+        if(score > highScore) { 
+            highScore = score; 
+            localStorage.setItem('nitroHigh', highScore);
+            highMenuVal.innerText = Number(highScore).toLocaleString();
+        }
+        gameState = 'START'; ui.style.visibility = 'hidden'; 
+        menu.classList.remove('hidden');
     }
     draw();
 </script>
