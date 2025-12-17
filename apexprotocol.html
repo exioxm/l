@@ -2,218 +2,216 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer: Apex Protocol v3.1</title>
+    <title>Nitro Racer: Neon Overload v4.0</title>
     <style>
         @import url('fonts.googleapis.com');
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
         
-        #game-container { position: relative; width: 440px; height: 750px; background: #020205; border: 4px solid #ff0044; box-shadow: 0 0 80px rgba(255, 0, 68, 0.4); border-radius: 15px; overflow: hidden; }
-        canvas { display: block; width: 100%; height: 100%; border-radius: 12px; }
+        #game-container { position: relative; width: 440px; height: 750px; background: #010103; border: 2px solid #00f2ff; box-shadow: 0 0 50px rgba(0, 242, 255, 0.3); border-radius: 20px; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
         
-        #ui, .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; z-index: 10; }
-        #ui { justify-content: flex-start; padding-top: 25px; visibility: hidden; }
-        .overlay { pointer-events: auto; background: rgba(1, 1, 5, 0.98); backdrop-filter: blur(20px); }
-        .hidden { display: none !important; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px); z-index: 100; color: white; transition: 0.5s; }
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
         
-        .stat-row { width: 92%; display: flex; justify-content: space-between; background: linear-gradient(90deg, rgba(255,0,68,0.15), rgba(0,0,0,0)); padding: 15px; border-left: 4px solid #ff0044; box-sizing: border-box; }
-        .label { font-size: 10px; color: #ff0044; text-transform: uppercase; letter-spacing: 3px; }
-        .val { font-size: 26px; font-weight: 900; text-shadow: 0 0 15px #ff0044; }
-        
-        h1 { font-size: 38px; font-weight: 900; color: #ff0044; text-shadow: 0 0 30px #ff0044; margin: 0; letter-spacing: -2px; text-transform: uppercase; }
-        .btn { width: 280px; padding: 16px; margin: 8px; background: #000; border: 2px solid #ff0044; color: #ff0044; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 2px; }
-        .btn:hover { background: #ff0044; color: #000; box-shadow: 0 0 40px #ff0044; transform: scale(1.02); }
+        /* Glassmorphism UI */
+        #hud { position: absolute; top: 20px; width: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; z-index: 50; visibility: hidden; }
+        .hud-glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 15px; display: flex; justify-content: space-between; width: 85%; }
+        .hud-val { font-size: 24px; font-weight: 900; color: #00f2ff; text-shadow: 0 0 10px #00f2ff; }
+        .hud-label { font-size: 10px; text-transform: uppercase; color: #888; }
 
-        /* FIXED GARAGE UI */
-        #garage { justify-content: flex-start; padding-top: 40px; }
-        .preview-box { background: rgba(255,255,255,0.03); border: 1px solid #333; border-radius: 10px; margin-bottom: 20px; }
-        .car-scroll-wrapper { width: 100%; overflow-x: auto; padding: 10px 0; display: flex; scroll-behavior: smooth; }
-        .car-scroll-wrapper::-webkit-scrollbar { height: 5px; }
-        .car-scroll-wrapper::-webkit-scrollbar-thumb { background: #ff0044; border-radius: 10px; }
-        
-        .car-card { 
-            flex: 0 0 160px; height: 120px; margin: 0 10px; background: rgba(255,255,255,0.05); 
-            border: 1px solid #444; border-radius: 10px; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
-        }
-        .car-card.selected { border-color: #ff0044; background: rgba(255,0,68,0.2); box-shadow: 0 0 15px #ff0044; }
-        .car-card h3 { margin: 5px 0; font-size: 14px; pointer-events: none; }
-        .car-card span { font-size: 12px; color: #ffcc00; pointer-events: none; }
+        h1 { font-size: 45px; margin: 0; background: linear-gradient(to bottom, #fff, #00f2ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px #00f2ff); }
+        .btn { width: 260px; padding: 18px; margin: 10px; background: transparent; border: 2px solid #00f2ff; color: #00f2ff; font-weight: 900; cursor: pointer; border-radius: 50px; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; }
+        .btn:hover { background: #00f2ff; color: #000; box-shadow: 0 0 30px #00f2ff; transform: scale(1.05); }
+
+        /* Garage Redesign */
+        #garage-ui { padding: 20px; text-align: center; }
+        .showroom { width: 150px; height: 250px; margin: 20px auto; background: radial-gradient(circle, rgba(0,242,255,0.2) 0%, transparent 70%); }
+        .car-selector { display: flex; overflow-x: auto; width: 380px; gap: 15px; padding: 10px; border-top: 1px solid #333; }
+        .car-item { flex: 0 0 120px; background: #111; padding: 15px; border-radius: 15px; border: 2px solid #333; cursor: pointer; }
+        .car-item.active { border-color: #00f2ff; box-shadow: 0 0 15px #00f2ff; }
+
+        #admin-btn { position: absolute; top: 10px; right: 10px; color: #222; cursor: pointer; font-size: 10px; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
+    <div id="admin-btn" onclick="checkAdmin()">ADMIN</div>
     <canvas id="gameCanvas"></canvas>
     
-    <div id="ui">
-        <div class="stat-row">
-            <div><div class="label">Velocity</div><div class="val" id="speedDisp">0</div></div>
-            <div><div class="label">Wallet</div><div class="val" id="creditsUI">0</div></div>
+    <!-- Gameplay HUD -->
+    <div id="hud">
+        <div class="hud-glass">
+            <div><div class="hud-label">Speed</div><div class="hud-val" id="speedDisp">0</div></div>
+            <div><div class="hud-label">Credits</div><div class="hud-val" id="creditsDisp">0</div></div>
         </div>
-        <div id="wanted" style="margin-top:15px; letter-spacing: 5px; text-align:center; font-size: 22px;"></div>
+        <div id="wanted" style="margin-top:10px; font-size: 25px; letter-spacing: 5px;"></div>
     </div>
 
+    <!-- Main Menu -->
     <div id="menu" class="overlay">
-        <p style="color:#ff0044; letter-spacing: 5px; margin-bottom: 5px;">APEX PROTOCOL 2025</p>
+        <p style="letter-spacing: 8px; color: #555;">NEON OVERLOAD</p>
         <h1>NITRO RACER</h1>
-        <div style="color:#ffcc00; margin: 20px 0; font-size: 18px;">$ <span id="crMenu">0</span></div>
-        <button class="btn" onclick="startGame('NORMAL')">Start Grid</button>
-        <button class="btn" style="border-color:#ffaa00; color:#ffaa00;" onclick="startGame('PURSUIT')">Cyber Pursuit</button>
-        <button class="btn" style="border-color:#00ff88; color:#00ff88;" onclick="openPanel('garage')">Garage</button>
+        <p style="color: #ffcc00; margin: 20px;">WALLET: $<span id="wallet">0</span></p>
+        <button class="btn" onclick="startGame('NORMAL')">Enter Grid</button>
+        <button class="btn" style="border-color: #ff0044; color: #ff0044;" onclick="startGame('PURSUIT')">Hostile Pursuit</button>
+        <button class="btn" style="border-color: #00ff88; color: #00ff88;" onclick="openPanel('garage-ui')">Garage</button>
     </div>
 
-    <div id="garage" class="overlay hidden">
-        <h1>GARAGE</h1>
-        <div class="preview-box">
-            <canvas id="carPreviewCanvas" width="120" height="200"></canvas>
-        </div>
-        <div class="car-scroll-wrapper" id="carGrid"></div>
-        <button class="btn" style="margin-top:20px;" onclick="openPanel('menu')">Confirm & Back</button>
+    <!-- Garage UI -->
+    <div id="garage-ui" class="overlay hidden">
+        <h1>SHOWROOM</h1>
+        <div class="showroom"><canvas id="showroomCanvas" width="150" height="250"></canvas></div>
+        <div class="car-selector" id="carList"></div>
+        <button class="btn" style="margin-top:30px;" onclick="openPanel('menu')">Confirm</button>
+    </div>
+
+    <!-- Admin UI -->
+    <div id="admin-panel" class="overlay hidden">
+        <h1>OVERRIDE</h1>
+        <button class="btn" style="border-color: red; color: red;" onclick="startGame('PURSUIT', true)">START @ 6 STARS</button>
+        <button class="btn" onclick="addMoney()">+100K CREDITS</button>
+        <button class="btn" onclick="openPanel('menu')">Exit</button>
     </div>
 </div>
 
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    const sCanvas = document.getElementById("showroomCanvas");
+    const sctx = sCanvas.getContext("2d");
     canvas.width = 440; canvas.height = 750;
-    const ptx = document.getElementById("carPreviewCanvas").getContext("2d");
 
-    const VERSION = "3.1";
+    const VERSION = "4.0";
     let credits = parseInt(localStorage.getItem('nitroCr')) || 2500;
     let unlockedCars = JSON.parse(localStorage.getItem('nitroCars')) || ['Specter'];
     let currentCar = localStorage.getItem('nitroActiveCar') || 'Specter';
-    let gameState = 'MENU', gameMode = 'NORMAL', score = 0, speed = 0, frames = 0, wantedLevel = 0;
-    let enemies = [], keys = {};
-    let p1 = { x: 190, y: 600, alive: true };
+    let gameState = 'MENU', gameMode = 'NORMAL', score = 0, speed = 0, frames = 0, tilt = 0, shake = 0;
+    let enemies = [], keys = {}, wantedLevel = 0;
 
     const carData = {
-        'Specter': { w: 42, h: 84, price: 0, color: '#00f2ff' },
-        'Interceptor': { w: 38, h: 90, price: 5000, color: '#ff0044' },
-        'Goliath': { w: 56, h: 88, price: 12000, color: '#00ff88' },
-        'Venom': { w: 40, h: 95, price: 25000, color: '#ffff00' },
-        'Hyperion': { w: 44, h: 100, price: 50000, color: '#ff00ff' }
+        'Specter': { w: 42, h: 84, color: '#00f2ff', price: 0 },
+        'Venom': { w: 38, h: 90, color: '#ff0044', price: 5000 },
+        'Titan': { w: 56, h: 90, color: '#00ff88', price: 15000 },
+        'Hyperion': { w: 44, h: 100, color: '#ffff00', price: 40000 }
     };
 
-    const enemyData = {
-        'POLICE': { w: 40, h: 85, color: '#ff0044' },
-        'SWAT': { w: 75, h: 115, color: '#ffffff' },
-        'TANK': { w: 95, h: 140, color: '#ffaa00' }
-    };
+    window.addEventListener("keydown", e => keys[e.code] = true);
+    window.addEventListener("keyup", e => keys[e.code] = false);
 
-    window.addEventListener("keydown", (e) => keys[e.code] = true);
-    window.addEventListener("keyup", (e) => keys[e.code] = false);
-
+    function checkAdmin() { if(prompt("CODE:") === "123") openPanel('admin-panel'); }
+    function addMoney() { credits += 100000; updateUI(); }
     function openPanel(id) {
-        document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.overlay').forEach(o => o.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
-        if(id === 'garage') { renderGarage(); drawPreview(); }
-        updateCurrencyUI();
-    }
-
-    function updateCurrencyUI() {
-        document.getElementById('crMenu').innerText = credits.toLocaleString();
-        document.getElementById('creditsUI').innerText = credits.toLocaleString();
-    }
-
-    let angle = 0;
-    function drawPreview() {
-        if(document.getElementById('garage').classList.contains('hidden')) return;
-        ptx.clearRect(0,0,120,200);
-        ptx.save();
-        ptx.translate(60, 100);
-        ptx.rotate(angle);
-        angle += 0.02;
-        const d = carData[currentCar];
-        ptx.fillStyle = "#000"; ptx.fillRect(-d.w/2, -d.h/2, d.w, d.h);
-        ptx.strokeStyle = d.color; ptx.lineWidth = 3; ptx.strokeRect(-d.w/2, -d.h/2, d.w, d.h);
-        ptx.restore();
-        requestAnimationFrame(drawPreview);
+        if(id === 'garage-ui') renderGarage();
     }
 
     function renderGarage() {
-        const grid = document.getElementById('carGrid'); grid.innerHTML = '';
+        const list = document.getElementById('carList');
+        list.innerHTML = '';
         for(let name in carData) {
-            const isOwned = unlockedCars.includes(name);
-            const card = document.createElement('div');
-            card.className = `car-card ${currentCar === name ? 'selected' : ''}`;
-            card.innerHTML = `<h3>${name}</h3><span>${isOwned ? 'OWNED' : '$'+carData[name].price}</span>`;
-            card.onclick = () => {
-                if(isOwned) { currentCar = name; }
+            const div = document.createElement('div');
+            div.className = `car-item ${currentCar === name ? 'active' : ''}`;
+            div.innerHTML = `<div style="color:${carData[name].color}">${name}</div><div style="font-size:10px">${unlockedCars.includes(name) ? 'OWNED' : '$'+carData[name].price}</div>`;
+            div.onclick = () => {
+                if(unlockedCars.includes(name)) { currentCar = name; }
                 else if(credits >= carData[name].price) {
                     credits -= carData[name].price; unlockedCars.push(name); currentCar = name;
                 }
-                localStorage.setItem('nitroCr', credits);
-                localStorage.setItem('nitroCars', JSON.stringify(unlockedCars));
-                localStorage.setItem('nitroActiveCar', currentCar);
-                renderGarage();
+                localStorage.setItem('nitroCr', credits); localStorage.setItem('nitroCars', JSON.stringify(unlockedCars));
+                localStorage.setItem('nitroActiveCar', currentCar); renderGarage();
             };
-            grid.appendChild(card);
+            list.appendChild(div);
         }
     }
 
-    function startGame(mode) {
+    function drawCar(c, x, y, name, color, angle = 0) {
+        const d = carData[name] || carData['Specter'];
+        c.save();
+        c.translate(x + d.w/2, y + d.h/2);
+        c.rotate(angle);
+        c.shadowBlur = 15; c.shadowColor = color;
+        c.strokeStyle = color; c.lineWidth = 3;
+        c.strokeRect(-d.w/2, -d.h/2, d.w, d.h);
+        c.fillStyle = "#000"; c.fillRect(-d.w/2, -d.h/2, d.w, d.h);
+        c.restore();
+    }
+
+    function startGame(mode, admin = false) {
         gameState = 'PLAY'; gameMode = mode;
-        score = 0; speed = 10; enemies = []; frames = 0;
-        p1 = { x: 190, y: 600, alive: true };
-        document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden'));
-        document.getElementById('ui').style.visibility = 'visible';
+        score = admin ? 10000 : 0; speed = 10; enemies = []; frames = 0;
+        p1 = { x: 200, y: 580 };
+        document.getElementById('hud').style.visibility = 'visible';
+        openPanel('none'); // Hide all menus
         gameLoop();
     }
 
     function gameLoop() {
         if(gameState !== 'PLAY') return;
-        frames++; score++; speed += 0.003;
-        const d = carData[currentCar];
+        frames++; score++; speed += 0.005;
+        wantedLevel = gameMode === 'PURSUIT' ? Math.min(6, Math.floor(score/1800)) : 0;
 
-        if(keys['ArrowLeft'] && p1.x > 40) p1.x -= 8;
-        if(keys['ArrowRight'] && p1.x < 400 - d.w) p1.x += 8;
+        // Player movement & Tilt
+        if(keys['ArrowLeft'] && p1.x > 40) { p1.x -= 8; tilt = -0.1; }
+        else if(keys['ArrowRight'] && p1.x < 360) { p1.x += 8; tilt = 0.1; }
+        else { tilt *= 0.9; }
 
-        wantedLevel = gameMode === 'PURSUIT' ? Math.min(6, Math.floor(score / 1500)) : 0;
-
-        if(frames % 45 === 0) {
-            let type = (gameMode === 'PURSUIT' && Math.random() > 0.3) ? (wantedLevel >= 5 ? 'TANK' : (wantedLevel >= 3 ? 'SWAT' : 'POLICE')) : 'CIV';
-            enemies.push({ x: 60 + Math.floor(Math.random()*4)*85, y: -150, type, v: 2 + Math.random()*2 });
+        if(frames % 40 === 0) {
+            let type = (wantedLevel >= 5) ? 'TANK' : (wantedLevel >= 3 ? 'SWAT' : 'POLICE');
+            if(gameMode === 'NORMAL') type = 'CIV';
+            enemies.push({ x: 60 + Math.floor(Math.random()*4)*85, y: -150, type });
         }
 
         enemies.forEach((e, i) => {
-            e.y += (speed - e.v);
-            const ed = enemyData[e.type] || { w: 40, h: 80, color: '#333' };
-            if(p1.alive && p1.x < e.x + ed.w && p1.x + d.w > e.x && p1.y < e.y + ed.h && p1.y + d.h > e.y) {
-                gameState = 'MENU';
-                credits += Math.floor(score/10);
-                localStorage.setItem('nitroCr', credits);
-                document.getElementById('ui').style.visibility = 'hidden';
-                openPanel('menu');
+            e.y += (speed - 4);
+            const ed = (e.type === 'TANK' ? {w:90, h:130, c:'#ffaa00'} : (e.type === 'SWAT' ? {w:70, h:110, c:'#fff'} : {w:40, h:80, c:'#ff0044'}));
+            if(p1.x < e.x + ed.w && p1.x + 40 > e.x && p1.y < e.y + ed.h && p1.y + 80 > e.y) {
+                gameState = 'MENU'; credits += Math.floor(score/10);
+                localStorage.setItem('nitroCr', credits); openPanel('menu');
             }
             if(e.y > 800) enemies.splice(i, 1);
         });
 
-        // Draw Road
+        // DRAWING
         ctx.fillStyle = "#010103"; ctx.fillRect(0,0,440,750);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-        for(let i=0; i<12; i++) {
-            let gy = (frames*speed + i*80) % 960;
-            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(440, gy); ctx.stroke();
+        
+        // FOV Warp lines
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.1)";
+        for(let i=0; i<10; i++) {
+            let ly = (frames * speed + i * 100) % 800;
+            ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(440, ly); ctx.stroke();
         }
 
-        // Draw Player
-        ctx.fillStyle = "#000"; ctx.fillRect(p1.x, p1.y, d.w, d.h);
-        ctx.strokeStyle = d.color; ctx.lineWidth = 3; ctx.strokeRect(p1.x, p1.y, d.w, d.h);
-
-        // Draw Enemies
+        drawCar(ctx, p1.x, p1.y, currentCar, carData[currentCar].color, tilt);
+        
         enemies.forEach(e => {
-            const ed = enemyData[e.type] || { w: 40, h: 80, color: '#333' };
-            ctx.fillStyle = "#000"; ctx.fillRect(e.x, e.y, ed.w, ed.h);
-            ctx.strokeStyle = ed.color; ctx.lineWidth = 2; ctx.strokeRect(e.x, e.y, ed.w, ed.h);
+            const ed = (e.type === 'TANK' ? {w:90, h:130, c:'#ffaa00'} : (e.type === 'SWAT' ? {w:70, h:110, c:'#fff'} : {w:40, h:80, c:'#ff0044'}));
+            ctx.strokeStyle = ed.c; ctx.strokeRect(e.x, e.y, ed.w, ed.h);
         });
 
-        document.getElementById('wanted').innerHTML = '★'.repeat(wantedLevel).fontcolor('#ff0044') + '★'.repeat(Math.max(0, 5-wantedLevel)).fontcolor('#222');
-        document.getElementById('speedDisp').innerText = Math.floor(speed * 20);
-        updateCurrencyUI();
+        document.getElementById('speedDisp').innerText = Math.floor(speed * 15) + " MPH";
+        document.getElementById('creditsDisp').innerText = credits;
+        document.getElementById('wanted').innerHTML = '★'.repeat(wantedLevel).fontcolor(wantedLevel >= 6 ? '#ffaa00' : '#ff0044');
         requestAnimationFrame(gameLoop);
     }
 
-    updateCurrencyUI();
+    // Showroom logic
+    let sAngle = 0;
+    function showroomLoop() {
+        if(document.getElementById('garage-ui').classList.contains('hidden')) {
+            requestAnimationFrame(showroomLoop);
+            return;
+        }
+        sctx.clearRect(0,0,150,250);
+        sAngle += 0.02;
+        drawCar(sctx, 50, 80, currentCar, carData[currentCar].color, sAngle);
+        requestAnimationFrame(showroomLoop);
+    }
+
+    function updateUI() { document.getElementById('wallet').innerText = credits; }
+    updateUI();
+    showroomLoop();
 </script>
 </body>
 </html>
