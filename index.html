@@ -2,136 +2,184 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer: Cyber Night</title>
+    <title>Nitro Racer: Apex Shapes</title>
     <style>
-        body { margin: 0; background: #050510; overflow: hidden; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { background: #0a0a1a; border: 3px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; border-radius: 8px; }
-        #ui { position: absolute; top: 20px; left: 20px; color: #00f2ff; text-transform: uppercase; letter-spacing: 2px; pointer-events: none; }
-        .score-box { font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #00f2ff; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { background: #020205; border: 2px solid #00f2ff; box-shadow: 0 0 50px rgba(0, 242, 255, 0.4); cursor: crosshair; }
+        #ui { position: absolute; top: 30px; width: 400px; display: flex; justify-content: space-between; color: #fff; pointer-events: none; }
+        .label { font-size: 10px; color: #00f2ff; margin-bottom: 2px; text-transform: uppercase; }
+        .val { font-size: 22px; font-weight: 900; text-shadow: 0 0 10px #00f2ff; font-family: 'Courier New', Courier, monospace; }
     </style>
 </head>
 <body>
-    <div id="ui"><div class="score-box">DISTANCE: <span id="score">0</span>m</div></div>
+    <div id="ui">
+        <div><div class="label">Distance</div><div class="val" id="score">0</div></div>
+        <div><div class="label">Speed</div><div class="val" id="speedDisplay">0</div></div>
+    </div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const scoreVal = document.getElementById("score");
+    const speedVal = document.getElementById("speedDisplay");
 
-    canvas.width = 400;
-    canvas.height = 700;
+    canvas.width = 440;
+    canvas.height = 750;
 
     let score = 0;
-    let speed = 8;
+    let speed = 9;
     let frames = 0;
-    let particles = [];
+    let shake = 0;
     let enemies = [];
-    let roadLines = [];
+    let speedLines = [];
 
-    const player = { x: 175, y: 550, w: 45, h: 85, color: "#ff0055", targetX: 175 };
+    const player = { x: 220, y: 580, w: 44, h: 88, color: "#00f2ff", targetX: 220 };
 
-    // Handle Input
     window.addEventListener("mousemove", (e) => {
         const rect = canvas.getBoundingClientRect();
         player.targetX = e.clientX - rect.left - player.w / 2;
     });
 
-    function createParticle(x, y) {
-        particles.push({ x, y, size: Math.random() * 4, speedY: speed * 0.5, life: 1 });
-    }
-
-    function drawCar(x, y, w, h, color, isPlayer) {
+    // Drawing a sleeker, aerodynamic shape instead of a box
+    function drawFuturisticCar(x, y, w, h, color, isPlayer) {
         ctx.save();
-        // Car Body Shadow
-        ctx.shadowBlur = 15;
+        if(shake > 0) ctx.translate(Math.random()*shake - shake/2, Math.random()*shake - shake/2);
+        
+        ctx.shadowBlur = 20;
         ctx.shadowColor = color;
-        
-        // Body
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, w, h);
-        
-        // Windows & Details
-        ctx.fillStyle = "rgba(0, 242, 255, 0.4)";
-        ctx.fillRect(x + 5, y + 10, w - 10, 25); // Windshield
-        
-        // Glowy Headlights
-        ctx.fillStyle = isPlayer ? "#00f2ff" : "#ffcc00";
-        ctx.fillRect(x + 5, y, 8, 4);
-        ctx.fillRect(x + w - 13, y, 8, 4);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
 
-        if(isPlayer) { // Thruster particles
-            for(let i=0; i<2; i++) createParticle(x + (i===0 ? 10 : 35), y + h);
+        // MAIN BODY SHAPE (Polygon)
+        ctx.beginPath();
+        if(isPlayer) {
+            // Player: Sleek Supercar Shape
+            ctx.moveTo(x + w/2, y); // Nose
+            ctx.lineTo(x + w, y + h*0.3); // Right Front
+            ctx.lineTo(x + w*0.8, y + h*0.5); // Mid-in
+            ctx.lineTo(x + w, y + h*0.8); // Right Rear
+            ctx.lineTo(x + w*0.1, y + h*0.8); // Left Rear
+            ctx.lineTo(x + w*0.2, y + h*0.5); // Mid-in Left
+            ctx.lineTo(x, y + h*0.3); // Left Front
+        } else {
+            // Enemy: Aggressive Interceptor Shape
+            ctx.moveTo(x + w*0.2, y);
+            ctx.lineTo(x + w*0.8, y);
+            ctx.lineTo(x + w, y + h*0.4);
+            ctx.lineTo(x + w*0.9, y + h);
+            ctx.lineTo(x + w*0.1, y + h);
+            ctx.lineTo(x, y + h*0.4);
+        }
+        ctx.closePath();
+        
+        ctx.fillStyle = "#050505";
+        ctx.fill();
+        ctx.stroke();
+
+        // COCKPIT GLOW
+        ctx.fillStyle = isPlayer ? "rgba(0, 242, 255, 0.4)" : "rgba(255, 0, 85, 0.4)";
+        ctx.beginPath();
+        ctx.ellipse(x + w/2, y + h*0.4, w*0.25, h*0.15, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // REAR SPOILER (Only for Player)
+        if(isPlayer) {
+            ctx.strokeRect(x, y + h*0.85, w, 4);
+            // Engine Flame
+            if(frames % 4 === 0) {
+                ctx.fillStyle = "#ff0055";
+                ctx.fillRect(x + w*0.4, y + h, w*0.2, Math.random()*15);
+            }
         }
         ctx.restore();
     }
 
     function update() {
         frames++;
-        score += Math.floor(speed / 5);
-        scoreVal.innerText = score;
+        score += Math.floor(speed / 3);
+        scoreVal.innerText = score.toLocaleString();
+        speedVal.innerText = Math.floor(speed * 18) + " KM/H";
+
+        if(shake > 0) shake *= 0.85;
 
         // Smooth Movement
         player.x += (player.targetX - player.x) * 0.15;
-        if(player.x < 15) player.x = 15;
-        if(player.x > canvas.width - player.w - 15) player.x = canvas.width - player.w - 15;
+        player.x = Math.max(25, Math.min(canvas.width - player.w - 25, player.x));
 
-        // Obstacle Spawning
-        if (frames % Math.max(15, 60 - Math.floor(score/100)) === 0) {
-            enemies.push({ x: Math.random() * (canvas.width - 50), y: -100, color: "#5500ff" });
+        // Speed Lines (Visual Velocity)
+        if(frames % 5 === 0) {
+            speedLines.push({x: Math.random()*canvas.width, y: -20, h: Math.random()*30+10});
         }
-
-        // Particle Logic
-        particles.forEach((p, i) => {
-            p.y += p.speedY;
-            p.life -= 0.02;
-            if(p.life <= 0) particles.splice(i, 1);
+        speedLines.forEach((l, i) => {
+            l.y += speed * 2;
+            if(l.y > canvas.height) speedLines.splice(i, 1);
         });
 
-        // Enemy Logic
+        // Spawn Enemies
+        if (frames % Math.max(12, 45 - Math.floor(speed)) === 0) {
+            enemies.push({ 
+                x: 40 + Math.random() * (canvas.width - 120), 
+                y: -150, 
+                color: (frames % 100 === 0) ? "#39ff14" : "#ff0055" 
+            });
+        }
+
         enemies.forEach((e, i) => {
-            e.y += speed + 2;
+            e.y += speed + 4;
             if(e.y > canvas.height) enemies.splice(i, 1);
 
-            // Collision
-            if (player.x < e.x + 45 && player.x + player.w > e.x &&
-                player.y < e.y + 85 && player.y + player.h > e.y) {
-                alert("GAME OVER! SCORE: " + score);
-                location.reload();
+            // Precision Collision Detection
+            if (player.x < e.x + 40 && player.x + player.w > e.x + 4 &&
+                player.y < e.y + 80 && player.y + player.h > e.y + 4) {
+                gameOver();
             }
         });
 
-        if(score % 100 === 0) speed += 0.1; // Slow speed increase
+        if(score % 800 === 0) speed += 0.3;
     }
 
     function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(2, 2, 8, 0.4)"; // Trail effect
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Road Glow
+        // Moving Perspective Road
         ctx.strokeStyle = "rgba(0, 242, 255, 0.1)";
-        ctx.lineWidth = 4;
-        for(let i=0; i<4; i++) {
+        ctx.lineWidth = 1;
+        for(let i = 0; i <= 10; i++) {
+            let x = (i * canvas.width/10);
             ctx.beginPath();
-            ctx.moveTo(i * 100, 0);
-            ctx.lineTo(i * 100, canvas.height);
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
             ctx.stroke();
         }
 
-        // Particles
-        particles.forEach(p => {
-            ctx.fillStyle = `rgba(0, 242, 255, ${p.life})`;
-            ctx.fillRect(p.x, p.y, p.size, p.size);
+        // Speed Lines
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        speedLines.forEach(l => {
+            ctx.beginPath();
+            ctx.moveTo(l.x, l.y);
+            ctx.lineTo(l.x, l.y + l.h);
+            ctx.stroke();
         });
 
-        // Entities
-        drawCar(player.x, player.y, player.w, player.h, player.color, true);
-        enemies.forEach(e => drawCar(e.x, e.y, 45, 85, e.color, false));
+        // Draw Entities
+        enemies.forEach(e => drawFuturisticCar(e.x, e.y, 44, 88, e.color, false));
+        drawFuturisticCar(player.x, player.y, player.w, player.h, player.color, true);
 
         update();
         requestAnimationFrame(draw);
     }
+
+    function gameOver() {
+        shake = 30;
+        setTimeout(() => {
+            alert("SYSTEM OVERRIDE: CRASH DETECTED\nSCORE: " + score);
+            location.reload();
+        }, 50);
+    }
+
     draw();
 </script>
 </body>
 </html>
-
