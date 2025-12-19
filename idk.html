@@ -3,187 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER DRIFT 2025: PRO</title>
+    <title>CYBER DRIFT 2025: ABSOLUTE</title>
     <style>
         @import url('fonts.googleapis.com');
-        body { margin: 0; background: #010103; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Share Tech Mono', monospace; }
-        #game-container { position: relative; width: 450px; height: 750px; border: 2px solid #0ff; box-shadow: 0 0 30px rgba(0, 255, 255, 0.2); background: #000; overflow: hidden; }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Orbitron', sans-serif; }
+        #game-container { position: relative; width: 480px; height: 800px; border: 1px solid #111; box-shadow: 0 0 100px rgba(0, 255, 255, 0.1); background: #000; overflow: hidden; }
+        canvas { display: block; filter: contrast(1.1) saturate(1.2); cursor: none; }
         
-        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.9); }
-        .hidden { display: none !important; }
+        /* UI Layers */
+        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); }
+        .hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
+        
+        /* Title Screen */
+        .zed-header { font-size: 10px; letter-spacing: 5px; color: #444; margin-bottom: 5px; }
+        .glitch-title { font-size: 55px; font-weight: 900; color: #fff; text-shadow: 3px 3px #f0f, -3px -3px #0ff; margin-bottom: 40px; }
+        
+        /* Buttons */
+        .btn { padding: 15px 40px; background: none; border: 1px solid #0ff; color: #0ff; font-family: 'Orbitron'; cursor: pointer; transition: 0.3s; font-size: 14px; letter-spacing: 2px; width: 280px; margin: 5px; position: relative; overflow: hidden; }
+        .btn:hover { background: rgba(0, 255, 255, 1); color: #000; box-shadow: 0 0 30px #0ff; }
+        
+        /* HUD */
+        #hud { position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 50; }
+        .hud-stat { font-size: 12px; color: #0ff; text-shadow: 0 0 10px #0ff; border-left: 2px solid #0ff; padding-left: 10px; }
 
-        /* Terminals */
-        .title { font-family: 'Orbitron'; font-size: 38px; color: #0ff; text-shadow: 0 0 15px #0ff; margin-bottom: 30px; letter-spacing: 3px; }
-        .terminal-box { width: 85%; background: rgba(0, 20, 20, 0.8); border: 1px solid #0ff; padding: 20px; box-sizing: border-box; }
-        
-        /* Navigation */
-        .mode-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-        .mode-btn { background: none; border: 1px solid #066; color: #0ff; padding: 10px; cursor: pointer; text-align: left; font-family: 'Share Tech Mono'; transition: 0.2s; }
-        .mode-btn:hover { background: rgba(0, 255, 255, 0.2); border-color: #0ff; padding-left: 20px; }
-        
-        /* Debug Menu */
-        .debug-entry { position: absolute; bottom: 10px; left: 10px; color: #044; cursor: pointer; font-size: 10px; z-index: 200; }
-        .debug-window { border: 1px solid #f0f; background: #100; width: 80%; padding: 15px; color: #f0f; }
-
-        /* Game UI */
-        #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; color: #0ff; font-size: 14px; pointer-events: none; z-index: 50; }
-        #cash-display { position: absolute; bottom: 10px; right: 15px; color: #0f0; }
-        
-        canvas { display: block; filter: contrast(1.2) brightness(1.1); }
+        .debug-trigger { position: absolute; bottom: 10px; left: 10px; color: #111; font-size: 10px; cursor: pointer; text-decoration: none; }
+        .debug-trigger:hover { color: #f0f; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="hud" class="hidden">
-        <div>DST: <span id="ui-dist">0</span> FT</div>
-        <div id="ui-mode" style="color:#f0f">MODE</div>
-        <div id="ui-wanted" style="color:#f00"></div>
-    </div>
-    <div id="cash-display">CREDITS: $<span id="ui-cash">0.00</span></div>
-
-    <!-- MAIN MENU -->
-    <div id="home-screen" class="overlay">
-        <div class="title">NEURAL DRIFT</div>
-        <div class="terminal-box">
-            <div style="color:#066; margin-bottom: 10px;">> SELECT_PROTOCOL:</div>
-            <div class="mode-list">
-                <button class="mode-btn" onclick="openPrompt('NORMAL')">01. NORMAL_RUN</button>
-                <button class="mode-btn" onclick="openPrompt('WANTED')">02. WANTED_SYS</button>
-                <button class="mode-btn" onclick="openPrompt('CHROMA')">03. CHROMA_BLITZ</button>
-                <button class="mode-btn" onclick="openPrompt('GHOST')">04. GHOST_PROC</button>
-                <button class="mode-btn" onclick="openPrompt('JAM')">05. TRAFFIC_JAM</button>
-                <button class="mode-btn" onclick="openPrompt('SONIC')">06. SONIC_PULSE</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODE PROMPT -->
-    <div id="prompt-screen" class="overlay hidden">
-        <div class="terminal-box" style="border-color: #f0f;">
-            <div id="p-title" style="color:#f0f; font-size: 20px; margin-bottom: 10px;">MODE</div>
-            <div id="p-body" style="color:#ccc; font-size: 14px; margin-bottom: 20px; min-height: 60px;">Info...</div>
-            <button class="mode-btn" onclick="startRun()" style="width:100%; text-align: center; border-color:#f0f;">SYNC NEURAL LINK</button>
-            <button class="mode-btn" onclick="closePrompt()" style="width:100%; text-align: center; border:none; color:#666; font-size: 10px;">CANCEL</button>
-        </div>
-    </div>
-
-    <!-- DEBUG MENU -->
-    <div id="debug-menu" class="overlay hidden">
-        <div class="debug-window">
-            <div>[DEBUG_CORE_v2.5]</div>
-            <hr border="0" style="border-top:1px solid #f0f">
-            <button class="mode-btn" onclick="adminLogin()" style="color:#f0f; border-color:#f0f; width:100%">EXECUTE_ADMIN_CMD</button>
-            <button class="mode-btn" onclick="toggleDebug()" style="border:none; width:100%; font-size:10px;">EXIT</button>
-        </div>
-    </div>
-
-    <div class="debug-entry" onclick="toggleDebug()">[DBG]</div>
     <canvas id="c"></canvas>
+
+    <!-- Title Screen -->
+    <div id="title-screen" class="overlay">
+        <div class="zed-header">ZED PRODUCTIONS PRESENTS</div>
+        <div class="glitch-title">CYBER DRIFT</div>
+        <button class="btn" onclick="showModes()">INITIATE SYSTEM</button>
+        <div class="debug-trigger" onclick="openDebug()">[D]</div>
+    </div>
+
+    <!-- Mode Selector -->
+    <div id="mode-menu" class="overlay hidden">
+        <div style="font-size: 10px; color: #0ff; margin-bottom: 20px;">SELECT NEURAL PROTOCOL</div>
+        <button class="btn" onclick="startRun('NORMAL')">NORMAL_RUN</button>
+        <button class="btn" onclick="startRun('WANTED')">WANTED_LEVEL</button>
+        <button class="btn" onclick="startRun('CHROMA')">CHROMA_BLITZ</button>
+        <button class="btn" onclick="startRun('GHOST')">GHOST_PROC</button>
+        <button class="btn" onclick="startRun('JAM')">TRAFFIC_JAM</button>
+        <button class="btn" onclick="startRun('SONIC')">SONIC_PULSE</button>
+        <button class="btn" onclick="hideModes()" style="border:none; color:#444; font-size:10px;">BACK</button>
+    </div>
+
+    <!-- Debug/Admin -->
+    <div id="debug-menu" class="overlay hidden">
+        <div style="color:#f0f; margin-bottom:20px;">DEBUG_CONSOLE</div>
+        <button class="btn" style="border-color:#f0f; color:#f0f;" onclick="adminCheck()">CMD_OVERRIDE</button>
+        <button class="btn" onclick="closeDebug()">EXIT</button>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div class="hud-stat">DST: <span id="ui-dist">0</span> FT</div>
+        <div class="hud-stat" id="ui-stars" style="color:#f00; border-color:#f00;"></div>
+        <div class="hud-stat">CASH: $<span id="ui-cash">0.00</span></div>
+    </div>
 </div>
 
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-canvas.width = 450; canvas.height = 750;
+canvas.width = 480; canvas.height = 800;
 
-let state = 'HOME', mode = '', cash = 0, dist = 0, speed = 8, frame = 0;
-let pX = 205, tX = 205, entities = [], wanted = 0;
+let state = 'TITLE', mode = '', frame = 0, speed = 8, dist = 0, cash = 0;
+let pX = 220, tX = 220, playerVel = 0;
+let entities = [], particles = [], stars = [];
 
-const DATA = {
-    NORMAL: { b: "Standard traffic dodge. Earn cash for distance.", c: "#0ff" },
-    WANTED: { b: "Law enforcement pursuit. Avoid patrol cars and SWAT. Heat level rises.", c: "#f00" },
-    CHROMA: { b: "Color phasing active. Drive through cars matching your neon hull.", c: "#f0f" },
-    GHOST: { b: "Incorporeal while moving. Phasing fails if velocity is zero.", c: "#fff" },
-    JAM: { b: "Severe congestion. Minimal gaps between vehicles.", c: "#ff0" },
-    SONIC: { b: "Auto-pulse destroying nearby data-traffic. Maintain power levels.", c: "#0f0" },
-    ADMIN: { b: "OVERRIDE ACTIVE: EXTREME SPEED. LEVEL 6 HEAT. UNSTABLE REALITY.", c: "#f00" }
-};
+// PERSPECTIVE CONSTANTS
+const VIEW_DIST = 300;
+const HORIZON = 250;
 
-// UI
-function openPrompt(m) {
-    mode = m;
-    document.getElementById('p-title').innerText = m + "_PROTOCOL";
-    document.getElementById('p-body').innerText = DATA[m].b;
-    document.getElementById('prompt-screen').classList.remove('hidden');
-}
-function closePrompt() { document.getElementById('prompt-screen').classList.add('hidden'); }
-function toggleDebug() { document.getElementById('debug-menu').classList.toggle('hidden'); }
-function adminLogin() {
-    let pw = prompt("ENTER ACCESS CODE:");
-    if(pw === "test") { toggleDebug(); openPrompt('ADMIN'); }
-    else { alert("ACCESS DENIED"); }
+// UI LOGIC
+const get = id => document.getElementById(id);
+const showModes = () => get('mode-menu').classList.remove('hidden');
+const hideModes = () => get('mode-menu').classList.add('hidden');
+const openDebug = () => get('debug-menu').classList.remove('hidden');
+const closeDebug = () => get('debug-menu').classList.add('hidden');
+
+function adminCheck() {
+    if(prompt("ACCESS CODE:") === "test") { startRun('ADMIN'); }
+    else { alert("DENIED"); }
 }
 
-function startRun() {
+function startRun(m) {
+    mode = m; state = 'PLAY'; dist = 0; frame = 0; entities = []; particles = []; speed = 8;
+    if(mode === 'ADMIN') speed = 16;
+    if(mode === 'JAM') speed = 5;
+    
     document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
-    document.getElementById('hud').classList.remove('hidden');
-    state = 'PLAY'; dist = 0; frame = 0; entities = [];
-    wanted = (mode === 'ADMIN') ? 6 : (mode === 'WANTED' ? 1 : 0);
-    speed = (mode === 'JAM') ? 5 : (mode === 'ADMIN' ? 15 : 8);
-    document.getElementById('ui-mode').innerText = mode;
+    get('hud').classList.remove('hidden');
 }
 
-// Logic
+// GAME ENGINE
 window.addEventListener('mousemove', e => {
     const r = canvas.getBoundingClientRect();
-    tX = Math.max(10, Math.min(400, e.clientX - r.left - 20));
+    tX = e.clientX - r.left - 20;
 });
 
-function spawn() {
-    let carColor = (mode === 'CHROMA') ? ['#f0f', '#0ff', '#fff'][Math.floor(Math.random()*3)] : '#222';
-    if(wanted > 0 && Math.random() > 0.5) carColor = (wanted > 3) ? '#444' : '#00a';
-    entities.push({ x: Math.random()*390+10, y: -100, c: carColor });
+function createExplosion(x, y, color) {
+    for(let i=0; i<15; i++) {
+        particles.push({ x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1, c: color });
+    }
+}
+
+function spawnCar() {
+    let color = `hsl(${Math.random()*360}, 50%, 40%)`;
+    if(mode === 'WANTED' || mode === 'ADMIN') color = (Math.random() > 0.5) ? '#003' : '#333';
+    entities.push({ x: Math.random()*300 + 90, z: 2000, c: color, speed: 0.8 + Math.random()*0.4 });
 }
 
 function update() {
     if(state !== 'PLAY') return;
-    frame++; dist += speed * 0.1; cash += (speed * 0.0001); speed += 0.0005;
-    pX += (tX - pX) * 0.15;
+    frame++;
+    dist += speed * 0.1;
+    cash += (speed * 0.0001);
+    speed += 0.001;
 
-    if(frame % Math.max(8, Math.floor(40 - speed)) === 0) spawn();
-    if(mode === 'WANTED' && frame % 1200 === 0) wanted = Math.min(5, wanted + 1);
+    // Smooth movement
+    pX += (tX - pX) * 0.12;
+
+    if(frame % Math.max(5, Math.floor(30 - speed/2)) === 0) spawnCar();
 
     entities.forEach((e, i) => {
-        e.y += speed;
-        // Collision (AABB)
-        if(pX < e.x + 35 && pX + 35 > e.x && 650 < e.y + 70 && 720 > e.y) {
-            if(mode === 'GHOST' && Math.abs(tX - pX) > 2) {} // Ghost
-            else if(mode === 'CHROMA' && e.c === '#f0f') {} // Simplified chroma check
-            else die();
+        e.z -= speed * 1.5;
+        
+        // 3D to 2D projection
+        let scale = VIEW_DIST / (VIEW_DIST + e.z);
+        let screenX = (e.x - canvas.width/2) * scale + canvas.width/2;
+        let screenY = HORIZON + (e.z * 0.1) * scale;
+
+        // Collision logic (approximate 3D depth)
+        if(e.z < 50 && e.z > -50) {
+            if(Math.abs(pX - e.x) < 45) {
+                if(mode === 'GHOST' && Math.abs(tX - pX) > 2) {} 
+                else { die(); }
+            }
         }
-        if(e.y > 800) entities.splice(i, 1);
+        if(e.z < -200) entities.splice(i, 1);
     });
 
-    document.getElementById('ui-dist').innerText = Math.floor(dist);
-    document.getElementById('ui-cash').innerText = cash.toFixed(2);
-    document.getElementById('ui-wanted').innerText = '★'.repeat(wanted);
+    particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+        if(p.life <= 0) particles.splice(i, 1);
+    });
+
+    get('ui-dist').innerText = Math.floor(dist);
+    get('ui-cash').innerText = cash.toFixed(2);
 }
 
 function die() {
     state = 'DEAD';
+    createExplosion(pX + 20, 700, '#f0f');
     setTimeout(() => {
-        document.getElementById('hud').classList.add('hidden');
-        document.getElementById('home-screen').classList.remove('hidden');
-        state = 'HOME';
-    }, 1500);
+        get('hud').classList.add('hidden');
+        get('title-screen').classList.remove('hidden');
+        state = 'TITLE';
+    }, 2000);
+}
+
+// RENDERING
+function drawRealisticCar(x, y, scale, color, isPlayer) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+
+    // Body Gradient
+    let grad = ctx.createLinearGradient(-20, 0, 20, 0);
+    grad.addColorStop(0, '#111');
+    grad.addColorStop(0.5, color);
+    grad.addColorStop(1, '#111');
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(-22, -40, 44, 85, 8);
+    ctx.fill();
+
+    // Windshield
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.roundRect(-18, -15, 36, 25, 4);
+    ctx.fill();
+
+    // Headlights
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = isPlayer ? '#0ff' : '#f00';
+    ctx.fillStyle = isPlayer ? '#fff' : '#f22';
+    ctx.fillRect(-18, isPlayer ? 38 : -38, 10, 3);
+    ctx.fillRect(8, isPlayer ? 38 : -38, 10, 3);
+    
+    ctx.restore();
 }
 
 function draw() {
-    ctx.fillStyle = '#000'; ctx.fillRect(0,0,450,750);
-    // Grid
-    ctx.strokeStyle = '#012'; ctx.lineWidth = 1;
-    for(let i=0; i<750; i+=40) {
-        let o = (frame * speed) % 40;
-        ctx.beginPath(); ctx.moveTo(0, i+o); ctx.lineTo(450, i+o); ctx.stroke();
+    ctx.fillStyle = '#020205'; ctx.fillRect(0,0,480,800);
+
+    // PERSPECTIVE GRID
+    ctx.strokeStyle = '#050515'; ctx.lineWidth = 1;
+    for(let i=0; i<canvas.width; i+=40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 800);
+        ctx.lineTo(canvas.width/2 + (i-canvas.width/2)*0.1, HORIZON);
+        ctx.stroke();
     }
+    for(let j=0; j<800; j+=40) {
+        let y = HORIZON + Math.pow((frame*speed + j)%800, 1.1) * 0.5;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(480, y); ctx.stroke();
+    }
+
     if(state === 'PLAY' || state === 'DEAD') {
-        entities.forEach(e => {
-            ctx.fillStyle = e.c; ctx.shadowBlur = 10; ctx.shadowColor = e.c;
-            ctx.fillRect(e.x, e.y, 40, 80);
+        // Draw Obstacles
+        entities.sort((a,b) => b.z - a.z).forEach(e => {
+            let scale = VIEW_DIST / (VIEW_DIST + e.z);
+            let x = (e.x - canvas.width/2) * scale + canvas.width/2;
+            let y = HORIZON + 500 * scale; // Ground level projection
+            if(y > HORIZON) drawRealisticCar(x, y, scale * 1.5, e.c, false);
         });
-        ctx.fillStyle = (state === 'DEAD') ? '#f00' : '#0ff'; ctx.shadowBlur = 15;
-        ctx.fillRect(pX, 650, 40, 80);
+
+        // Draw Particles
+        particles.forEach(p => {
+            ctx.fillStyle = `rgba(255, 0, 255, ${p.life})`;
+            ctx.fillRect(p.x, p.y, 4, 4);
+        });
+
+        // Draw Player (Fixed bottom)
+        if(state !== 'DEAD') drawRealisticCar(pX + 20, 700, 1.5, '#ddd', true);
     }
 }
 
