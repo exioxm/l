@@ -3,245 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEON OVERDRIVE: SINGULARITY (2025)</title>
+    <title>CYBER DRIFT 2025: STABLE</title>
     <style>
         @import url('fonts.googleapis.com');
-        
-        :root { --neon: #0ff; --accent: #f0f; --bg: #050510; }
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        
-        #game-container { position: relative; width: 480px; height: 720px; box-shadow: 0 0 100px rgba(0, 255, 255, 0.2); border: 2px solid #111; }
-        canvas { display: block; background: var(--bg); }
-
-        /* CRT Filter Overlay */
-        #game-container::after {
-            content: " "; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-            z-index: 10; background-size: 100% 3px, 3px 100%; pointer-events: none;
-        }
-
-        /* UI Overlays */
-        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Space Grotesk', sans-serif; color: #fff; }
+        #core-frame { position: relative; width: 480px; height: 850px; background: #000; border: 2px solid #222; overflow: hidden; }
+        canvas { display: block; filter: contrast(1.2) saturate(1.3); cursor: none; }
+        .ui { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.95); transition: 0.5s; }
         .hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
-        
-        h1 { font-size: 3.5rem; color: #fff; text-shadow: 0 0 15px var(--neon), 0 0 30px var(--accent); font-weight: 900; margin: 0; font-style: italic; letter-spacing: -2px; text-align: center; }
-        .hud { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; color: var(--neon); font-size: 1rem; text-shadow: 0 0 10px var(--neon); z-index: 15; pointer-events: none; }
-        
-        .btn { 
-            background: rgba(0, 0, 0, 0.8); border: 2px solid var(--neon); color: var(--neon); padding: 15px 45px; font-size: 1.2rem; cursor: pointer; transition: 0.2s; 
-            margin-top: 20px; text-transform: uppercase; font-family: 'Orbitron'; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
-        }
-        .btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 30px var(--neon); transform: translateY(-3px); }
+        .title { font-family: 'Orbitron'; font-size: 55px; color: #fff; text-shadow: 0 0 20px #0ff; margin: 0; }
+        .btn { margin: 10px; padding: 20px 50px; background: none; border: 2px solid #0ff; color: #0ff; font-family: 'Orbitron'; cursor: pointer; transition: 0.2s; width: 340px; font-weight: 900; }
+        .btn:hover { background: #0ff; color: #000; box-shadow: 0 0 40px #0ff; }
+        #hud { position: absolute; top: 30px; left: 30px; right: 30px; display: flex; justify-content: space-between; z-index: 50; color: #0ff; pointer-events: none; }
+        .debug { position: absolute; bottom: 10px; left: 10px; color: #111; cursor: pointer; font-size: 10px; }
     </style>
 </head>
 <body>
-
-    <div id="game-container">
-        <div class="hud">
-            <div>DIST: <span id="dist">0</span> KM</div>
-            <div>HI: <span id="hi">0</span></div>
-        </div>
-
-        <div id="start-screen" class="overlay">
-            <h1>NEON<br>OVERDRIVE</h1>
-            <p style="color: var(--accent); letter-spacing: 5px;">SINGULARITY PROTOCOL 2025</p>
-            <button class="btn" onclick="Game.start()">Initialize</button>
-        </div>
-
-        <div id="death-screen" class="overlay hidden">
-            <h1 style="color: #ff0055; text-shadow: 0 0 20px #ff0055;">SYSTEM CRASH</h1>
-            <p id="final-score" style="color: var(--neon); margin: 10px 0;"></p>
-            <button class="btn" onclick="Game.start()">Reboot System</button>
-        </div>
-
-        <canvas id="c" width="480" height="720"></canvas>
+<div id="core-frame">
+    <canvas id="stage"></canvas>
+    <div id="hud" class="hidden">
+        <div>DIST: <span id="ui-dist" style="font-size:24px; font-weight:900;">0</span> FT</div>
+        <div>CASH: $<span id="ui-cash" style="font-size:24px; font-weight:900;">0.00</span></div>
     </div>
+    <div id="menu" class="ui">
+        <h1 class="title">CYBER DRIFT</h1>
+        <div style="font-size:12px; color:#444; letter-spacing:4px; margin-top:5px;">by ZED Productions</div>
+        <button class="btn" style="margin-top:40px;" onclick="startRun()">START GAME</button>
+        <div class="debug" onclick="admin()">[D]</div>
+    </div>
+</div>
 
 <script>
-/**
- * NEON OVERDRIVE: SINGULARITY ENGINE
- * Pseudo-3D Road Projection & Depth Buffering
- */
+const cv = document.getElementById('stage'), ct = cv.getContext('2d');
+cv.width = 480; cv.height = 850;
 
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+let state = 'MENU', frame = 0, dist = 0, speed = 12, cash = 0;
+let px = 218, tx = 218, cars = [];
+const CW = 46, CH = 92;
 
-const Game = {
-    state: 'MENU',
-    distance: 0,
-    hiScore: localStorage.getItem('neon_hi') || 0,
-    speed: 0,
-    maxSpeed: 28,
-    accel: 0.04,
-    roadOffset: 0,
-    shake: 0,
-    
-    player: { x: 0, worldX: 0, steer: 0 },
-    obstacles: [],
-    keys: {},
+function startRun() {
+    state = 'PLAY'; dist = 0; frame = 0; speed = 12; cars = [];
+    document.getElementById('menu').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+}
 
-    init() {
-        document.getElementById('hi').innerText = this.hiScore;
-        window.addEventListener('keydown', e => this.keys[e.code] = true);
-        window.addEventListener('keyup', e => this.keys[e.code] = false);
-        this.loop();
-    },
+window.addEventListener('mousemove', e => {
+    const r = cv.getBoundingClientRect();
+    tx = e.clientX - r.left - CW/2;
+});
 
-    start() {
-        this.state = 'PLAYING';
-        this.distance = 0;
-        this.speed = 10;
-        this.obstacles = [];
-        this.player.worldX = 0;
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('death-screen').classList.add('hidden');
-    },
+function spawn() {
+    // Spawning logic fix: ensured car X is within visible lane bounds
+    cars.push({
+        x: Math.random() * (cv.width - CW - 40) + 20,
+        y: -200,
+        c: `hsl(${Math.random()*360}, 100%, 60%)`, // Ultra-bright neon
+        v: 0.7 + Math.random() * 0.4
+    });
+}
 
-    die() {
-        this.state = 'OVER';
-        this.shake = 30;
-        if(Math.floor(this.distance) > this.hiScore) {
-            this.hiScore = Math.floor(this.distance);
-            localStorage.setItem('neon_hi', this.hiScore);
-            document.getElementById('hi').innerText = this.hiScore;
+function update() {
+    if(state !== 'PLAY') return;
+    frame++; dist += speed * 0.1; cash += (speed * 0.0001); speed += 0.002;
+    px += (tx - px) * 0.2;
+    px = Math.max(20, Math.min(cv.width - CW - 20, px));
+
+    if(frame % Math.max(10, Math.floor(40 - speed/2)) === 0) spawn();
+
+    cars.forEach((c, i) => {
+        c.y += speed * c.v;
+        // Accurate collision hitbox
+        if (px < c.x + CW - 8 && px + CW > c.x + 8 && 700 < c.y + CH - 15 && 700 + CH > c.y + 15) {
+            state = 'DEAD'; setTimeout(() => location.reload(), 2000);
         }
-        document.getElementById('final-score').innerText = `DISTANCE REACHED: ${Math.floor(this.distance)}KM`;
-        document.getElementById('death-screen').classList.remove('hidden');
-    },
+        if(c.y > cv.height + 100) cars.splice(i, 1);
+    });
 
-    update() {
-        if (this.state !== 'PLAYING') return;
+    document.getElementById('ui-dist').innerText = Math.floor(dist);
+    document.getElementById('ui-cash').innerText = cash.toFixed(2);
+}
 
-        // Velocity Physics
-        if (this.speed < this.maxSpeed) this.speed += this.accel;
-        this.distance += this.speed / 15;
-        this.roadOffset = (this.roadOffset + this.speed) % 200;
-
-        // Logic steering (World X: -1 to 1)
-        if (this.keys['ArrowLeft']) { this.player.worldX -= 0.07; this.player.steer = -0.2; }
-        else if (this.keys['ArrowRight']) { this.player.worldX += 0.07; this.player.steer = 0.2; }
-        else { this.player.steer *= 0.8; }
-        
-        this.player.worldX = Math.max(-1.4, Math.min(1.4, this.player.worldX));
-
-        // Procedural Spawning
-        if (Math.random() < 0.03 + (this.speed / 1000)) {
-            this.obstacles.push({
-                worldX: (Math.random() * 2.8 - 1.4),
-                z: 1500, 
-                color: Math.random() > 0.5 ? '#f0f' : '#0ff'
-            });
-        }
-
-        // Collision & Depth
-        for (let i = this.obstacles.length - 1; i >= 0; i--) {
-            let o = this.obstacles[i];
-            o.z -= this.speed;
-
-            // Box collision on the Z-plane near player
-            if (o.z < 100 && o.z > 20) {
-                if (Math.abs(o.worldX - this.player.worldX) < 0.5) this.die();
-            }
-            if (o.z < -100) this.obstacles.splice(i, 1);
-        }
-
-        if (this.shake > 0) this.shake *= 0.9;
-        document.getElementById('dist').innerText = Math.floor(this.distance);
-    },
-
-    draw() {
-        ctx.save();
-        if (this.shake > 1) ctx.translate((Math.random()-0.5)*this.shake, (Math.random()-0.5)*this.shake);
-        
-        // 1. SKYBOX
-        const sky = ctx.createLinearGradient(0, 0, 0, 350);
-        sky.addColorStop(0, '#050510');
-        sky.addColorStop(1, '#1a0025');
-        ctx.fillStyle = sky;
-        ctx.fillRect(0, 0, 480, 720);
-
-        // Retro Sun
-        const sunY = 320;
-        ctx.shadowBlur = 50; ctx.shadowColor = '#f0f';
-        ctx.fillStyle = '#ffcc00';
-        ctx.beginPath(); ctx.arc(240 - (this.player.worldX * 30), sunY, 90, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#050510';
-        for(let i=0; i<12; i++) ctx.fillRect(0, sunY + (i*10), 480, i+1);
-
-        // 2. PSEUDO-3D ROAD PROJECTION
-        const horizon = 340;
-        const camH = 1400;
-        
-        for (let n = 0; n < 100; n++) {
-            const z = (n * 25) + (200 - this.roadOffset);
-            const pz = z + 25;
-
-            // Project 3D points to 2D screen
-            const x1 = 240 + (this.player.worldX * -1) * (horizon/z) * 1500;
-            const y1 = horizon + (camH/z) * 50;
-            const w1 = (horizon/z) * 2000;
-
-            const x2 = 240 + (this.player.worldX * -1) * (horizon/pz) * 1500;
-            const y2 = horizon + (camH/pz) * 50;
-            const w2 = (horizon/pz) * 2000;
-
-            // Draw Road
-            ctx.fillStyle = (Math.floor((this.distance + z)/100) % 2) ? '#111' : '#080808';
-            ctx.beginPath();
-            ctx.moveTo(x1-w1, y1); ctx.lineTo(x1+w1, y1);
-            ctx.lineTo(x2+w2, y2); ctx.lineTo(x2-w2, y2);
-            ctx.fill();
-
-            // Neon Curbs
-            ctx.fillStyle = (Math.floor((this.distance + z)/100) % 2) ? '#0ff' : '#f0f';
-            ctx.fillRect(x1-w1-5, y1, 10, 2);
-            ctx.fillRect(x1+w1-5, y1, 10, 2);
-        }
-
-        // 3. ENEMY SPRITES (Rendered with depth)
-        this.obstacles.forEach(o => {
-            const scale = horizon / o.z;
-            const screenX = 240 + (o.worldX - this.player.worldX) * scale * 1500;
-            const screenY = horizon + camH * scale * 3.5;
-            const sw = 180 * scale * 8;
-            const sh = 80 * scale * 8;
-
-            if (o.z > 0 && o.z < 1500) {
-                ctx.shadowBlur = 20; ctx.shadowColor = o.color;
-                ctx.fillStyle = o.color;
-                ctx.fillRect(screenX - sw/2, screenY - sh, sw, sh);
-                // Lights
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(screenX - sw/2 + 5, screenY - 15, sw/5, 5);
-                ctx.fillRect(screenX + sw/2 - (sw/5 + 5), screenY - 15, sw/5, 5);
-                ctx.shadowBlur = 0;
-            }
-        });
-
-        // 4. PLAYER CAR (2D Overlay)
-        ctx.save();
-        ctx.translate(240, 640);
-        ctx.rotate(this.player.steer);
-        ctx.shadowBlur = 30; ctx.shadowColor = '#0ff';
-        ctx.fillStyle = '#0ff';
-        ctx.beginPath(); ctx.roundRect(-40, -20, 80, 35, 5); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.5;
-        ctx.fillRect(-25, -12, 50, 12);
-        ctx.restore();
-
-        ctx.restore();
-    },
-
-    loop() {
-        this.update();
-        this.draw();
-        requestAnimationFrame(() => this.loop());
+function drawCar(x, y, col, isP) {
+    ct.save();
+    ct.translate(x, y);
+    // Metallic Shader Gradient
+    let g = ct.createLinearGradient(0, 0, CW, 0);
+    g.addColorStop(0, col); g.addColorStop(0.5, '#fff'); g.addColorStop(1, col);
+    ct.fillStyle = g;
+    ct.beginPath(); ct.roundRect(0, 0, CW, CH, 12); ct.fill();
+    // Glass
+    ct.fillStyle = '#050505';
+    ct.beginPath(); ct.roundRect(6, 15, CW-12, 35, 6); ct.fill();
+    // Headlights
+    if(isP) {
+        ct.shadowBlur = 20; ct.shadowColor = '#0ff'; ct.fillStyle = '#fff';
+        ct.fillRect(4, -4, 12, 6); ct.fillRect(CW-16, -4, 12, 6);
+    } else {
+        ct.fillStyle = '#f00'; ct.fillRect(4, CH-2, 12, 5); ct.fillRect(CW-16, CH-2, 12, 5);
     }
-};
+    ct.restore();
+}
 
-Game.init();
+function draw() {
+    ct.fillStyle = '#020205'; ct.fillRect(0,0,cv.width,cv.height);
+    // Animated Road Lines
+    ct.setLineDash([40, 40]);
+    ct.lineDashOffset = -frame * speed;
+    ct.strokeStyle = '#111'; ct.lineWidth = 4;
+    for(let i=120; i<480; i+=120) {
+        ct.beginPath(); ct.moveTo(i, 0); ct.lineTo(i, cv.height); ct.stroke();
+    }
+    if(state === 'PLAY' || state === 'DEAD') {
+        cars.forEach(c => drawCar(c.x, c.y, c.c, false));
+        if(state !== 'DEAD') drawCar(px, 700, '#eee', true);
+    }
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+
+function admin() {
+    if(prompt("AUTH:") === "test") { speed = 25; startRun(); }
+}
 </script>
 </body>
 </html>
