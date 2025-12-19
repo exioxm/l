@@ -1,38 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Parking Fury: Trailer Edition</title>
+    <title>Parking Mania | ZED Productions</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #0f172a; --card: #1e293b; }
+        :root { --gold: #f1c40f; --accent: #3498db; --bg: #0f172a; --card: #1e293b; }
         body { margin: 0; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', sans-serif; color: white; overflow: hidden; }
-        canvas { background: #1e293b; border: 4px solid #334155; display: none; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.7); }
         
-        .menu-container { text-align: center; background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #475569; width: 800px; max-height: 90vh; overflow-y: auto; }
-        h1 { font-size: 42px; margin: 0 0 10px 0; color: var(--gold); }
-        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 20px; }
-        .level-btn { background: #334155; border: 2px solid #475569; color: white; padding: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
-        .level-btn:hover { background: #475569; border-color: var(--gold); }
-        .level-btn .stars { color: var(--gold); font-size: 14px; display: block; margin-top: 5px; letter-spacing: 2px; }
+        /* Menu System */
+        .screen { text-align: center; background: var(--card); padding: 50px; border-radius: 24px; border: 1px solid #334155; width: 600px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: absolute; transition: 0.4s; }
+        .hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+        
+        h1 { font-size: 60px; margin: 0; color: var(--gold); text-transform: uppercase; letter-spacing: 5px; }
+        .brand { font-size: 18px; color: var(--accent); margin-bottom: 40px; letter-spacing: 2px; font-weight: bold; }
+        
+        .main-btn { background: var(--gold); color: #000; border: none; padding: 18px 60px; font-size: 22px; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.2s; }
+        .main-btn:hover { transform: scale(1.1); background: #fff; }
 
-        #hud { position: absolute; top: 20px; text-align: center; width: 100%; pointer-events: none; display: none; }
-        .star-box { font-size: 40px; color: #334155; display: inline-block; background: rgba(0,0,0,0.5); padding: 5px 20px; border-radius: 50px; border: 1px solid #475569; }
-        .active { color: var(--gold); text-shadow: 0 0 15px var(--gold); }
+        /* Level Selector */
+        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 20px; }
+        .level-btn { background: #334155; border: 2px solid #475569; color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-size: 14px; }
+        .level-btn:hover { border-color: var(--gold); background: #475569; }
+        .level-btn .stars { color: var(--gold); display: block; font-size: 12px; }
+
+        /* HUD & Game */
+        canvas { background: #1e293b; border: 4px solid #334155; border-radius: 12px; display: none; }
+        #hud { position: absolute; top: 20px; width: 100%; text-align: center; display: none; pointer-events: none; }
+        .star-box { font-size: 40px; background: rgba(0,0,0,0.6); padding: 10px 30px; border-radius: 50px; border: 1px solid #475569; }
+        .active { color: var(--gold); text-shadow: 0 0 15px var(--gold); color: #334155; }
+        .star-on { color: var(--gold) !important; }
+        #tutorial-box { position: absolute; bottom: 30px; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; border-left: 5px solid var(--accent); font-size: 18px; display: none; }
     </style>
 </head>
 <body>
 
-    <div id="home-screen" class="menu-container">
-        <h1>PARKING FURY: TRAILER</h1>
-        <p style="color: #94a3b8;">WASD to Drive | ESC to Menu | Be precise with the trailer!</p>
+    <!-- Home Screen -->
+    <div id="home-screen" class="screen">
+        <h1>PARKING MANIA</h1>
+        <div class="brand">By: ZED Productions</div>
+        <button class="main-btn" onclick="showLevels()">LEVELS</button>
+    </div>
+
+    <!-- Level Select Screen -->
+    <div id="level-screen" class="screen hidden">
+        <button onclick="showHome()" style="background:none; border:none; color:var(--accent); cursor:pointer; margin-bottom:20px;">← BACK</button>
+        <h2>SELECT CHALLENGE</h2>
         <div class="level-grid" id="level-selector"></div>
     </div>
 
+    <!-- HUD -->
     <div id="hud">
         <div class="star-box">
-            <span id="s1" class="active">★</span>
-            <span id="s2" class="active">★</span>
-            <span id="s3" class="active">★</span>
+            <span id="s1" class="active star-on">★</span>
+            <span id="s2" class="active star-on">★</span>
+            <span id="s3" class="active star-on">★</span>
         </div>
+        <div id="tutorial-box"></div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -40,61 +62,83 @@
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    const homeScreen = document.getElementById("home-screen");
-    const hud = document.getElementById("hud");
     canvas.width = 800; canvas.height = 600;
 
-    let currentLvl = 0;
     let gameActive = false;
+    let currentLvlIdx = 0;
     const car = { x:0, y:0, angle:0, speed:0, accel:0.15, friction:0.95, turnSpeed:0.045, w:42, h:22, hits:0 };
-    const trailer = { x:0, y:0, angle:0, w:60, h:22 };
+    const trailer = { x:0, y:0, angle:0, w:55, h:22 };
     const keys = {};
 
     const levels = [
-        { useTrailer: true, start: {x: 100, y: 300, a: 0}, target: {x: 650, y: 300, w: 70, h: 40}, walls: [{x: 0, y: 0, w: 800, h: 10}, {x: 0, y: 590, w: 800, h: 10}] },
-        { useTrailer: true, start: {x: 50, y: 50, a: 0}, target: {x: 700, y: 400, w: 40, h: 70}, walls: [{x: 300, y: 0, w: 50, h: 300}, {x: 500, y: 300, w: 50, h: 300}] },
-        { useTrailer: false, start: {x: 400, y: 500, a: -Math.PI/2}, target: {x: 375, y: 50, w: 50, h: 80}, walls: [{x: 0, y: 150, w: 350, h: 20}, {x: 450, y: 150, w: 350, h: 20}] },
-        { useTrailer: true, start: {x: 700, y: 500, a: Math.PI}, target: {x: 100, y: 100, w: 70, h: 40}, walls: [{x: 200, y: 0, w: 40, h: 600}, {x: 400, y: 0, w: 40, h: 600}, {x: 600, y: 0, w: 40, h: 600}] },
-        { useTrailer: true, start: {x: 50, y: 50, a: 0}, target: {x: 700, y: 500, w: 60, h: 40}, walls: [{x: 100, y: 100, w: 100, h: 100}, {x: 300, y: 300, w: 100, h: 100}, {x: 500, y: 100, w: 100, h: 100}, {x: 600, y: 400, w: 100, h: 100}] }
+        { name: "Tutorial", useTrailer: false, start: {x:100, y:300, a:0}, target: {x:650, y:280, w:60, h:40}, walls: [], hint: "Welcome! Use W to accelerate and S to reverse. Steer with A and D. Park in the yellow zone!" },
+        { name: "First Trailer", useTrailer: true, start: {x:100, y:100, a:0}, target: {x:650, y:450, w:70, h:40}, walls: [{x:300, y:0, w:40, h:400}], hint: "Trailers are tricky! Remember: when reversing, the trailer turns the opposite way." },
+        // ... more levels can be added here
     ];
 
-    function initMenu() {
-        const selector = document.getElementById("level-selector");
-        selector.innerHTML = "";
+    // Add procedurally generated levels up to 20
+    for(let i=2; i<20; i++) {
+        levels.push({
+            name: "Level " + (i+1),
+            useTrailer: i % 2 === 0,
+            start: {x:100, y:100, a:0},
+            target: {x: 600, y: 500, w: 60, h: 40},
+            walls: [{x: Math.random()*400+200, y: Math.random()*300, w: 20, h: 300}],
+            hint: ""
+        });
+    }
+
+    function showLevels() {
+        document.getElementById("home-screen").classList.add("hidden");
+        document.getElementById("level-screen").classList.remove("hidden");
+        initLevelButtons();
+    }
+
+    function showHome() {
+        document.getElementById("home-screen").classList.remove("hidden");
+        document.getElementById("level-screen").classList.add("hidden");
+    }
+
+    function initLevelButtons() {
+        const grid = document.getElementById("level-selector");
+        grid.innerHTML = "";
         levels.forEach((l, i) => {
-            const highStar = localStorage.getItem(`stars_lvl${i}`) || 0;
+            const stars = localStorage.getItem(`zed_stars_lvl${i}`) || 0;
             const btn = document.createElement("div");
             btn.className = "level-btn";
-            btn.innerHTML = `Lvl ${i+1} (${l.useTrailer ? 'Trailer' : 'Car'})<span class="stars">${"★".repeat(highStar)}${"☆".repeat(3-highStar)}</span>`;
+            btn.innerHTML = `<b>${i === 0 ? "Tutorial" : i+1}</b><span class="stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</span>`;
             btn.onclick = () => startLevel(i);
-            selector.appendChild(btn);
+            grid.appendChild(btn);
         });
     }
 
     function startLevel(idx) {
-        currentLvl = idx;
+        currentLvlIdx = idx;
         const l = levels[idx];
-        car.x = l.start.x; car.y = l.start.y; car.angle = l.start.a;
-        // Place trailer behind car initially
-        trailer.x = car.x - Math.cos(car.angle) * (car.w/2 + trailer.w/2 + 5);
-        trailer.y = car.y - Math.sin(car.angle) * (car.w/2 + trailer.w/2 + 5);
-        trailer.angle = car.angle;
-        car.speed = 0; car.hits = 0;
-        updateStars();
-        homeScreen.style.display = "none";
+        document.getElementById("level-screen").style.display = "none";
         canvas.style.display = "block";
         hud.style.display = "block";
+        
+        car.x = l.start.x; car.y = l.start.y; car.angle = l.start.a;
+        car.speed = 0; car.hits = 0;
+        
+        trailer.x = car.x - 60; trailer.y = car.y; trailer.angle = car.angle;
+
+        const tut = document.getElementById("tutorial-box");
+        if(l.hint) { tut.style.display = "block"; tut.innerText = l.hint; } 
+        else { tut.style.display = "none"; }
+
+        updateStars();
         gameActive = true;
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(loop);
     }
 
     function updateStars() {
-        document.getElementById("s3").className = car.hits >= 1 ? "" : "active";
-        document.getElementById("s2").className = car.hits >= 2 ? "" : "active";
-        document.getElementById("s1").className = car.hits >= 3 ? "" : "active";
-        if (car.hits >= 3) {
-            gameActive = false;
-            alert("Level Failed! Too many hits.");
+        document.getElementById("s3").classList.toggle("star-on", car.hits < 1);
+        document.getElementById("s2").classList.toggle("star-on", car.hits < 2);
+        document.getElementById("s1").classList.toggle("star-on", car.hits < 3);
+        if(car.hits >= 3) {
+            alert("FAILED! You hit too many things.");
             location.reload();
         }
     }
@@ -105,105 +149,75 @@
     });
     window.addEventListener("keyup", e => keys[e.code] = false);
 
-    function gameLoop() {
-        if (!gameActive) return;
+    function loop() {
+        if(!gameActive) return;
 
-        // Car Physics (Same as before)
-        if (keys["KeyW"]) car.speed += car.accel;
-        if (keys["KeyS"]) car.speed -= car.accel;
-        if (Math.abs(car.speed) > 0.1) {
-            const dir = car.speed > 0 ? 1 : -1;
-            if (keys["KeyA"]) car.angle -= car.turnSpeed * dir;
-            if (keys["KeyD"]) car.angle += car.turnSpeed * dir;
+        // Physics
+        if(keys["KeyW"]) car.speed += car.accel;
+        if(keys["KeyS"]) car.speed -= car.accel;
+        if(Math.abs(car.speed) > 0.1) {
+            const turnDir = car.speed > 0 ? 1 : -1;
+            if(keys["KeyA"]) car.angle -= car.turnSpeed * turnDir;
+            if(keys["KeyD"]) car.angle += car.turnSpeed * turnDir;
         }
         car.speed *= car.friction;
         car.x += Math.cos(car.angle) * car.speed;
         car.y += Math.sin(car.angle) * car.speed;
 
-        // Trailer Physics (New)
-        if (levels[currentLvl].useTrailer) {
-            // Distance from hitch point (rear of car) to front of trailer
-            const hitchX = car.x - Math.cos(car.angle) * (car.w/2);
-            const hitchY = car.y - Math.sin(car.angle) * (car.w/2);
-            const trailerFrontX = trailer.x + Math.cos(trailer.angle) * (trailer.w/2);
-            const trailerFrontY = trailer.y + Math.sin(trailer.angle) * (trailer.w/2);
-            
-            const dx = hitchX - trailerFrontX;
-            const dy = hitchY - trailerFrontY;
-            const distance = Math.sqrt(dx*dx + dy*dy);
-            const angleToCar = Math.atan2(dy, dx);
-            
-            // Constrain distance
-            if (distance > 5) { // Maintain connection length
-                trailer.x += dx * 0.1;
-                trailer.y += dy * 0.1;
-            }
-
-            // Align trailer angle towards the car hitch (smooth steering)
-            let angleDiff = angleToCar - trailer.angle;
-            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-            trailer.angle += angleDiff * Math.abs(car.speed) * 0.05; 
+        // Trailer Follow Logic
+        const l = levels[currentLvlIdx];
+        if(l.useTrailer) {
+            const tx = car.x - Math.cos(car.angle) * 25;
+            const ty = car.y - Math.sin(car.angle) * 25;
+            const dx = tx - trailer.x;
+            const dy = ty - trailer.y;
+            trailer.angle = Math.atan2(dy, dx);
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const moveDist = dist - 35;
+            trailer.x += Math.cos(trailer.angle) * moveDist;
+            trailer.y += Math.sin(trailer.angle) * moveDist;
         }
 
-        // Collision detection for BOTH car and trailer
-        const checkCollision = (obj) => {
-            levels[currentLvl].walls.forEach(w => {
-                if (obj.x > w.x && obj.x < w.x + w.w && obj.y > w.y && obj.y < w.y + w.h) {
-                    car.speed = -car.speed * 1.2; // Bounce the whole unit
+        // Collision
+        l.walls.concat([ {x:0,y:0,w:800,h:10},{x:0,y:590,w:800,h:10},{x:0,y:0,w:10,h:600},{x:790,y:0,w:10,h:600} ]).forEach(w => {
+            const rects = [car];
+            if(l.useTrailer) rects.push(trailer);
+            rects.forEach(obj => {
+                if(obj.x > w.x && obj.x < w.x+w.w && obj.y > w.y && obj.y < w.y+w.h) {
+                    car.speed *= -1.5;
                     car.hits++;
                     updateStars();
                 }
             });
-        };
-        checkCollision(car);
-        if (levels[currentLvl].useTrailer) checkCollision(trailer);
+        });
 
-
-        // Win Condition: Trailer must be in the spot if required
-        const t = levels[currentLvl].target;
-        const parkedObj = levels[currentLvl].useTrailer ? trailer : car;
-        
-        if (parkedObj.x > t.x && parkedObj.x < t.x + t.w && parkedObj.y > t.y && parkedObj.y < t.y + t.h && Math.abs(car.speed) < 0.1) {
-            const finalStars = 3 - car.hits;
-            const best = localStorage.getItem(`stars_lvl${currentLvl}`) || 0;
-            if (finalStars > best) localStorage.setItem(`stars_lvl${currentLvl}`, finalStars);
-            alert(`Level Complete! Stars: ${finalStars}`);
+        // Win Condition
+        const t = l.target;
+        const checkObj = l.useTrailer ? trailer : car;
+        if(checkObj.x > t.x && checkObj.x < t.x+t.w && checkObj.y > t.y && checkObj.y < t.y+t.h && Math.abs(car.speed) < 0.1) {
+            const s = 3 - car.hits;
+            const best = localStorage.getItem(`zed_stars_lvl${currentLvlIdx}`) || 0;
+            if(s > best) localStorage.setItem(`zed_stars_lvl${currentLvlIdx}`, s);
+            alert(`Level Complete! Stars: ${s}`);
             location.reload();
         }
 
-        // Draw Logic
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Draw
+        ctx.clearRect(0,0,800,600);
         ctx.fillStyle = "#334155";
-        levels[currentLvl].walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
-        
-        ctx.strokeStyle = var(--gold); ctx.lineWidth = 3;
-        ctx.strokeRect(t.x, t.y, t.w, t.h);
+        l.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+        ctx.strokeStyle = "yellow"; ctx.strokeRect(t.x, t.y, t.w, t.h);
 
-        // Draw Trailer first
-        if (levels[currentLvl].useTrailer) {
-            ctx.save();
-            ctx.translate(trailer.x, trailer.y);
-            ctx.rotate(trailer.angle);
-            ctx.fillStyle = "#94a3b8"; // Gray Trailer
-            ctx.fillRect(-trailer.w/2, -trailer.h/2, trailer.w, trailer.h);
+        const drawObj = (obj, color) => {
+            ctx.save(); ctx.translate(obj.x, obj.y); ctx.rotate(obj.angle);
+            ctx.fillStyle = color; ctx.fillRect(-obj.w/2, -obj.h/2, obj.w, obj.h);
             ctx.restore();
-        }
+        };
+        if(l.useTrailer) drawObj(trailer, "#94a3b8");
+        drawObj(car, "#ef4444");
 
-        // Draw Car
-        ctx.save();
-        ctx.translate(car.x, car.y);
-        ctx.rotate(car.angle);
-        ctx.fillStyle = "#ef4444"; 
-        ctx.fillRect(-car.w/2, -car.h/2, car.w, car.h);
-        ctx.fillStyle = "#fff"; // Headlights
-        ctx.fillRect(car.w/2 - 5, -8, 5, 4); ctx.fillRect(car.w/2 - 5, 4, 5, 4);
-        ctx.restore();
-
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(loop);
     }
-
-    initMenu();
 </script>
 </body>
 </html>
