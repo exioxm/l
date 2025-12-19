@@ -3,164 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Synthwave Racer 2025</title>
+    <title>Neon Drive: Obstacles</title>
     <style>
-        /* CSS STYLES */
-        body {
-            margin: 0;
-            background: #050510;
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: 'Courier New', Courier, monospace;
-            overflow: hidden;
-        }
-
-        #ui-layer {
-            position: absolute;
-            text-align: center;
-            z-index: 10;
-        }
-
-        .active { display: block; }
+        body { margin: 0; background: #050510; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; overflow: hidden; }
+        #ui-layer { position: absolute; text-align: center; z-index: 10; pointer-events: none; }
+        #ui-layer * { pointer-events: auto; }
         .hidden { display: none; }
-
-        h1 {
-            font-size: 4rem;
-            margin: 0;
-            color: #00f3ff;
-            text-shadow: 0 0 10px #00f3ff, 0 0 20px #ff00ff;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-        }
-
-        .btn {
-            background: transparent;
-            border: 2px solid #ff00ff;
-            color: #ff00ff;
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            text-shadow: 0 0 5px #ff00ff;
-            box-shadow: 0 0 10px #ff00ff;
-            transition: 0.3s;
-            margin-top: 20px;
-        }
-
-        .btn:hover {
-            background: #ff00ff;
-            color: #fff;
-            box-shadow: 0 0 30px #ff00ff;
-        }
-
-        canvas {
-            background: linear-gradient(to bottom, #1a0b2e 0%, #050510 100%);
-            border: 4px solid #00f3ff;
-            box-shadow: 0 0 25px #00f3ff;
-        }
+        h1 { font-size: 3.5rem; color: #00f3ff; text-shadow: 0 0 20px #ff00ff; margin: 0; }
+        .btn { background: transparent; border: 2px solid #ff00ff; color: #ff00ff; padding: 15px 40px; font-size: 1.2rem; cursor: pointer; box-shadow: 0 0 10px #ff00ff; margin-top: 20px; }
+        .btn:hover { background: #ff00ff; color: #fff; }
+        canvas { background: #050510; border: 4px solid #00f3ff; box-shadow: 0 0 25px #00f3ff; }
     </style>
 </head>
 <body>
 
-    <!-- UI Overlay -->
     <div id="ui-layer">
         <div id="homeScreen">
             <h1>NEON DRIVE</h1>
-            <p>ARROWS TO MOVE</p>
+            <p>DODGE THE RED CARS</p>
             <button class="btn" onclick="startGame()">START ENGINE</button>
+        </div>
+        <div id="gameOverScreen" class="hidden">
+            <h1 style="color: #ff0055;">CRASHED</h1>
+            <button class="btn" onclick="startGame()">RETRY</button>
         </div>
     </div>
 
-    <!-- Game Canvas -->
     <canvas id="gameCanvas" width="400" height="600"></canvas>
 
     <script>
-        // JAVASCRIPT LOGIC
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const homeScreen = document.getElementById("homeScreen");
+        const gameOverScreen = document.getElementById("gameOverScreen");
 
         let gameState = "MENU";
-        let car = { x: 175, y: 480, w: 50, h: 85, speed: 6 };
+        let car = { x: 175, y: 480, w: 45, h: 80, speed: 7 };
+        let obstacles = [];
+        let frameCount = 0;
         let roadOffset = 0;
         let keys = {};
 
-        // Input listeners
         window.addEventListener("keydown", e => keys[e.code] = true);
         window.addEventListener("keyup", e => keys[e.code] = false);
 
         function startGame() {
             gameState = "PLAYING";
             homeScreen.className = "hidden";
+            gameOverScreen.className = "hidden";
+            obstacles = []; // Reset obstacles
+            car.x = 175; car.y = 480; // Reset position
+            frameCount = 0;
             gameLoop();
         }
 
         function update() {
             if (gameState !== "PLAYING") return;
 
-            // Movement
+            // Player Movement
             if (keys["ArrowLeft"] && car.x > 0) car.x -= car.speed;
             if (keys["ArrowRight"] && car.x < canvas.width - car.w) car.x += car.speed;
-            if (keys["ArrowUp"] && car.y > 0) car.y -= car.speed;
-            if (keys["ArrowDown"] && car.y < canvas.height - car.h) car.y += car.speed;
 
-            // Animate road lines
-            roadOffset += 10;
-            if (roadOffset > 100) roadOffset = 0;
+            // Animate road
+            roadOffset = (roadOffset + 8) % 100;
+
+            // Spawn Obstacles every 80 frames
+            frameCount++;
+            if (frameCount % 80 === 0) {
+                let laneX = Math.floor(Math.random() * (canvas.width - 45));
+                obstacles.push({ x: laneX, y: -100, w: 45, h: 80, color: "#ff0055" });
+            }
+
+            // Move Obstacles and Check Collision
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += 5; // Obstacle speed
+
+                // Collision Logic (Rectangle intersection)
+                if (car.x < obstacles[i].x + obstacles[i].w &&
+                    car.x + car.w > obstacles[i].x &&
+                    car.y < obstacles[i].y + obstacles[i].h &&
+                    car.y + car.h > obstacles[i].y) {
+                    gameState = "OVER";
+                    gameOverScreen.className = "active";
+                }
+
+                // Remove off-screen obstacles
+                if (obstacles[i].y > canvas.height) obstacles.splice(i, 1);
+            }
         }
 
         function draw() {
-            // Clear screen
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Synthwave Grid/Road
-            ctx.strokeStyle = "#ff00ff33";
-            ctx.lineWidth = 2;
+            // Draw Road Grid
+            ctx.strokeStyle = "#ff00ff22";
             for(let i = 0; i <= canvas.width; i += 40) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, canvas.height);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
             }
-
-            // Draw Animated Road Lines (Horizontal)
-            ctx.strokeStyle = "#00f3ff";
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#00f3ff66";
             for(let j = -100; j < canvas.height; j += 100) {
-                ctx.beginPath();
-                ctx.moveTo(0, j + roadOffset);
-                ctx.lineTo(canvas.width, j + roadOffset);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, j + roadOffset); ctx.lineTo(canvas.width, j + roadOffset); ctx.stroke();
             }
 
-            // Draw Car (The Neon Outrun Machine)
-            // Car Body
+            // Draw Player Car
             ctx.fillStyle = "#ff00ff";
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = "#ff00ff";
+            ctx.shadowBlur = 15; ctx.shadowColor = "#ff00ff";
             ctx.fillRect(car.x, car.y, car.w, car.h);
+            ctx.fillStyle = "#00f3ff"; // Windshield
+            ctx.fillRect(car.x + 5, car.y + 10, car.w - 10, 15);
 
-            // Car Windows
-            ctx.fillStyle = "#00f3ff";
-            ctx.shadowBlur = 5;
-            ctx.fillRect(car.x + 5, car.y + 15, car.w - 10, 20);
-
-            // Reset shadow for performance
+            // Draw Obstacles
+            ctx.shadowColor = "#ff0055";
+            for (let obs of obstacles) {
+                ctx.fillStyle = obs.color;
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.fillStyle = "white"; // Headlights
+                ctx.fillRect(obs.x + 5, obs.y + 65, 10, 10);
+                ctx.fillRect(obs.x + 30, obs.y + 65, 10, 10);
+            }
             ctx.shadowBlur = 0;
         }
 
         function gameLoop() {
             update();
             draw();
-            if (gameState === "PLAYING") {
-                requestAnimationFrame(gameLoop);
-            }
+            if (gameState === "PLAYING") requestAnimationFrame(gameLoop);
         }
 
-        // Initial draw for background
-        draw();
+        draw(); // Initial static frame
     </script>
 </body>
 </html>
