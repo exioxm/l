@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER DRIFT 2025: STABLE</title>
+    <title>CYBER DRIFT 2025: FINAL</title>
     <style>
         @import url('fonts.googleapis.com');
         body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Space Grotesk', sans-serif; color: #fff; }
@@ -12,24 +12,43 @@
         .ui { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.95); transition: 0.5s; }
         .hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
         .title { font-family: 'Orbitron'; font-size: 55px; color: #fff; text-shadow: 0 0 20px #0ff; margin: 0; }
-        .btn { margin: 10px; padding: 20px 50px; background: none; border: 2px solid #0ff; color: #0ff; font-family: 'Orbitron'; cursor: pointer; transition: 0.2s; width: 340px; font-weight: 900; }
+        .btn { margin: 10px; padding: 18px 40px; background: none; border: 2px solid #0ff; color: #0ff; font-family: 'Orbitron'; cursor: pointer; transition: 0.2s; width: 340px; font-weight: 900; letter-spacing: 2px; }
         .btn:hover { background: #0ff; color: #000; box-shadow: 0 0 40px #0ff; }
         #hud { position: absolute; top: 30px; left: 30px; right: 30px; display: flex; justify-content: space-between; z-index: 50; color: #0ff; pointer-events: none; }
-        .debug { position: absolute; bottom: 10px; left: 10px; color: #111; cursor: pointer; font-size: 10px; }
+        /* Debug Info Overlay */
+        #debug-info { background: rgba(0, 20, 20, 0.9); border: 1px solid #0ff; padding: 20px; text-align: left; font-family: monospace; color: #0ff; }
     </style>
 </head>
 <body>
 <div id="core-frame">
     <canvas id="stage"></canvas>
+    
+    <!-- HUD -->
     <div id="hud" class="hidden">
         <div>DIST: <span id="ui-dist" style="font-size:24px; font-weight:900;">0</span> FT</div>
         <div>CASH: $<span id="ui-cash" style="font-size:24px; font-weight:900;">0.00</span></div>
     </div>
+
+    <!-- MAIN HOME SCREEN -->
     <div id="menu" class="ui">
         <h1 class="title">CYBER DRIFT</h1>
         <div style="font-size:12px; color:#444; letter-spacing:4px; margin-top:5px;">by ZED Productions</div>
+        
         <button class="btn" style="margin-top:40px;" onclick="startRun()">START GAME</button>
-        <div class="debug" onclick="admin()">[D]</div>
+        <button class="btn" style="border-color:#555; color:#888;" onclick="toggleDebugMenu()">DEBUG</button>
+    </div>
+
+    <!-- DEBUG MENU OVERLAY -->
+    <div id="debug-overlay" class="ui hidden">
+        <div id="debug-info">
+            <div>> SYSTEM DIAGNOSTICS: ONLINE</div>
+            <div>> VERSION: 2.0.25-FINAL</div>
+            <div>> BUILD_DATE: 2025-12-19</div>
+            <div>> ENGINE: NEURAL_ZENITH_V4</div>
+            <br>
+            <button class="btn" style="width:200px; font-size:12px;" onclick="admin()">CMD_OVERRIDE</button>
+        </div>
+        <button class="btn" style="border:none; font-size:10px;" onclick="toggleDebugMenu()">BACK</button>
     </div>
 </div>
 
@@ -44,7 +63,12 @@ const CW = 46, CH = 92;
 function startRun() {
     state = 'PLAY'; dist = 0; frame = 0; speed = 12; cars = [];
     document.getElementById('menu').classList.add('hidden');
+    document.getElementById('debug-overlay').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
+}
+
+function toggleDebugMenu() {
+    document.getElementById('debug-overlay').classList.toggle('hidden');
 }
 
 window.addEventListener('mousemove', e => {
@@ -53,11 +77,10 @@ window.addEventListener('mousemove', e => {
 });
 
 function spawn() {
-    // Spawning logic fix: ensured car X is within visible lane bounds
     cars.push({
         x: Math.random() * (cv.width - CW - 40) + 20,
         y: -200,
-        c: `hsl(${Math.random()*360}, 100%, 60%)`, // Ultra-bright neon
+        c: `hsl(${Math.random()*360}, 100%, 60%)`, 
         v: 0.7 + Math.random() * 0.4
     });
 }
@@ -72,7 +95,6 @@ function update() {
 
     cars.forEach((c, i) => {
         c.y += speed * c.v;
-        // Accurate collision hitbox
         if (px < c.x + CW - 8 && px + CW > c.x + 8 && 700 < c.y + CH - 15 && 700 + CH > c.y + 15) {
             state = 'DEAD'; setTimeout(() => location.reload(), 2000);
         }
@@ -86,15 +108,12 @@ function update() {
 function drawCar(x, y, col, isP) {
     ct.save();
     ct.translate(x, y);
-    // Metallic Shader Gradient
     let g = ct.createLinearGradient(0, 0, CW, 0);
     g.addColorStop(0, col); g.addColorStop(0.5, '#fff'); g.addColorStop(1, col);
     ct.fillStyle = g;
     ct.beginPath(); ct.roundRect(0, 0, CW, CH, 12); ct.fill();
-    // Glass
     ct.fillStyle = '#050505';
     ct.beginPath(); ct.roundRect(6, 15, CW-12, 35, 6); ct.fill();
-    // Headlights
     if(isP) {
         ct.shadowBlur = 20; ct.shadowColor = '#0ff'; ct.fillStyle = '#fff';
         ct.fillRect(4, -4, 12, 6); ct.fillRect(CW-16, -4, 12, 6);
@@ -106,9 +125,7 @@ function drawCar(x, y, col, isP) {
 
 function draw() {
     ct.fillStyle = '#020205'; ct.fillRect(0,0,cv.width,cv.height);
-    // Animated Road Lines
-    ct.setLineDash([40, 40]);
-    ct.lineDashOffset = -frame * speed;
+    ct.setLineDash([]);
     ct.strokeStyle = '#111'; ct.lineWidth = 4;
     for(let i=120; i<480; i+=120) {
         ct.beginPath(); ct.moveTo(i, 0); ct.lineTo(i, cv.height); ct.stroke();
@@ -123,7 +140,10 @@ function loop() { update(); draw(); requestAnimationFrame(loop); }
 loop();
 
 function admin() {
-    if(prompt("AUTH:") === "test") { speed = 25; startRun(); }
+    if(prompt("ENTER ROOT PASSWORD:") === "test") { 
+        speed = 30; // Max wanted speed
+        startRun(); 
+    }
 }
 </script>
 </body>
