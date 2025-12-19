@@ -3,222 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER-DRIFT: 2025 STABLE</title>
+    <title>CYBER DRIFT 2025: PRO</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Orbitron', sans-serif; }
-        canvas { border: 2px solid #0ff; box-shadow: 0 0 50px rgba(0, 255, 255, 0.2); background: #000; cursor: none; }
-        #ui-layer { position: absolute; width: 450px; height: 700px; pointer-events: none; padding: 20px; box-sizing: border-box; color: #0ff; z-index: 10; text-shadow: 0 0 10px #0ff; }
-        .menu { position: absolute; inset: 0; background: rgba(0,0,0,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; pointer-events: all; }
-        .title { font-size: 30px; color: #f0f; text-shadow: 0 0 20px #f0f; text-align: center; margin-bottom: 10px; line-height: 1.2; }
-        .btn { margin: 6px 0; padding: 12px 30px; background: transparent; border: 2px solid #0ff; color: #0ff; font-size: 12px; cursor: pointer; transition: 0.2s; width: 300px; letter-spacing: 1px; }
-        .btn:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; transform: scale(1.05); }
-        #cash-ui { position: absolute; bottom: 15px; left: 15px; font-size: 16px; color: #0f0; text-shadow: 0 0 10px #0f0; }
+        @import url('fonts.googleapis.com');
+        body { margin: 0; background: #010103; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Share Tech Mono', monospace; }
+        #game-container { position: relative; width: 450px; height: 750px; border: 2px solid #0ff; box-shadow: 0 0 30px rgba(0, 255, 255, 0.2); background: #000; overflow: hidden; }
+        
+        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.9); }
         .hidden { display: none !important; }
-        #pulse-bar-container, #ghost-meter-container { display: none; width: 100%; height: 10px; border: 1px solid #f0f; margin-top: 10px; }
-        #pulse-bar, #ghost-meter { width: 100%; height: 100%; background: #f0f; box-shadow: 0 0 10px #f0f; }
-        #wanted-stars { color: #f00; font-size: 24px; }
+
+        /* Terminals */
+        .title { font-family: 'Orbitron'; font-size: 38px; color: #0ff; text-shadow: 0 0 15px #0ff; margin-bottom: 30px; letter-spacing: 3px; }
+        .terminal-box { width: 85%; background: rgba(0, 20, 20, 0.8); border: 1px solid #0ff; padding: 20px; box-sizing: border-box; }
+        
+        /* Navigation */
+        .mode-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+        .mode-btn { background: none; border: 1px solid #066; color: #0ff; padding: 10px; cursor: pointer; text-align: left; font-family: 'Share Tech Mono'; transition: 0.2s; }
+        .mode-btn:hover { background: rgba(0, 255, 255, 0.2); border-color: #0ff; padding-left: 20px; }
+        
+        /* Debug Menu */
+        .debug-entry { position: absolute; bottom: 10px; left: 10px; color: #044; cursor: pointer; font-size: 10px; z-index: 200; }
+        .debug-window { border: 1px solid #f0f; background: #100; width: 80%; padding: 15px; color: #f0f; }
+
+        /* Game UI */
+        #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; color: #0ff; font-size: 14px; pointer-events: none; z-index: 50; }
+        #cash-display { position: absolute; bottom: 10px; right: 15px; color: #0f0; }
+        
+        canvas { display: block; filter: contrast(1.2) brightness(1.1); }
     </style>
-    <link href="fonts.googleapis.com" rel="stylesheet">
 </head>
 <body>
-    <div id="ui-layer" class="hidden">
-        <div style="display: flex; justify-content: space-between;">
-            <div>DISTANCE: <span id="score">0</span> FT</div>
-            <div id="wanted-stars"></div>
+
+<div id="game-container">
+    <div id="hud" class="hidden">
+        <div>DST: <span id="ui-dist">0</span> FT</div>
+        <div id="ui-mode" style="color:#f0f">MODE</div>
+        <div id="ui-wanted" style="color:#f00"></div>
+    </div>
+    <div id="cash-display">CREDITS: $<span id="ui-cash">0.00</span></div>
+
+    <!-- MAIN MENU -->
+    <div id="home-screen" class="overlay">
+        <div class="title">NEURAL DRIFT</div>
+        <div class="terminal-box">
+            <div style="color:#066; margin-bottom: 10px;">> SELECT_PROTOCOL:</div>
+            <div class="mode-list">
+                <button class="mode-btn" onclick="openPrompt('NORMAL')">01. NORMAL_RUN</button>
+                <button class="mode-btn" onclick="openPrompt('WANTED')">02. WANTED_SYS</button>
+                <button class="mode-btn" onclick="openPrompt('CHROMA')">03. CHROMA_BLITZ</button>
+                <button class="mode-btn" onclick="openPrompt('GHOST')">04. GHOST_PROC</button>
+                <button class="mode-btn" onclick="openPrompt('JAM')">05. TRAFFIC_JAM</button>
+                <button class="mode-btn" onclick="openPrompt('SONIC')">06. SONIC_PULSE</button>
+            </div>
         </div>
-        <div id="ghost-meter-container"><div id="ghost-meter"></div></div>
-        <div id="pulse-bar-container"><div id="pulse-bar"></div></div>
-    </div>
-    
-    <div id="cash-ui">CREDITS: $<span id="cash">0.00</span> USD</div>
-
-    <div id="main-menu" class="menu">
-        <h1 class="title">NEURAL DRIFT<br>OS 2.0</h1>
-        <button class="btn" onclick="promptMode('NORMAL')">NORMAL MODE</button>
-        <button class="btn" onclick="promptMode('WANTED')">WANTED MODE</button>
-        <button class="btn" onclick="promptMode('CHROMA')">CHROMA BLITZ</button>
-        <button class="btn" onclick="promptMode('GHOST')">GHOST PROTOCOL</button>
-        <button class="btn" onclick="promptMode('JAM')">TRAFFIC JAM</button>
-        <button class="btn" onclick="promptMode('SONIC')">SONIC PULSE</button>
-        <button class="btn" onclick="promptMode('ADMIN')">ADMIN OVERRIDE</button>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <!-- MODE PROMPT -->
+    <div id="prompt-screen" class="overlay hidden">
+        <div class="terminal-box" style="border-color: #f0f;">
+            <div id="p-title" style="color:#f0f; font-size: 20px; margin-bottom: 10px;">MODE</div>
+            <div id="p-body" style="color:#ccc; font-size: 14px; margin-bottom: 20px; min-height: 60px;">Info...</div>
+            <button class="mode-btn" onclick="startRun()" style="width:100%; text-align: center; border-color:#f0f;">SYNC NEURAL LINK</button>
+            <button class="mode-btn" onclick="closePrompt()" style="width:100%; text-align: center; border:none; color:#666; font-size: 10px;">CANCEL</button>
+        </div>
+    </div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 450; canvas.height = 700;
+    <!-- DEBUG MENU -->
+    <div id="debug-menu" class="overlay hidden">
+        <div class="debug-window">
+            <div>[DEBUG_CORE_v2.5]</div>
+            <hr border="0" style="border-top:1px solid #f0f">
+            <button class="mode-btn" onclick="adminLogin()" style="color:#f0f; border-color:#f0f; width:100%">EXECUTE_ADMIN_CMD</button>
+            <button class="mode-btn" onclick="toggleDebug()" style="border:none; width:100%; font-size:10px;">EXIT</button>
+        </div>
+    </div>
 
-        let gameState = 'MENU', currentMode = '', score = 0, speed = 8, frame = 0, wantedLvl = 0;
-        let cash = 0, speedLevel = 1, baseSpeed = 8;
-        let pulseRadius = 0, pulsePower = 100, ghostStealth = 100, isMoving = false;
-        const CAR_W = 40, CAR_H = 75;
-        const HITBOX_W = 30, HITBOX_H = 60; 
-        const player = { x: 225, targetX: 225, hitboxX: 0, hitboxY: 0 };
-        const PLAYER_Y_POS = 580; // Consistent Y position for player car
+    <div class="debug-entry" onclick="toggleDebug()">[DBG]</div>
+    <canvas id="c"></canvas>
+</div>
 
-        let obstacles = [], collectibles = [], batteries = [];
-        const COLORS = ['#ff0055', '#00ff66', '#9900ff'];
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = 450; canvas.height = 750;
 
-        window.addEventListener('mousemove', e => {
-            const rect = canvas.getBoundingClientRect();
-            player.targetX = e.clientX - rect.left - CAR_W/2;
-            player.targetX = Math.max(10, Math.min(canvas.width - CAR_W - 10, player.targetX));
+let state = 'HOME', mode = '', cash = 0, dist = 0, speed = 8, frame = 0;
+let pX = 205, tX = 205, entities = [], wanted = 0;
+
+const DATA = {
+    NORMAL: { b: "Standard traffic dodge. Earn cash for distance.", c: "#0ff" },
+    WANTED: { b: "Law enforcement pursuit. Avoid patrol cars and SWAT. Heat level rises.", c: "#f00" },
+    CHROMA: { b: "Color phasing active. Drive through cars matching your neon hull.", c: "#f0f" },
+    GHOST: { b: "Incorporeal while moving. Phasing fails if velocity is zero.", c: "#fff" },
+    JAM: { b: "Severe congestion. Minimal gaps between vehicles.", c: "#ff0" },
+    SONIC: { b: "Auto-pulse destroying nearby data-traffic. Maintain power levels.", c: "#0f0" },
+    ADMIN: { b: "OVERRIDE ACTIVE: EXTREME SPEED. LEVEL 6 HEAT. UNSTABLE REALITY.", c: "#f00" }
+};
+
+// UI
+function openPrompt(m) {
+    mode = m;
+    document.getElementById('p-title').innerText = m + "_PROTOCOL";
+    document.getElementById('p-body').innerText = DATA[m].b;
+    document.getElementById('prompt-screen').classList.remove('hidden');
+}
+function closePrompt() { document.getElementById('prompt-screen').classList.add('hidden'); }
+function toggleDebug() { document.getElementById('debug-menu').classList.toggle('hidden'); }
+function adminLogin() {
+    let pw = prompt("ENTER ACCESS CODE:");
+    if(pw === "test") { toggleDebug(); openPrompt('ADMIN'); }
+    else { alert("ACCESS DENIED"); }
+}
+
+function startRun() {
+    document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+    document.getElementById('hud').classList.remove('hidden');
+    state = 'PLAY'; dist = 0; frame = 0; entities = [];
+    wanted = (mode === 'ADMIN') ? 6 : (mode === 'WANTED' ? 1 : 0);
+    speed = (mode === 'JAM') ? 5 : (mode === 'ADMIN' ? 15 : 8);
+    document.getElementById('ui-mode').innerText = mode;
+}
+
+// Logic
+window.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    tX = Math.max(10, Math.min(400, e.clientX - r.left - 20));
+});
+
+function spawn() {
+    let carColor = (mode === 'CHROMA') ? ['#f0f', '#0ff', '#fff'][Math.floor(Math.random()*3)] : '#222';
+    if(wanted > 0 && Math.random() > 0.5) carColor = (wanted > 3) ? '#444' : '#00a';
+    entities.push({ x: Math.random()*390+10, y: -100, c: carColor });
+}
+
+function update() {
+    if(state !== 'PLAY') return;
+    frame++; dist += speed * 0.1; cash += (speed * 0.0001); speed += 0.0005;
+    pX += (tX - pX) * 0.15;
+
+    if(frame % Math.max(8, Math.floor(40 - speed)) === 0) spawn();
+    if(mode === 'WANTED' && frame % 1200 === 0) wanted = Math.min(5, wanted + 1);
+
+    entities.forEach((e, i) => {
+        e.y += speed;
+        // Collision (AABB)
+        if(pX < e.x + 35 && pX + 35 > e.x && 650 < e.y + 70 && 720 > e.y) {
+            if(mode === 'GHOST' && Math.abs(tX - pX) > 2) {} // Ghost
+            else if(mode === 'CHROMA' && e.c === '#f0f') {} // Simplified chroma check
+            else die();
+        }
+        if(e.y > 800) entities.splice(i, 1);
+    });
+
+    document.getElementById('ui-dist').innerText = Math.floor(dist);
+    document.getElementById('ui-cash').innerText = cash.toFixed(2);
+    document.getElementById('ui-wanted').innerText = '★'.repeat(wanted);
+}
+
+function die() {
+    state = 'DEAD';
+    setTimeout(() => {
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('home-screen').classList.remove('hidden');
+        state = 'HOME';
+    }, 1500);
+}
+
+function draw() {
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,450,750);
+    // Grid
+    ctx.strokeStyle = '#012'; ctx.lineWidth = 1;
+    for(let i=0; i<750; i+=40) {
+        let o = (frame * speed) % 40;
+        ctx.beginPath(); ctx.moveTo(0, i+o); ctx.lineTo(450, i+o); ctx.stroke();
+    }
+    if(state === 'PLAY' || state === 'DEAD') {
+        entities.forEach(e => {
+            ctx.fillStyle = e.c; ctx.shadowBlur = 10; ctx.shadowColor = e.c;
+            ctx.fillRect(e.x, e.y, 40, 80);
         });
+        ctx.fillStyle = (state === 'DEAD') ? '#f00' : '#0ff'; ctx.shadowBlur = 15;
+        ctx.fillRect(pX, 650, 40, 80);
+    }
+}
 
-        const get = id => document.getElementById(id);
-
-        const PROMPTS = {
-            'NORMAL': 'Standard evasion. Distance equals cash.',
-            'WANTED': 'The law is after you! Avoid police and SWAT trucks. Heat level rises over time.',
-            'CHROMA': 'Your car cycles colors. Match the color of cars you pass through.',
-            'GHOST': 'Invisible/Intangible only while moving! Collect orbs to keep stealth up.',
-            'JAM': 'Extreme difficulty. Heavy traffic, narrow gaps.',
-            'SONIC': 'SONIC PULSE: Blast enemies within the ring! Collect batteries for power.',
-            'ADMIN': 'Max speed, level 6 heat, and specialized Interceptor cars. Ultimate challenge.'
-        };
-
-        function promptMode(m) {
-            alert(PROMPTS[m]);
-            setMode(m);
-        }
-
-        function setMode(m) {
-            currentMode = m; gameState = 'PLAYING'; score = 0; frame = 0; 
-            obstacles = []; collectibles = []; batteries = []; pulsePower = 100; ghostStealth = 100;
-
-            if(currentMode === 'ADMIN') { wantedLvl = 6; speed = 12 + speedLevel * 0.5; }
-            else if(currentMode === 'WANTED') { wantedLvl = 1; speed = baseSpeed + speedLevel * 0.5; }
-            else { wantedLvl = 0; speed = baseSpeed + speedLevel * 0.5; }
-
-            get('main-menu').classList.add('hidden');
-            get('ui-layer').classList.remove('hidden');
-            // Ensure UI elements are correctly displayed/hidden for the mode
-            get('wanted-stars').style.display = (wantedLvl > 0 && currentMode !== 'SONIC' ? 'block' : 'none');
-            get('ghost-meter-container').style.display = (currentMode === 'GHOST' ? 'block' : 'none');
-            get('pulse-bar-container').style.display = (currentMode === 'SONIC' ? 'block' : 'none');
-            updateStars();
-        }
-
-        function updateStars() {
-            get('wanted-stars').innerText = '★'.repeat(wantedLvl);
-        }
-
-        function update() {
-            if(gameState !== 'PLAYING') return;
-            frame++; score += speed * 0.1;
-            speed += 0.0005; 
-            cash += (speed * 0.1) * 0.001; 
-            
-            p1.x += (p1.targetX - p1.x) * 0.2;
-            // Precise hitbox positioning is crucial
-            player.hitboxX = p1.x + (CAR_W - HITBOX_W) / 2;
-            player.hitboxY = PLAYER_Y_POS + (CAR_H - HITBOX_H) / 2;
-
-
-            if(currentMode === 'GHOST') {
-                isMoving = Math.abs(p1.x - p1.targetX) > 1 || Math.abs(p1.x - player.x) > 1; // Check active movement
-                ghostStealth -= 0.15;
-                if(ghostStealth <= 0) die();
-                get('ghost-meter').style.width = ghostStealth + '%';
-            } else if(currentMode === 'SONIC') {
-                pulseRadius = (frame % 60) * 3;
-                pulsePower -= 0.05;
-                if(pulsePower <= 0) die();
-                get('pulse-bar').style.width = pulsePower + '%';
-            }
-
-
-            // Spawning (Simplified for this update, logic is functional)
-            if(frame % Math.max(10, 50 - Math.floor(speed)) === 0) {
-                 // Spawning logic... (Ensuring all spawned objects have standard size properties)
-                obstacles.push({x: Math.random()*380+20, y: -100, color: '#333', w: CAR_W, h: CAR_H, type: 'CIVIL'});
-            }
-            if(currentMode === 'SONIC' && frame % 150 === 0) batteries.push({x: Math.random()*400+25, y: -20});
-
-
-            // Collision & Interaction Handling
-            obstacles.forEach((obs, i) => {
-                obs.y += speed;
-                
-                // Calculate obstacle hitbox
-                const obsHitboxX = obs.x + (obs.w - HITBOX_W) / 2;
-                const obsHitboxY = obs.y + (obs.h - HITBOX_H) / 2;
-
-                const collision = (player.hitboxX < obsHitboxX + HITBOX_W && 
-                                   player.hitboxX + HITBOX_W > obsHitboxX &&
-                                   player.hitboxY < obsHitboxY + HITBOX_H &&
-                                   player.hitboxY + HITBOX_H > obsHitboxY);
-
-                if(currentMode === 'SONIC' && Math.abs(Math.hypot((p1.x + 20) - (obs.x + 20), PLAYER_Y_POS - obs.y) - pulseRadius) < 10) {
-                    obstacles.splice(i, 1); cash += 5.00; return;
-                }
-                if(currentMode === 'GHOST' && isMoving) { /* Phase through */ } 
-                else if(collision) { die(); }
-
-                if(obs.y > canvas.height) obstacles.splice(i, 1);
-            });
-            
-            batteries.forEach((b, i) => { // Battery collection check
-                b.y += speed;
-                if(Math.abs(p1.x + 20 - b.x) < 30 && Math.abs(PLAYER_Y_POS - b.y) < 30) {
-                    pulsePower = Math.min(100, pulsePower + 25);
-                    batteries.splice(i, 1);
-                }
-            });
-
-
-            get('score').innerText = Math.floor(score);
-            get('cash').innerText = cash.toFixed(2);
-        }
-
-        function die() {
-            gameState = 'MENU';
-            get('ui-layer').classList.add('hidden');
-            get('main-menu').classList.remove('hidden');
-            const earned = Math.floor(score * 0.01);
-            cash += earned;
-            get('main-menu').innerHTML = `
-                <h1 class="title" style="color:#f00">SYSTEM CRITICAL</h1>
-                <p style="color:#0ff">FINAL: ${Math.floor(score)} FT | $${cash.toFixed(2)} USD</p>
-                <button class="btn" onclick="location.reload()">RE-INITIATE NEURAL LINK</button>
-            `;
-            get('cash').innerText = cash.toFixed(2);
-        }
-
-        function draw() {
-            ctx.fillStyle = '#050510'; ctx.fillRect(0,0,canvas.width, canvas.height);
-            ctx.strokeStyle = '#112244';
-            for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
-            
-            if(gameState === 'PLAYING') {
-                 if(currentMode === 'SONIC') { // Draw pulse ring
-                    ctx.beginPath(); ctx.arc(p1.x+20, PLAYER_Y_POS+35, pulseRadius, 0, Math.PI*2);
-                    ctx.strokeStyle = `rgba(255, 0, 255, ${1 - pulseRadius/200})`; ctx.lineWidth = 3; ctx.stroke();
-                }
-
-                batteries.forEach(b => { // Draw batteries
-                    ctx.fillStyle = '#0f0'; ctx.shadowBlur = 15; ctx.shadowColor = '#0f0';
-                    ctx.fillRect(b.x-10, b.y-10, 20, 20);
-                });
-
-                obstacles.forEach(o => { // Draw obstacles
-                    ctx.fillStyle = o.color; ctx.shadowBlur = 0;
-                    ctx.fillRect(o.x, o.y, o.w, o.h);
-                });
-
-                // Draw Player
-                ctx.save();
-                if(currentMode === 'GHOST') ctx.globalAlpha = isMoving ? 0.3 : 1.0;
-                ctx.shadowBlur = 20; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#0ff';
-                ctx.fillRect(p1.x, PLAYER_Y_POS, CAR_W, CAR_H);
-                ctx.restore();
-            }
-        }
-
-        function loop() { update(); draw(); requestAnimationFrame(loop); }
-        loop();
-    </script>
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
 </body>
 </html>
