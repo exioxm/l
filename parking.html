@@ -3,56 +3,55 @@
 <head>
     <title>Parking Mania | ZED Productions</title>
     <style>
-        :root { --gold: #f1c40f; --accent: #3498db; --bg: #0f172a; --card: #1e293b; }
+        :root { --gold: #f1c40f; --accent: #3498db; --bg: #0f172a; --card: #1e293b; --locked: #475569; }
         body { margin: 0; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', sans-serif; color: white; overflow: hidden; }
         
         /* Menu System */
-        .screen { text-align: center; background: var(--card); padding: 50px; border-radius: 24px; border: 1px solid #334155; width: 600px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: absolute; transition: 0.4s; }
+        .screen { text-align: center; background: var(--card); padding: 50px; border-radius: 24px; border: 1px solid #334155; width: 700px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: absolute; transition: 0.4s; z-index: 100; }
         .hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
         
-        h1 { font-size: 60px; margin: 0; color: var(--gold); text-transform: uppercase; letter-spacing: 5px; }
-        .brand { font-size: 18px; color: var(--accent); margin-bottom: 40px; letter-spacing: 2px; font-weight: bold; }
+        h1 { font-size: 60px; margin: 0; color: var(--gold); text-transform: uppercase; letter-spacing: 5px; font-weight: 900; }
+        .brand { font-size: 18px; color: var(--accent); margin-bottom: 40px; letter-spacing: 2px; font-weight: bold; opacity: 0.8; }
         
-        .main-btn { background: var(--gold); color: #000; border: none; padding: 18px 60px; font-size: 22px; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.2s; }
+        .main-btn { background: var(--gold); color: #000; border: none; padding: 18px 60px; font-size: 22px; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3); }
         .main-btn:hover { transform: scale(1.1); background: #fff; }
 
         /* Level Selector */
         .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 20px; }
-        .level-btn { background: #334155; border: 2px solid #475569; color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-size: 14px; }
-        .level-btn:hover { border-color: var(--gold); background: #475569; }
-        .level-btn .stars { color: var(--gold); display: block; font-size: 12px; }
+        .level-btn { background: #334155; border: 2px solid #475569; color: white; padding: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; position: relative; }
+        .level-btn:hover:not(.locked) { border-color: var(--gold); background: #475569; transform: translateY(-3px); }
+        .level-btn.locked { background: var(--locked); opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        .level-btn .stars { color: var(--gold); display: block; font-size: 12px; margin-top: 5px; }
+        .lock-icon { font-size: 10px; display: block; color: #94a3b8; }
 
-        /* HUD & Game */
-        canvas { background: #1e293b; border: 4px solid #334155; border-radius: 12px; display: none; }
+        /* HUD */
+        canvas { background: #1e293b; border: 6px solid #334155; border-radius: 16px; display: none; }
         #hud { position: absolute; top: 20px; width: 100%; text-align: center; display: none; pointer-events: none; }
-        .star-box { font-size: 40px; background: rgba(0,0,0,0.6); padding: 10px 30px; border-radius: 50px; border: 1px solid #475569; }
-        .active { color: var(--gold); text-shadow: 0 0 15px var(--gold); color: #334155; }
-        .star-on { color: var(--gold) !important; }
-        #tutorial-box { position: absolute; bottom: 30px; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; border-left: 5px solid var(--accent); font-size: 18px; display: none; }
+        .star-box { font-size: 45px; background: rgba(15, 23, 42, 0.9); padding: 10px 40px; border-radius: 100px; border: 2px solid #475569; display: inline-block; }
+        .s-off { color: #334155; text-shadow: none; }
+        .s-on { color: var(--gold); text-shadow: 0 0 15px var(--gold); }
+        #tutorial-box { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 20px 40px; border-radius: 15px; border-bottom: 4px solid var(--accent); font-size: 20px; text-align: center; display: none; max-width: 80%; }
     </style>
 </head>
 <body>
 
-    <!-- Home Screen -->
     <div id="home-screen" class="screen">
         <h1>PARKING MANIA</h1>
         <div class="brand">By: ZED Productions</div>
         <button class="main-btn" onclick="showLevels()">LEVELS</button>
     </div>
 
-    <!-- Level Select Screen -->
     <div id="level-screen" class="screen hidden">
-        <button onclick="showHome()" style="background:none; border:none; color:var(--accent); cursor:pointer; margin-bottom:20px;">← BACK</button>
-        <h2>SELECT CHALLENGE</h2>
+        <button onclick="showHome()" style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold; margin-bottom:20px;">← BACK TO MENU</button>
+        <h2 style="margin:0">SELECT LEVEL</h2>
         <div class="level-grid" id="level-selector"></div>
     </div>
 
-    <!-- HUD -->
     <div id="hud">
         <div class="star-box">
-            <span id="s1" class="active star-on">★</span>
-            <span id="s2" class="active star-on">★</span>
-            <span id="s3" class="active star-on">★</span>
+            <span id="s1" class="s-on">★</span>
+            <span id="s2" class="s-on">★</span>
+            <span id="s3" class="s-on">★</span>
         </div>
         <div id="tutorial-box"></div>
     </div>
@@ -62,29 +61,33 @@
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    canvas.width = 800; canvas.height = 600;
+    canvas.width = 1000; canvas.height = 700;
 
     let gameActive = false;
     let currentLvlIdx = 0;
-    const car = { x:0, y:0, angle:0, speed:0, accel:0.15, friction:0.95, turnSpeed:0.045, w:42, h:22, hits:0 };
-    const trailer = { x:0, y:0, angle:0, w:55, h:22 };
+    const car = { x:0, y:0, angle:0, speed:0, accel:0.18, friction:0.96, turnSpeed:0.045, w:45, h:24, hits:0 };
+    const trailer = { x:0, y:0, angle:0, w:65, h:26 };
     const keys = {};
 
-    const levels = [
-        { name: "Tutorial", useTrailer: false, start: {x:100, y:300, a:0}, target: {x:650, y:280, w:60, h:40}, walls: [], hint: "Welcome! Use W to accelerate and S to reverse. Steer with A and D. Park in the yellow zone!" },
-        { name: "First Trailer", useTrailer: true, start: {x:100, y:100, a:0}, target: {x:650, y:450, w:70, h:40}, walls: [{x:300, y:0, w:40, h:400}], hint: "Trailers are tricky! Remember: when reversing, the trailer turns the opposite way." },
-        // ... more levels can be added here
-    ];
+    // 20 Progressive Levels
+    const levels = [];
+    for(let i=0; i<20; i++) {
+        let walls = [
+            {x:0, y:0, w:1000, h:15}, {x:0, y:685, w:1000, h:15},
+            {x:0, y:0, w:15, h:700}, {x:985, y:0, w:15, h:700}
+        ];
+        
+        // Procedural complexity
+        if(i > 0) walls.push({x: 300, y: 0, w: 30, h: 400});
+        if(i > 5) walls.push({x: 600, y: 300, w: 30, h: 400});
+        if(i > 10) walls.push({x: 100, y: 200, w: 400, h: 30});
 
-    // Add procedurally generated levels up to 20
-    for(let i=2; i<20; i++) {
         levels.push({
-            name: "Level " + (i+1),
-            useTrailer: i % 2 === 0,
-            start: {x:100, y:100, a:0},
-            target: {x: 600, y: 500, w: 60, h: 40},
-            walls: [{x: Math.random()*400+200, y: Math.random()*300, w: 20, h: 300}],
-            hint: ""
+            useTrailer: i > 0 && i % 2 !== 0,
+            start: {x: 80, y: 80, a: 0},
+            target: {x: 850 - (i*5), y: 580 - (i*5), w: 80, h: 50},
+            walls: walls,
+            hint: i === 0 ? "TUTORIAL: Use WASD to steer the Red Car into the Yellow Box. Don't hit the walls!" : ""
         });
     }
 
@@ -103,11 +106,17 @@
         const grid = document.getElementById("level-selector");
         grid.innerHTML = "";
         levels.forEach((l, i) => {
-            const stars = localStorage.getItem(`zed_stars_lvl${i}`) || 0;
+            const stars = parseInt(localStorage.getItem(`zed_stars_lvl${i}`)) || 0;
+            const prevStars = i === 0 ? 3 : (parseInt(localStorage.getItem(`zed_stars_lvl${i-1}`)) || 0);
+            const isLocked = i !== 0 && prevStars === 0;
+
             const btn = document.createElement("div");
-            btn.className = "level-btn";
-            btn.innerHTML = `<b>${i === 0 ? "Tutorial" : i+1}</b><span class="stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</span>`;
-            btn.onclick = () => startLevel(i);
+            btn.className = `level-btn ${isLocked ? 'locked' : ''}`;
+            btn.innerHTML = `
+                <b>${i === 0 ? "TUTORIAL" : i+1}</b>
+                <span class="stars">${isLocked ? '<span class="lock-icon">LOCKED</span>' : "★".repeat(stars) + "☆".repeat(3-stars)}</span>
+            `;
+            if(!isLocked) btn.onclick = () => startLevel(i);
             grid.appendChild(btn);
         });
     }
@@ -121,12 +130,11 @@
         
         car.x = l.start.x; car.y = l.start.y; car.angle = l.start.a;
         car.speed = 0; car.hits = 0;
-        
-        trailer.x = car.x - 60; trailer.y = car.y; trailer.angle = car.angle;
+        trailer.x = car.x - 70; trailer.y = car.y; trailer.angle = car.angle;
 
         const tut = document.getElementById("tutorial-box");
-        if(l.hint) { tut.style.display = "block"; tut.innerText = l.hint; } 
-        else { tut.style.display = "none"; }
+        tut.style.display = l.hint ? "block" : "none";
+        tut.innerText = l.hint;
 
         updateStars();
         gameActive = true;
@@ -134,11 +142,12 @@
     }
 
     function updateStars() {
-        document.getElementById("s3").classList.toggle("star-on", car.hits < 1);
-        document.getElementById("s2").classList.toggle("star-on", car.hits < 2);
-        document.getElementById("s1").classList.toggle("star-on", car.hits < 3);
+        document.getElementById("s3").className = car.hits < 1 ? "s-on" : "s-off";
+        document.getElementById("s2").className = car.hits < 2 ? "s-on" : "s-off";
+        document.getElementById("s1").className = car.hits < 3 ? "s-on" : "s-off";
         if(car.hits >= 3) {
-            alert("FAILED! You hit too many things.");
+            gameActive = false;
+            alert("CRASHED! Level Failed.");
             location.reload();
         }
     }
@@ -149,10 +158,46 @@
     });
     window.addEventListener("keyup", e => keys[e.code] = false);
 
+    function drawVehicle(obj, color, isTrailer) {
+        ctx.save();
+        ctx.translate(obj.x, obj.y);
+        ctx.rotate(obj.angle);
+        
+        // Body Shadow
+        ctx.fillStyle = "rgba(0,0,0,0.3)";
+        ctx.fillRect(-obj.w/2 + 4, -obj.h/2 + 4, obj.w, obj.h);
+
+        // Main Body
+        ctx.fillStyle = color;
+        ctx.fillRect(-obj.w/2, -obj.h/2, obj.w, obj.h);
+
+        // Windows
+        ctx.fillStyle = "#222";
+        if(!isTrailer) {
+            ctx.fillRect(obj.w/6, -obj.h/2 + 3, obj.w/4, obj.h - 6); // Windshield
+        } else {
+            ctx.fillStyle = "#334155"; // Cargo detail
+            ctx.fillRect(-obj.w/2 + 5, -obj.h/2 + 5, obj.w - 10, obj.h - 10);
+        }
+
+        // Lights
+        if(!isTrailer) {
+            ctx.fillStyle = "white"; // Front
+            ctx.fillRect(obj.w/2-4, -obj.h/2+2, 5, 6);
+            ctx.fillRect(obj.w/2-4, obj.h/2-8, 5, 6);
+            ctx.fillStyle = "red"; // Back
+            ctx.fillRect(-obj.w/2-1, -obj.h/2+2, 3, 6);
+            ctx.fillRect(-obj.w/2-1, obj.h/2-8, 3, 6);
+        }
+
+        ctx.restore();
+    }
+
     function loop() {
         if(!gameActive) return;
+        const l = levels[currentLvlIdx];
 
-        // Physics
+        // Movement
         if(keys["KeyW"]) car.speed += car.accel;
         if(keys["KeyS"]) car.speed -= car.accel;
         if(Math.abs(car.speed) > 0.1) {
@@ -164,8 +209,7 @@
         car.x += Math.cos(car.angle) * car.speed;
         car.y += Math.sin(car.angle) * car.speed;
 
-        // Trailer Follow Logic
-        const l = levels[currentLvlIdx];
+        // Trailer Pivot Logic
         if(l.useTrailer) {
             const tx = car.x - Math.cos(car.angle) * 25;
             const ty = car.y - Math.sin(car.angle) * 25;
@@ -173,51 +217,51 @@
             const dy = ty - trailer.y;
             trailer.angle = Math.atan2(dy, dx);
             const dist = Math.sqrt(dx*dx + dy*dy);
-            const moveDist = dist - 35;
+            const moveDist = dist - 40;
             trailer.x += Math.cos(trailer.angle) * moveDist;
             trailer.y += Math.sin(trailer.angle) * moveDist;
         }
 
-        // Collision
-        l.walls.concat([ {x:0,y:0,w:800,h:10},{x:0,y:590,w:800,h:10},{x:0,y:0,w:10,h:600},{x:790,y:0,w:10,h:600} ]).forEach(w => {
-            const rects = [car];
-            if(l.useTrailer) rects.push(trailer);
-            rects.forEach(obj => {
-                if(obj.x > w.x && obj.x < w.x+w.w && obj.y > w.y && obj.y < w.y+w.h) {
-                    car.speed *= -1.5;
-                    car.hits++;
-                    updateStars();
-                }
-            });
+        // Collision Check
+        l.walls.forEach(w => {
+            const check = (obj) => (obj.x > w.x && obj.x < w.x+w.w && obj.y > w.y && obj.y < w.y+w.h);
+            if(check(car) || (l.useTrailer && check(trailer))) {
+                car.speed *= -1.5;
+                car.hits++;
+                updateStars();
+            }
         });
 
         // Win Condition
         const t = l.target;
-        const checkObj = l.useTrailer ? trailer : car;
-        if(checkObj.x > t.x && checkObj.x < t.x+t.w && checkObj.y > t.y && checkObj.y < t.y+t.h && Math.abs(car.speed) < 0.1) {
-            const s = 3 - car.hits;
-            const best = localStorage.getItem(`zed_stars_lvl${currentLvlIdx}`) || 0;
-            if(s > best) localStorage.setItem(`zed_stars_lvl${currentLvlIdx}`, s);
-            alert(`Level Complete! Stars: ${s}`);
+        const goal = l.useTrailer ? trailer : car;
+        if(goal.x > t.x && goal.x < t.x+t.w && goal.y > t.y && goal.y < t.y+t.h && Math.abs(car.speed) < 0.1) {
+            const score = 3 - car.hits;
+            localStorage.setItem(`zed_stars_lvl${currentLvlIdx}`, Math.max(score, (localStorage.getItem(`zed_stars_lvl${currentLvlIdx}`) || 0)));
+            alert(`Level Clear! Stars: ${score}`);
             location.reload();
         }
 
-        // Draw
-        ctx.clearRect(0,0,800,600);
-        ctx.fillStyle = "#334155";
-        l.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
-        ctx.strokeStyle = "yellow"; ctx.strokeRect(t.x, t.y, t.w, t.h);
+        // Draw Everything
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        
+        // Target Box
+        ctx.setLineDash([10, 5]);
+        ctx.strokeStyle = var(--gold); ctx.lineWidth = 4;
+        ctx.strokeRect(t.x, t.y, t.w, t.h);
+        ctx.setLineDash([]);
 
-        const drawObj = (obj, color) => {
-            ctx.save(); ctx.translate(obj.x, obj.y); ctx.rotate(obj.angle);
-            ctx.fillStyle = color; ctx.fillRect(-obj.w/2, -obj.h/2, obj.w, obj.h);
-            ctx.restore();
-        };
-        if(l.useTrailer) drawObj(trailer, "#94a3b8");
-        drawObj(car, "#ef4444");
+        // Walls
+        ctx.fillStyle = "#475569";
+        l.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+
+        if(l.useTrailer) drawVehicle(trailer, "#64748b", true);
+        drawVehicle(car, "#ef4444", false);
 
         requestAnimationFrame(loop);
     }
+
+    initLevelButtons();
 </script>
 </body>
 </html>
