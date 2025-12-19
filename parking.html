@@ -1,32 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Parking Master 2025</title>
+    <title>Parking Fury: Trailer Edition</title>
     <style>
-        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
-        canvas { background: #333; border: 4px solid #444; display: none; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-        #ui { position: absolute; top: 20px; color: white; text-align: center; width: 100%; pointer-events: none; z-index: 10; display: none; }
+        :root { --gold: #f1c40f; --bg: #0f172a; --card: #1e293b; }
+        body { margin: 0; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', sans-serif; color: white; overflow: hidden; }
+        canvas { background: #1e293b; border: 4px solid #334155; display: none; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.7); }
         
-        /* Home Screen Styling */
-        #home-screen { text-align: center; color: white; background: #2c3e50; padding: 50px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-        h1 { font-size: 48px; margin-bottom: 10px; color: #f1c40f; }
-        button { background: #27ae60; border: none; color: white; padding: 15px 40px; font-size: 24px; border-radius: 5px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #2ecc71; transform: scale(1.05); }
+        .menu-container { text-align: center; background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #475569; width: 800px; max-height: 90vh; overflow-y: auto; }
+        h1 { font-size: 42px; margin: 0 0 10px 0; color: var(--gold); }
+        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 20px; }
+        .level-btn { background: #334155; border: 2px solid #475569; color: white; padding: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+        .level-btn:hover { background: #475569; border-color: var(--gold); }
+        .level-btn .stars { color: var(--gold); font-size: 14px; display: block; margin-top: 5px; letter-spacing: 2px; }
+
+        #hud { position: absolute; top: 20px; text-align: center; width: 100%; pointer-events: none; display: none; }
+        .star-box { font-size: 40px; color: #334155; display: inline-block; background: rgba(0,0,0,0.5); padding: 5px 20px; border-radius: 50px; border: 1px solid #475569; }
+        .active { color: var(--gold); text-shadow: 0 0 15px var(--gold); }
     </style>
 </head>
 <body>
 
-    <!-- Home Screen -->
-    <div id="home-screen">
-        <h1>PARKING FURY 2025</h1>
-        <p>Use <b>WASD</b> to drive. Park in the yellow zone.</p>
-        <button onclick="startGame()">START GAME</button>
+    <div id="home-screen" class="menu-container">
+        <h1>PARKING FURY: TRAILER</h1>
+        <p style="color: #94a3b8;">WASD to Drive | ESC to Menu | Be precise with the trailer!</p>
+        <div class="level-grid" id="level-selector"></div>
     </div>
 
-    <!-- Game UI -->
-    <div id="ui">
-        <h2 id="level-tag">Level 1</h2>
-        <p>Damage: <span id="damage">0</span>%</p>
+    <div id="hud">
+        <div class="star-box">
+            <span id="s1" class="active">★</span>
+            <span id="s2" class="active">★</span>
+            <span id="s3" class="active">★</span>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -35,140 +41,169 @@
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const homeScreen = document.getElementById("home-screen");
-    const ui = document.getElementById("ui");
-    
-    canvas.width = 800;
-    canvas.height = 600;
+    const hud = document.getElementById("hud");
+    canvas.width = 800; canvas.height = 600;
 
-    let currentLevel = 0;
+    let currentLvl = 0;
     let gameActive = false;
-
-    // Game Objects
-    const car = { x: 0, y: 0, angle: 0, speed: 0, accel: 0.15, friction: 0.96, turnSpeed: 0.04, w: 40, h: 20, damage: 0 };
+    const car = { x:0, y:0, angle:0, speed:0, accel:0.15, friction:0.95, turnSpeed:0.045, w:42, h:22, hits:0 };
+    const trailer = { x:0, y:0, angle:0, w:60, h:22 };
     const keys = {};
 
-    // 5 Progressive Levels
     const levels = [
-        { // Level 1: Straight Ahead
-            start: {x: 100, y: 300, a: 0},
-            target: {x: 650, y: 280, w: 60, h: 40},
-            walls: [{x: 0, y: 0, w: 800, h: 20}, {x: 0, y: 580, w: 800, h: 20}]
-        },
-        { // Level 2: The U-Turn
-            start: {x: 100, y: 100, a: 0},
-            target: {x: 100, y: 450, w: 60, h: 40},
-            walls: [{x: 0, y: 250, w: 600, h: 100}]
-        },
-        { // Level 3: Tight Squeeze
-            start: {x: 50, y: 50, a: 0},
-            target: {x: 700, y: 500, w: 60, h: 40},
-            walls: [{x: 200, y: 0, w: 50, h: 450}, {x: 450, y: 150, w: 50, h: 450}]
-        },
-        { // Level 4: The Garage
-            start: {x: 400, y: 500, a: -Math.PI/2},
-            target: {x: 375, y: 50, w: 50, h: 80},
-            walls: [{x: 0, y: 150, w: 350, h: 20}, {x: 450, y: 150, w: 350, h: 20}, {x: 0, y: 0, w: 20, h: 600}, {x: 780, y: 0, w: 20, h: 600}]
-        },
-        { // Level 5: Zig-Zag
-            start: {x: 50, y: 500, a: 0},
-            target: {x: 700, y: 50, w: 60, h: 40},
-            walls: [{x: 150, y: 300, w: 500, h: 50}, {x: 0, y: 150, w: 500, h: 50}]
-        }
+        { useTrailer: true, start: {x: 100, y: 300, a: 0}, target: {x: 650, y: 300, w: 70, h: 40}, walls: [{x: 0, y: 0, w: 800, h: 10}, {x: 0, y: 590, w: 800, h: 10}] },
+        { useTrailer: true, start: {x: 50, y: 50, a: 0}, target: {x: 700, y: 400, w: 40, h: 70}, walls: [{x: 300, y: 0, w: 50, h: 300}, {x: 500, y: 300, w: 50, h: 300}] },
+        { useTrailer: false, start: {x: 400, y: 500, a: -Math.PI/2}, target: {x: 375, y: 50, w: 50, h: 80}, walls: [{x: 0, y: 150, w: 350, h: 20}, {x: 450, y: 150, w: 350, h: 20}] },
+        { useTrailer: true, start: {x: 700, y: 500, a: Math.PI}, target: {x: 100, y: 100, w: 70, h: 40}, walls: [{x: 200, y: 0, w: 40, h: 600}, {x: 400, y: 0, w: 40, h: 600}, {x: 600, y: 0, w: 40, h: 600}] },
+        { useTrailer: true, start: {x: 50, y: 50, a: 0}, target: {x: 700, y: 500, w: 60, h: 40}, walls: [{x: 100, y: 100, w: 100, h: 100}, {x: 300, y: 300, w: 100, h: 100}, {x: 500, y: 100, w: 100, h: 100}, {x: 600, y: 400, w: 100, h: 100}] }
     ];
 
-    function startGame() {
-        homeScreen.style.display = "none";
-        canvas.style.display = "block";
-        ui.style.display = "block";
-        loadLevel(0);
-        gameActive = true;
-        draw();
+    function initMenu() {
+        const selector = document.getElementById("level-selector");
+        selector.innerHTML = "";
+        levels.forEach((l, i) => {
+            const highStar = localStorage.getItem(`stars_lvl${i}`) || 0;
+            const btn = document.createElement("div");
+            btn.className = "level-btn";
+            btn.innerHTML = `Lvl ${i+1} (${l.useTrailer ? 'Trailer' : 'Car'})<span class="stars">${"★".repeat(highStar)}${"☆".repeat(3-highStar)}</span>`;
+            btn.onclick = () => startLevel(i);
+            selector.appendChild(btn);
+        });
     }
 
-    function loadLevel(idx) {
-        if (idx >= levels.length) {
-            alert("CONGRATULATIONS! You are a Parking Pro!");
-            location.reload();
-            return;
-        }
-        currentLevel = idx;
+    function startLevel(idx) {
+        currentLvl = idx;
         const l = levels[idx];
         car.x = l.start.x; car.y = l.start.y; car.angle = l.start.a;
-        car.speed = 0; car.damage = 0;
-        document.getElementById("damage").innerText = "0";
-        document.getElementById("level-tag").innerText = "Level " + (idx + 1);
+        // Place trailer behind car initially
+        trailer.x = car.x - Math.cos(car.angle) * (car.w/2 + trailer.w/2 + 5);
+        trailer.y = car.y - Math.sin(car.angle) * (car.w/2 + trailer.w/2 + 5);
+        trailer.angle = car.angle;
+        car.speed = 0; car.hits = 0;
+        updateStars();
+        homeScreen.style.display = "none";
+        canvas.style.display = "block";
+        hud.style.display = "block";
+        gameActive = true;
+        requestAnimationFrame(gameLoop);
     }
 
-    window.addEventListener("keydown", e => keys[e.code] = true);
+    function updateStars() {
+        document.getElementById("s3").className = car.hits >= 1 ? "" : "active";
+        document.getElementById("s2").className = car.hits >= 2 ? "" : "active";
+        document.getElementById("s1").className = car.hits >= 3 ? "" : "active";
+        if (car.hits >= 3) {
+            gameActive = false;
+            alert("Level Failed! Too many hits.");
+            location.reload();
+        }
+    }
+
+    window.addEventListener("keydown", e => {
+        keys[e.code] = true;
+        if(e.code === "Escape") location.reload();
+    });
     window.addEventListener("keyup", e => keys[e.code] = false);
 
-    function update() {
+    function gameLoop() {
         if (!gameActive) return;
 
-        // WASD Controls
+        // Car Physics (Same as before)
         if (keys["KeyW"]) car.speed += car.accel;
         if (keys["KeyS"]) car.speed -= car.accel;
-        
         if (Math.abs(car.speed) > 0.1) {
             const dir = car.speed > 0 ? 1 : -1;
             if (keys["KeyA"]) car.angle -= car.turnSpeed * dir;
             if (keys["KeyD"]) car.angle += car.turnSpeed * dir;
         }
-
         car.speed *= car.friction;
         car.x += Math.cos(car.angle) * car.speed;
         car.y += Math.sin(car.angle) * car.speed;
 
-        // Wall Collision
-        levels[currentLevel].walls.forEach(w => {
-            if (car.x > w.x && car.x < w.x + w.w && car.y > w.y && car.y < w.y + w.h) {
-                car.speed = -car.speed * 1.2;
-                car.damage += 2;
-                document.getElementById("damage").innerText = Math.floor(car.damage);
-                if (car.damage >= 100) {
-                    alert("Car Wrecked! Restarting level...");
-                    loadLevel(currentLevel);
-                }
+        // Trailer Physics (New)
+        if (levels[currentLvl].useTrailer) {
+            // Distance from hitch point (rear of car) to front of trailer
+            const hitchX = car.x - Math.cos(car.angle) * (car.w/2);
+            const hitchY = car.y - Math.sin(car.angle) * (car.w/2);
+            const trailerFrontX = trailer.x + Math.cos(trailer.angle) * (trailer.w/2);
+            const trailerFrontY = trailer.y + Math.sin(trailer.angle) * (trailer.w/2);
+            
+            const dx = hitchX - trailerFrontX;
+            const dy = hitchY - trailerFrontY;
+            const distance = Math.sqrt(dx*dx + dy*dy);
+            const angleToCar = Math.atan2(dy, dx);
+            
+            // Constrain distance
+            if (distance > 5) { // Maintain connection length
+                trailer.x += dx * 0.1;
+                trailer.y += dy * 0.1;
             }
-        });
 
-        // Win Condition
-        const t = levels[currentLevel].target;
-        if (car.x > t.x && car.x < t.x + t.w && car.y > t.y && car.y < t.y + t.h && Math.abs(car.speed) < 0.2) {
-            currentLevel++;
-            loadLevel(currentLevel);
+            // Align trailer angle towards the car hitch (smooth steering)
+            let angleDiff = angleToCar - trailer.angle;
+            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            trailer.angle += angleDiff * Math.abs(car.speed) * 0.05; 
         }
-    }
 
-    function draw() {
+        // Collision detection for BOTH car and trailer
+        const checkCollision = (obj) => {
+            levels[currentLvl].walls.forEach(w => {
+                if (obj.x > w.x && obj.x < w.x + w.w && obj.y > w.y && obj.y < w.y + w.h) {
+                    car.speed = -car.speed * 1.2; // Bounce the whole unit
+                    car.hits++;
+                    updateStars();
+                }
+            });
+        };
+        checkCollision(car);
+        if (levels[currentLvl].useTrailer) checkCollision(trailer);
+
+
+        // Win Condition: Trailer must be in the spot if required
+        const t = levels[currentLvl].target;
+        const parkedObj = levels[currentLvl].useTrailer ? trailer : car;
+        
+        if (parkedObj.x > t.x && parkedObj.x < t.x + t.w && parkedObj.y > t.y && parkedObj.y < t.y + t.h && Math.abs(car.speed) < 0.1) {
+            const finalStars = 3 - car.hits;
+            const best = localStorage.getItem(`stars_lvl${currentLvl}`) || 0;
+            if (finalStars > best) localStorage.setItem(`stars_lvl${currentLvl}`, finalStars);
+            alert(`Level Complete! Stars: ${finalStars}`);
+            location.reload();
+        }
+
+        // Draw Logic
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const l = levels[currentLevel];
+        ctx.fillStyle = "#334155";
+        levels[currentLvl].walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+        
+        ctx.strokeStyle = var(--gold); ctx.lineWidth = 3;
+        ctx.strokeRect(t.x, t.y, t.w, t.h);
 
-        // Draw Walls
-        ctx.fillStyle = "#555";
-        l.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
-
-        // Draw Target
-        ctx.fillStyle = "rgba(241, 196, 15, 0.4)";
-        ctx.fillRect(l.target.x, l.target.y, l.target.w, l.target.h);
-        ctx.strokeStyle = "#f1c40f";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(l.target.x, l.target.y, l.target.w, l.target.h);
+        // Draw Trailer first
+        if (levels[currentLvl].useTrailer) {
+            ctx.save();
+            ctx.translate(trailer.x, trailer.y);
+            ctx.rotate(trailer.angle);
+            ctx.fillStyle = "#94a3b8"; // Gray Trailer
+            ctx.fillRect(-trailer.w/2, -trailer.h/2, trailer.w, trailer.h);
+            ctx.restore();
+        }
 
         // Draw Car
         ctx.save();
         ctx.translate(car.x, car.y);
         ctx.rotate(car.angle);
-        ctx.fillStyle = "#e74c3c"; // Red Car
+        ctx.fillStyle = "#ef4444"; 
         ctx.fillRect(-car.w/2, -car.h/2, car.w, car.h);
-        ctx.fillStyle = "white"; // Headlights
-        ctx.fillRect(car.w/2 - 5, -car.h/2 + 2, 5, 5);
-        ctx.fillRect(car.w/2 - 5, car.h/2 - 7, 5, 5);
+        ctx.fillStyle = "#fff"; // Headlights
+        ctx.fillRect(car.w/2 - 5, -8, 5, 4); ctx.fillRect(car.w/2 - 5, 4, 5, 4);
         ctx.restore();
 
-        update();
-        requestAnimationFrame(draw);
+        requestAnimationFrame(gameLoop);
     }
+
+    initMenu();
 </script>
 </body>
 </html>
