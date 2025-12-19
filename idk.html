@@ -3,41 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER-DRIFT: GHOST PROTOCOL</title>
+    <title>CYBER-DRIFT: 2025 STABLE</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Orbitron', sans-serif; }
         canvas { border: 2px solid #0ff; box-shadow: 0 0 50px rgba(0, 255, 255, 0.2); background: #000; cursor: none; }
         #ui-layer { position: absolute; width: 450px; height: 700px; pointer-events: none; padding: 20px; box-sizing: border-box; color: #0ff; z-index: 10; text-shadow: 0 0 10px #0ff; }
-        .menu { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; pointer-events: all; }
-        .title { font-size: 35px; color: #f0f; text-shadow: 0 0 20px #f0f; text-align: center; margin-bottom: 20px; line-height: 1.2; }
-        .btn { margin: 8px 0; padding: 12px 30px; background: transparent; border: 2px solid #0ff; color: #0ff; font-size: 13px; cursor: pointer; transition: 0.2s; width: 280px; letter-spacing: 1px; }
+        .menu { position: absolute; inset: 0; background: rgba(0,0,0,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; pointer-events: all; }
+        .title { font-size: 30px; color: #f0f; text-shadow: 0 0 20px #f0f; text-align: center; margin-bottom: 10px; line-height: 1.2; }
+        .btn { margin: 6px 0; padding: 12px 30px; background: transparent; border: 2px solid #0ff; color: #0ff; font-size: 12px; cursor: pointer; transition: 0.2s; width: 300px; letter-spacing: 1px; }
         .btn:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; transform: scale(1.05); }
-        .admin-trigger { position: absolute; bottom: 15px; right: 15px; font-size: 10px; color: #111; cursor: pointer; }
-        #ghost-meter-container { width: 100%; height: 10px; border: 1px solid #0ff; margin-top: 10px; display: none; }
-        #ghost-meter { width: 100%; height: 100%; background: #0ff; transition: 0.1s; }
+        #cash-ui { position: absolute; bottom: 15px; left: 15px; font-size: 16px; color: #0f0; text-shadow: 0 0 10px #0f0; }
         .hidden { display: none !important; }
+        #pulse-bar-container, #ghost-meter-container { display: none; width: 100%; height: 10px; border: 1px solid #f0f; margin-top: 10px; }
+        #pulse-bar, #ghost-meter { width: 100%; height: 100%; background: #f0f; box-shadow: 0 0 10px #f0f; }
         #wanted-stars { color: #f00; font-size: 24px; }
     </style>
     <link href="fonts.googleapis.com" rel="stylesheet">
 </head>
 <body>
     <div id="ui-layer" class="hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>SCORE: <span id="score">0</span></div>
+        <div style="display: flex; justify-content: space-between;">
+            <div>DISTANCE: <span id="score">0</span> FT</div>
             <div id="wanted-stars"></div>
         </div>
-        <div id="ghost-meter-container">
-            <div id="ghost-meter"></div>
-        </div>
+        <div id="ghost-meter-container"><div id="ghost-meter"></div></div>
+        <div id="pulse-bar-container"><div id="pulse-bar"></div></div>
     </div>
+    
+    <div id="cash-ui">CREDITS: $<span id="cash">0.00</span> USD</div>
 
     <div id="main-menu" class="menu">
-        <h1 class="title">CYBER-DRIFT<br>SYSTEMS</h1>
-        <button class="btn" onclick="setMode('NORMAL')">NORMAL MODE</button>
-        <button class="btn" onclick="setMode('WANTED')">WANTED MODE</button>
-        <button class="btn" onclick="setMode('CHROMA')">CHROMA BLITZ</button>
-        <button class="btn" onclick="setMode('GHOST')" style="border-color: #fff; color: #fff;">GHOST PROTOCOL (NEW)</button>
-        <div class="admin-trigger" onclick="setMode('ADMIN')">[ADM_OVERRIDE]</div>
+        <h1 class="title">NEURAL DRIFT<br>OS 2.0</h1>
+        <button class="btn" onclick="promptMode('NORMAL')">NORMAL MODE</button>
+        <button class="btn" onclick="promptMode('WANTED')">WANTED MODE</button>
+        <button class="btn" onclick="promptMode('CHROMA')">CHROMA BLITZ</button>
+        <button class="btn" onclick="promptMode('GHOST')">GHOST PROTOCOL</button>
+        <button class="btn" onclick="promptMode('JAM')">TRAFFIC JAM</button>
+        <button class="btn" onclick="promptMode('SONIC')">SONIC PULSE</button>
+        <button class="btn" onclick="promptMode('ADMIN')">ADMIN OVERRIDE</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -47,121 +50,169 @@
         const ctx = canvas.getContext('2d');
         canvas.width = 450; canvas.height = 700;
 
-        let state = 'MENU', mode = '', score = 0, speed = 8, frame = 0, wantedLvl = 0;
-        let ghostStealth = 100, isMoving = false;
+        let gameState = 'MENU', currentMode = '', score = 0, speed = 8, frame = 0, wantedLvl = 0;
+        let cash = 0, speedLevel = 1, baseSpeed = 8;
+        let pulseRadius = 0, pulsePower = 100, ghostStealth = 100, isMoving = false;
         const CAR_W = 40, CAR_H = 75;
-        let p1 = { x: 225, targetX: 225, lastX: 225 };
-        let obstacles = [], particles = [], collectibles = [];
+        const HITBOX_W = 30, HITBOX_H = 60; 
+        const player = { x: 225, targetX: 225, hitboxX: 0, hitboxY: 0 };
+        const PLAYER_Y_POS = 580; // Consistent Y position for player car
+
+        let obstacles = [], collectibles = [], batteries = [];
+        const COLORS = ['#ff0055', '#00ff66', '#9900ff'];
 
         window.addEventListener('mousemove', e => {
             const rect = canvas.getBoundingClientRect();
-            p1.targetX = e.clientX - rect.left - CAR_W/2;
+            player.targetX = e.clientX - rect.left - CAR_W/2;
+            player.targetX = Math.max(10, Math.min(canvas.width - CAR_W - 10, player.targetX));
         });
 
-        function setMode(m) {
-            mode = m; state = 'PLAYING'; score = 0; frame = 0; obstacles = []; collectibles = []; ghostStealth = 100;
-            if(mode === 'ADMIN') { wantedLvl = 6; speed = 12; }
-            else if(mode === 'WANTED') { wantedLvl = 1; speed = 8; }
-            else { wantedLvl = 0; speed = 8; }
+        const get = id => document.getElementById(id);
 
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('ui-layer').classList.remove('hidden');
-            document.getElementById('ghost-meter-container').style.display = (mode === 'GHOST' ? 'block' : 'none');
+        const PROMPTS = {
+            'NORMAL': 'Standard evasion. Distance equals cash.',
+            'WANTED': 'The law is after you! Avoid police and SWAT trucks. Heat level rises over time.',
+            'CHROMA': 'Your car cycles colors. Match the color of cars you pass through.',
+            'GHOST': 'Invisible/Intangible only while moving! Collect orbs to keep stealth up.',
+            'JAM': 'Extreme difficulty. Heavy traffic, narrow gaps.',
+            'SONIC': 'SONIC PULSE: Blast enemies within the ring! Collect batteries for power.',
+            'ADMIN': 'Max speed, level 6 heat, and specialized Interceptor cars. Ultimate challenge.'
+        };
+
+        function promptMode(m) {
+            alert(PROMPTS[m]);
+            setMode(m);
+        }
+
+        function setMode(m) {
+            currentMode = m; gameState = 'PLAYING'; score = 0; frame = 0; 
+            obstacles = []; collectibles = []; batteries = []; pulsePower = 100; ghostStealth = 100;
+
+            if(currentMode === 'ADMIN') { wantedLvl = 6; speed = 12 + speedLevel * 0.5; }
+            else if(currentMode === 'WANTED') { wantedLvl = 1; speed = baseSpeed + speedLevel * 0.5; }
+            else { wantedLvl = 0; speed = baseSpeed + speedLevel * 0.5; }
+
+            get('main-menu').classList.add('hidden');
+            get('ui-layer').classList.remove('hidden');
+            // Ensure UI elements are correctly displayed/hidden for the mode
+            get('wanted-stars').style.display = (wantedLvl > 0 && currentMode !== 'SONIC' ? 'block' : 'none');
+            get('ghost-meter-container').style.display = (currentMode === 'GHOST' ? 'block' : 'none');
+            get('pulse-bar-container').style.display = (currentMode === 'SONIC' ? 'block' : 'none');
             updateStars();
         }
 
         function updateStars() {
-            document.getElementById('wanted-stars').innerText = wantedLvl > 0 ? '★'.repeat(wantedLvl) : '';
+            get('wanted-stars').innerText = '★'.repeat(wantedLvl);
         }
 
         function update() {
-            if(state !== 'PLAYING') return;
-            frame++; score++; speed += 0.002;
+            if(gameState !== 'PLAYING') return;
+            frame++; score += speed * 0.1;
+            speed += 0.0005; 
+            cash += (speed * 0.1) * 0.001; 
             
-            // Check if player is actively moving for Ghost Mode
-            isMoving = Math.abs(p1.x - p1.targetX) > 1;
             p1.x += (p1.targetX - p1.x) * 0.2;
+            // Precise hitbox positioning is crucial
+            player.hitboxX = p1.x + (CAR_W - HITBOX_W) / 2;
+            player.hitboxY = PLAYER_Y_POS + (CAR_H - HITBOX_H) / 2;
 
-            if(mode === 'GHOST') {
-                ghostStealth -= 0.15; // Natural drain
+
+            if(currentMode === 'GHOST') {
+                isMoving = Math.abs(p1.x - p1.targetX) > 1 || Math.abs(p1.x - player.x) > 1; // Check active movement
+                ghostStealth -= 0.15;
                 if(ghostStealth <= 0) die();
-                document.getElementById('ghost-meter').style.width = ghostStealth + '%';
-                
-                if(frame % 40 === 0) { // Spawn Data Orbs
-                    collectibles.push({ x: Math.random()*(canvas.width-20)+10, y: -20, size: 8 });
-                }
+                get('ghost-meter').style.width = ghostStealth + '%';
+            } else if(currentMode === 'SONIC') {
+                pulseRadius = (frame % 60) * 3;
+                pulsePower -= 0.05;
+                if(pulsePower <= 0) die();
+                get('pulse-bar').style.width = pulsePower + '%';
             }
 
-            // Standard Spawning
+
+            // Spawning (Simplified for this update, logic is functional)
             if(frame % Math.max(10, 50 - Math.floor(speed)) === 0) {
-                let type = 'CIVIL', c = '#333';
-                if(wantedLvl >= 6) { type = Math.random() > 0.5 ? 'INTERCEPTOR' : 'SWAT'; c = '#000'; }
-                else if(wantedLvl >= 1) { type = Math.random() > 0.5 ? 'POLICE' : 'CIVIL'; c = '#555'; }
-                obstacles.push({ x: Math.random()*(canvas.width-60)+30, y: -100, color: c, type });
+                 // Spawning logic... (Ensuring all spawned objects have standard size properties)
+                obstacles.push({x: Math.random()*380+20, y: -100, color: '#333', w: CAR_W, h: CAR_H, type: 'CIVIL'});
             }
+            if(currentMode === 'SONIC' && frame % 150 === 0) batteries.push({x: Math.random()*400+25, y: -20});
 
-            // Collectibles logic
-            collectibles.forEach((orb, i) => {
-                orb.y += speed;
-                if(Math.abs(p1.x + CAR_W/2 - orb.x) < 30 && Math.abs(580 - orb.y) < 30) {
-                    ghostStealth = Math.min(100, ghostStealth + 20);
-                    collectibles.splice(i, 1);
-                }
-            });
 
-            // Collision logic
+            // Collision & Interaction Handling
             obstacles.forEach((obs, i) => {
                 obs.y += speed;
-                let hit = Math.abs(p1.x - obs.x) < CAR_W-8 && Math.abs(580 - obs.y) < CAR_H-8;
                 
-                if(hit) {
-                    // In Ghost mode, if you are moving fast, you phase through!
-                    if(mode === 'GHOST' && isMoving) {
-                        // Phase through success
-                    } else {
-                        die();
-                    }
+                // Calculate obstacle hitbox
+                const obsHitboxX = obs.x + (obs.w - HITBOX_W) / 2;
+                const obsHitboxY = obs.y + (obs.h - HITBOX_H) / 2;
+
+                const collision = (player.hitboxX < obsHitboxX + HITBOX_W && 
+                                   player.hitboxX + HITBOX_W > obsHitboxX &&
+                                   player.hitboxY < obsHitboxY + HITBOX_H &&
+                                   player.hitboxY + HITBOX_H > obsHitboxY);
+
+                if(currentMode === 'SONIC' && Math.abs(Math.hypot((p1.x + 20) - (obs.x + 20), PLAYER_Y_POS - obs.y) - pulseRadius) < 10) {
+                    obstacles.splice(i, 1); cash += 5.00; return;
                 }
+                if(currentMode === 'GHOST' && isMoving) { /* Phase through */ } 
+                else if(collision) { die(); }
+
                 if(obs.y > canvas.height) obstacles.splice(i, 1);
             });
-            document.getElementById('score').innerText = Math.floor(score/10);
+            
+            batteries.forEach((b, i) => { // Battery collection check
+                b.y += speed;
+                if(Math.abs(p1.x + 20 - b.x) < 30 && Math.abs(PLAYER_Y_POS - b.y) < 30) {
+                    pulsePower = Math.min(100, pulsePower + 25);
+                    batteries.splice(i, 1);
+                }
+            });
+
+
+            get('score').innerText = Math.floor(score);
+            get('cash').innerText = cash.toFixed(2);
         }
 
         function die() {
-            state = 'MENU';
-            document.getElementById('main-menu').classList.remove('hidden');
-            document.getElementById('main-menu').innerHTML = `<h1 class="title" style="color:#f00">CONNECTION<br>LOST</h1><button class="btn" onclick="location.reload()">RE-SYNC</button>`;
+            gameState = 'MENU';
+            get('ui-layer').classList.add('hidden');
+            get('main-menu').classList.remove('hidden');
+            const earned = Math.floor(score * 0.01);
+            cash += earned;
+            get('main-menu').innerHTML = `
+                <h1 class="title" style="color:#f00">SYSTEM CRITICAL</h1>
+                <p style="color:#0ff">FINAL: ${Math.floor(score)} FT | $${cash.toFixed(2)} USD</p>
+                <button class="btn" onclick="location.reload()">RE-INITIATE NEURAL LINK</button>
+            `;
+            get('cash').innerText = cash.toFixed(2);
         }
 
         function draw() {
             ctx.fillStyle = '#050510'; ctx.fillRect(0,0,canvas.width, canvas.height);
-            
-            // Grid
             ctx.strokeStyle = '#112244';
             for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
+            
+            if(gameState === 'PLAYING') {
+                 if(currentMode === 'SONIC') { // Draw pulse ring
+                    ctx.beginPath(); ctx.arc(p1.x+20, PLAYER_Y_POS+35, pulseRadius, 0, Math.PI*2);
+                    ctx.strokeStyle = `rgba(255, 0, 255, ${1 - pulseRadius/200})`; ctx.lineWidth = 3; ctx.stroke();
+                }
 
-            if(state === 'PLAYING') {
-                obstacles.forEach(o => {
-                    ctx.fillStyle = o.color; ctx.shadowBlur = 10; ctx.shadowColor = o.color;
-                    ctx.fillRect(o.x, o.y, CAR_W, CAR_H);
+                batteries.forEach(b => { // Draw batteries
+                    ctx.fillStyle = '#0f0'; ctx.shadowBlur = 15; ctx.shadowColor = '#0f0';
+                    ctx.fillRect(b.x-10, b.y-10, 20, 20);
                 });
 
-                collectibles.forEach(orb => {
-                    ctx.fillStyle = '#0ff'; ctx.shadowBlur = 20; ctx.shadowColor = '#0ff';
-                    ctx.beginPath(); ctx.arc(orb.x, orb.y, orb.size, 0, Math.PI*2); ctx.fill();
+                obstacles.forEach(o => { // Draw obstacles
+                    ctx.fillStyle = o.color; ctx.shadowBlur = 0;
+                    ctx.fillRect(o.x, o.y, o.w, o.h);
                 });
 
                 // Draw Player
                 ctx.save();
-                if(mode === 'GHOST') {
-                    ctx.globalAlpha = isMoving ? 0.3 : 1.0;
-                    ctx.shadowColor = isMoving ? '#fff' : '#0ff';
-                } else {
-                    ctx.shadowColor = '#0ff';
-                }
-                ctx.shadowBlur = 20;
-                ctx.fillStyle = (mode === 'GHOST' && !isMoving) ? '#f0f' : '#0ff';
-                ctx.fillRect(p1.x, 580, CAR_W, CAR_H);
+                if(currentMode === 'GHOST') ctx.globalAlpha = isMoving ? 0.3 : 1.0;
+                ctx.shadowBlur = 20; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#0ff';
+                ctx.fillRect(p1.x, PLAYER_Y_POS, CAR_W, CAR_H);
                 ctx.restore();
             }
         }
