@@ -2,60 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Cookie Clicker: Zenith 3.0</title>
+    <title>Cookie Clicker: Zenith 4.0</title>
     <style>
-        :root { --p: #ff9d00; --bg: #0a0a12; --card: #151525; --white: #ffffff; }
+        :root { --p: #ff9d00; --bg: #08080f; --card: #12121f; --white: #ffffff; --debug: #ff3e3e; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Debug Button */
-        #debug-btn { position: absolute; top: 15px; left: 15px; background: #e94560; padding: 8px 15px; border-radius: 5px; cursor: pointer; display: none; font-weight: bold; z-index: 1000; }
+        /* Debug Console Button */
+        #debug-trigger { position: absolute; top: 20px; left: 20px; background: var(--debug); padding: 10px 15px; border-radius: 8px; cursor: pointer; display: none; font-weight: 900; z-index: 100; box-shadow: 0 0 15px rgba(255, 62, 62, 0.4); }
 
-        /* Left Side: Clicker & Naming */
+        /* Left Side: Clicker */
         #game-left { flex: 1.6; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-right: 4px solid #1a1a2e; }
-        .bakery-name { font-size: 24px; color: #888; cursor: pointer; border-bottom: 1px dashed #444; margin-bottom: 10px; }
-        .bakery-name:hover { color: var(--p); }
-        .count { font-size: 72px; font-weight: 900; color: var(--p); text-shadow: 0 0 40px rgba(255, 157, 0, 0.4); }
+        .bakery-header { font-size: 28px; color: #aaa; cursor: pointer; margin-bottom: 5px; transition: 0.2s; }
+        .bakery-header:hover { color: var(--p); transform: scale(1.05); }
+        .count { font-size: 80px; font-weight: 900; color: var(--p); text-shadow: 0 0 40px rgba(255, 157, 0, 0.3); margin-bottom: 0; }
+        .cps-sub { color: #555; font-size: 18px; margin-bottom: 30px; }
         
-        #cookie { width: 300px; height: 300px; background: radial-gradient(circle at 30% 30%, #e6a46a, #d2691e); border-radius: 50%; cursor: pointer; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.7); transition: transform 0.05s; margin-top: 20px; }
-        #cookie:active { transform: scale(0.94); }
+        #cookie { width: 320px; height: 320px; background: radial-gradient(circle at 30% 30%, #e6a46a, #d2691e); border-radius: 50%; cursor: pointer; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.8); transition: transform 0.05s; }
+        #cookie:active { transform: scale(0.95); }
         .chip { position: absolute; background: #3e2723; border-radius: 50%; pointer-events: none; }
 
-        /* Right Side: The Forge (Shop) */
-        #game-right { flex: 1; background: #11111d; display: flex; flex-direction: column; }
-        .shop-header { padding: 20px; font-size: 28px; font-weight: bold; border-bottom: 2px solid #222; text-align: center; }
+        /* Right Side: Shop */
+        #game-right { flex: 1; background: #0c0c16; display: flex; flex-direction: column; }
+        .shop-header { padding: 25px; font-size: 32px; font-weight: bold; border-bottom: 2px solid #1a1a2e; text-align: center; color: var(--p); }
         .scroll-area { flex: 1; overflow-y: auto; padding: 20px; }
 
-        /* Item Logic: Affordable = White/Glow */
+        /* Item Logic */
         .item { 
-            background: var(--card); padding: 18px; border-radius: 12px; margin-bottom: 15px; 
+            background: var(--card); padding: 20px; border-radius: 15px; margin-bottom: 15px; 
             display: flex; justify-content: space-between; align-items: center;
-            border: 2px solid #222; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            opacity: 0.5; pointer-events: none;
+            border: 2px solid #1a1a2e; transition: all 0.3s ease; opacity: 0.4; pointer-events: none;
         }
         .item.affordable { 
             background: var(--white); color: #000; opacity: 1; pointer-events: auto; 
-            box-shadow: 0 0 25px rgba(255,255,255,0.5); border-color: var(--white);
-            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(255,255,255,0.3); border-color: var(--white);
         }
-        .item h3 { margin: 0; color: var(--p); font-size: 18px; }
+        .item h3 { margin: 0; color: var(--p); font-size: 20px; transition: 0.3s; }
         .affordable h3 { color: #000; }
-        .item p { margin: 5px 0 0; font-size: 13px; color: #888; }
-        .affordable p { color: #555; }
-        .count-tag { font-size: 24px; font-weight: 900; opacity: 0.3; }
+        .item p { margin: 5px 0 0; font-size: 13px; color: #888; transition: 0.3s; }
+        .affordable p { color: #333; }
 
-        /* Floating text animation */
-        @keyframes float { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
-        .float-text { position: absolute; pointer-events: none; animation: float 0.8s forwards; font-weight: bold; color: var(--p); z-index: 99; }
+        /* MODAL SYSTEM (Custom Prompts) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal { background: #1a1a2e; padding: 40px; border-radius: 20px; text-align: center; border: 2px solid var(--p); min-width: 350px; }
+        .modal input { background: #0c0c16; border: 2px solid #333; color: white; padding: 15px; border-radius: 10px; width: 80%; font-size: 18px; margin: 20px 0; outline: none; }
+        .modal input:focus { border-color: var(--p); }
+        .modal button { background: var(--p); color: var(--bg); border: none; padding: 12px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; margin: 5px; }
+        .modal .debug-btn-large { background: var(--debug); color: white; width: 100%; margin-top: 10px; }
+
+        /* Floating Text */
+        @keyframes float { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-150px); opacity: 0; } }
+        .float-text { position: absolute; pointer-events: none; animation: float 0.8s forwards; font-weight: 900; color: var(--white); font-size: 24px; z-index: 99; }
     </style>
 </head>
 <body>
 
-<div id="debug-btn" onclick="alert('Zenith Engine Version: 3.0.26\nStatus: Debug Active')">DEBUG V3.0</div>
+<div id="debug-trigger" onclick="openModal('debug-modal')">DEBUG CONSOLE</div>
 
 <div id="game-left">
-    <div class="bakery-name" id="bakery-label" onclick="renameBakery()">Player's Bakery</div>
+    <div class="bakery-header" id="bakery-display" onclick="openModal('name-modal')">Player's Bakery</div>
     <div class="count" id="cookie-display">0</div>
-    <div style="color: #666; margin-bottom: 20px;">Cookies Per Second: <span id="cps-display">0</span></div>
+    <div class="cps-sub">Cookies Per Second: <span id="cps-display">0</span></div>
     
     <div id="cookie" onclick="handleCookieClick(event)">
         <div class="chip" style="width:25px; height:25px; top:60px; left:70px;"></div>
@@ -71,53 +77,73 @@
     <div class="scroll-area" id="shop-items"></div>
 </div>
 
+<!-- Custom Name Modal -->
+<div class="modal-overlay" id="name-modal">
+    <div class="modal">
+        <h2>Rename Bakery</h2>
+        <p>What should we call your empire?</p>
+        <input type="text" id="name-input" placeholder="Enter name...">
+        <br>
+        <button onclick="saveName()">CONFIRM</button>
+    </div>
+</div>
+
+<!-- Custom Debug Modal -->
+<div class="modal-overlay" id="debug-modal">
+    <div class="modal">
+        <h2 style="color: var(--debug)">Zenith Console v4.0.26</h2>
+        <p>Secret Access Granted.</p>
+        <button class="debug-btn-large" onclick="cheatCookies()">+1,000,000 COOKIES</button>
+        <br>
+        <button onclick="closeModal('debug-modal')">CLOSE</button>
+    </div>
+</div>
+
 <script>
     let state = {
         cookies: 0,
         clickPower: 1,
-        bakeryName: "Player's Bakery",
-        hasDebugged: false,
+        ownerName: "Player",
         store: [
-            { name: 'Reinforced Finger', cost: 25, type: 'upgrade', power: 2, desc: 'Double click power!', count: 0 },
-            { name: 'Grandma', cost: 100, type: 'building', power: 1, desc: 'Warm cookies, fast.', count: 0 },
-            { name: 'Rolling Pin', cost: 500, type: 'upgrade', power: 2, desc: 'Grandmas bake 2x faster.', count: 0 },
-            { name: 'Cookie Factory', cost: 1200, type: 'building', power: 12, desc: 'Industrial production.', count: 0 },
-            { name: 'Alchemy Lab', cost: 15000, type: 'building', power: 65, desc: 'Turn gold into dough.', count: 0 }
+            { name: 'Reinforced Finger', cost: 15, type: 'upgrade', power: 2, desc: 'Your clicks are 2x stronger.', count: 0 },
+            { name: 'Grandma', cost: 100, type: 'building', power: 1, desc: 'Bakes 1 cookie per second.', count: 0 },
+            { name: 'Steel Rolling Pin', cost: 500, type: 'upgrade', power: 2, desc: 'Grandmas are 2x as fast.', count: 0 },
+            { name: 'Cookie Factory', cost: 1100, type: 'building', power: 10, desc: 'Industrialized baking.', count: 0 },
+            { name: 'Alchemy Lab', cost: 12000, type: 'building', power: 55, desc: 'Transmuting gold into dough.', count: 0 }
         ]
     };
 
-    function renameBakery() {
-        let newName = prompt("What is your bakery called?", state.bakeryName);
-        if (newName) {
-            state.bakeryName = newName;
-            document.getElementById('bakery-label').innerText = state.bakeryName + "'s Bakery";
-            checkDebugTrigger(newName);
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function saveName() {
+        let val = document.getElementById('name-input').value;
+        if (val) {
+            state.ownerName = val;
+            document.getElementById('bakery-display').innerText = val + "'s Bakery";
+            if (val.toLowerCase() === 'gregboi') {
+                document.getElementById('debug-trigger').style.display = 'block';
+            } else {
+                document.getElementById('debug-trigger').style.display = 'none';
+            }
         }
+        closeModal('name-modal');
     }
 
-    function checkDebugTrigger(name) {
-        if (name.toLowerCase() === "gregboi") {
-            document.getElementById('debug-btn').style.display = 'block';
-            if (!state.hasDebugged) {
-                state.cookies += 1000000;
-                state.hasDebugged = true;
-                alert("Debug mode active: 1,000,000 cookies added!");
-            }
-        } else {
-            document.getElementById('debug-btn').style.display = 'none';
-        }
+    function cheatCookies() {
+        state.cookies += 1000000;
+        updateUI();
     }
 
     function handleCookieClick(e) {
         state.cookies += state.clickPower;
         const p = document.createElement('div');
         p.className = 'float-text';
-        p.style.left = e.clientX + 'px';
-        p.style.top = e.clientY + 'px';
+        p.style.left = e.clientX + 'px'; p.style.top = e.clientY + 'px';
         p.innerText = "+" + state.clickPower;
         document.body.appendChild(p);
         setTimeout(() => p.remove(), 800);
-        update();
+        updateUI();
     }
 
     function buy(idx) {
@@ -127,17 +153,16 @@
             item.count++;
             if (item.type === 'upgrade') {
                 state.clickPower *= item.power;
-                item.cost *= 15; // Upgrades are expensive to re-buy
+                item.cost *= 10;
             } else {
                 item.cost *= 1.15;
             }
-            update();
+            updateUI();
         }
     }
 
-    function update() {
+    function updateUI() {
         document.getElementById('cookie-display').innerText = Math.floor(state.cookies).toLocaleString();
-        
         let totalCPS = state.store.reduce((acc, i) => i.type === 'building' ? acc + (i.count * i.power) : acc, 0);
         document.getElementById('cps-display').innerText = totalCPS.toLocaleString();
 
@@ -150,24 +175,23 @@
             div.onclick = () => buy(i);
             div.innerHTML = `
                 <div>
-                    <h3>${item.name}</h3>
+                    <h3>${item.name} (${item.count})</h3>
                     <p>${item.desc}</p>
                     <p>Price: ${Math.floor(item.cost).toLocaleString()}</p>
                 </div>
-                <div class="count-tag">${item.count}</div>
             `;
             container.appendChild(div);
         });
     }
 
-    // 60 FPS Logic
+    // 60FPS Core Loop
     setInterval(() => {
         let totalCPS = state.store.reduce((acc, i) => i.type === 'building' ? acc + (i.count * i.power) : acc, 0);
         state.cookies += (totalCPS / 10);
-        update();
+        updateUI();
     }, 100);
 
-    update();
+    updateUI();
 </script>
 </body>
 </html>
