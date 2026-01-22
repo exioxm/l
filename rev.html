@@ -2,72 +2,172 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cookie Clicker Game</title>
+    <title>Cookie Clicker: Zenith Edition</title>
     <style>
-        body { text-align: center; font-family: sans-serif; background: #f0e6d2; padding-top: 50px; }
-        .cookie { width: 200px; cursor: pointer; transition: transform 0.1s; }
-        .cookie:active { transform: scale(0.9); }
-        .stats { font-size: 24px; margin: 20px; }
-        .shop { margin-top: 30px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        :root { --p: #ff9d00; --s: #2d1b0c; --bg: #0f0f1a; --card: #1a1a2e; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Left: The Cookie Engine */
+        #game-area { flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-right: 3px solid #222; }
+        #cookie-container { position: relative; cursor: pointer; transition: transform 0.05s; z-index: 5; }
+        #cookie-container:active { transform: scale(0.92); }
+        .cookie-svg { width: 320px; height: 320px; filter: drop-shadow(0 0 30px rgba(255, 157, 0, 0.2)); }
+        
+        /* Stats & Labels */
+        .header { position: absolute; top: 40px; text-align: center; }
+        .count { font-size: 56px; font-weight: 900; color: var(--p); text-shadow: 0 0 20px rgba(255, 157, 0, 0.4); }
+        .cps { font-size: 20px; color: #888; margin-top: 5px; }
+
+        /* Right: Advanced Shop */
+        #shop { flex: 1; background: #161625; padding: 25px; overflow-y: auto; box-shadow: -10px 0 30px rgba(0,0,0,0.5); }
+        .shop-title { font-size: 32px; font-weight: bold; margin-bottom: 25px; border-bottom: 2px solid var(--p); padding-bottom: 10px; }
+        .item { background: var(--card); padding: 18px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: 0.2s; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .item:hover { border-color: var(--p); background: #252545; transform: translateX(-5px); }
+        .item.locked { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
+        .item-info h3 { margin: 0; color: var(--p); font-size: 18px; }
+        .item-info p { margin: 5px 0 0; font-size: 13px; color: #aaa; }
+        .item-count { font-size: 28px; font-weight: bold; color: #444; }
+
+        /* Visual Effects */
+        .particle { position: absolute; pointer-events: none; animation: float 1s ease-out forwards; font-weight: bold; color: var(--p); z-index: 10; }
+        @keyframes float { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-120px) rotate(20deg); opacity: 0; } }
+        
+        .golden-cookie { position: absolute; width: 60px; height: 60px; background: gold; border-radius: 50%; cursor: pointer; box-shadow: 0 0 30px yellow; z-index: 100; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <h1>Cookie Clicker</h1>
-    <div class="stats">
-        Cookies: <span id="cookie-count">0</span><br>
-        Per Second: <span id="cps-count">0</span>
+<div id="game-area">
+    <div class="header">
+        <div class="count" id="cookie-display">0</div>
+        <div class="cps">per second: <span id="cps-display">0</span></div>
     </div>
-
-    <!-- Replace the src with a cookie image URL or local path -->
-    <img src="https://www.freeiconspng.com" 
-         class="cookie" id="cookie-btn" alt="Cookie">
-
-    <div class="shop">
-        <button id="buy-auto-clicker">Buy Auto-Clicker (Cost: 10)</button>
+    
+    <div id="cookie-container" onclick="handleMainClick(event)">
+        <!-- Scalable Vector Cookie -->
+        <svg class="cookie-svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="#d2691e" stroke="#8b4513" stroke-width="2"/>
+            <circle cx="30" cy="35" r="5" fill="#3e2723" />
+            <circle cx="70" cy="40" r="6" fill="#3e2723" />
+            <circle cx="45" cy="70" r="5" fill="#3e2723" />
+            <circle cx="65" cy="75" r="4" fill="#3e2723" />
+            <circle cx="20" cy="60" r="4" fill="#3e2723" />
+        </svg>
     </div>
+</div>
 
-    <script>
-        let cookies = 0;
-        let autoClickers = 0;
-        let autoClickerCost = 10;
+<div id="shop">
+    <div class="shop-title">Upgrades</div>
+    <div id="item-list"></div>
+</div>
 
-        const cookieBtn = document.getElementById('cookie-btn');
-        const cookieDisplay = document.getElementById('cookie-count');
-        const cpsDisplay = document.getElementById('cps-count');
-        const buyBtn = document.getElementById('buy-auto-clicker');
+<script>
+    let state = {
+        cookies: 0,
+        totalEver: 0,
+        multiplier: 1,
+        items: [
+            { id: 'cursor', name: 'Auto-Clicker', cost: 15, cps: 0.1, count: 0, desc: 'A tiny mechanical hand.' },
+            { id: 'grandma', name: 'Grandma', cost: 100, cps: 1, count: 0, desc: 'Bakes with love and cookies.' },
+            { id: 'bakery', name: 'Bakery', cost: 1100, cps: 8, count: 0, desc: 'Smells like success.' },
+            { id: 'factory', name: 'Mega Factory', cost: 12000, cps: 47, count: 0, desc: 'Industrialized dough production.' },
+            { id: 'wizard', name: 'Wizard Tower', cost: 130000, cps: 260, count: 0, desc: 'Summons cookies from the void.' }
+        ]
+    };
 
-        // Manual Click Logic
-        cookieBtn.addEventListener('click', () => {
-            cookies++;
-            updateDisplay();
+    // Initialize Game
+    function init() {
+        const saved = localStorage.getItem('zenith_save');
+        if (saved) state = JSON.parse(saved);
+        renderShop();
+        gameLoop();
+        spawnGoldenCookie();
+    }
+
+    function handleMainClick(e) {
+        let val = 1 * state.multiplier;
+        state.cookies += val;
+        state.totalEver += val;
+        createParticle(e.clientX, e.clientY, `+${val}`);
+        updateUI();
+    }
+
+    function createParticle(x, y, text) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = `${x}px`;
+        p.style.top = `${y}px`;
+        p.innerText = text;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 1000);
+    }
+
+    function renderShop() {
+        const container = document.getElementById('item-list');
+        container.innerHTML = '';
+        state.items.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = `item ${state.cookies < item.cost ? 'locked' : ''}`;
+            div.innerHTML = `
+                <div class="item-info">
+                    <h3>${item.name}</h3>
+                    <p>${item.desc}<br>Cost: ${Math.floor(item.cost).toLocaleString()} | +${item.cps} CPS</p>
+                </div>
+                <div class="item-count">${item.count}</div>
+            `;
+            div.onclick = () => buyItem(index);
+            container.appendChild(div);
         });
+    }
 
-        // Shop Logic
-        buyBtn.addEventListener('click', () => {
-            if (cookies >= autoClickerCost) {
-                cookies -= autoClickerCost;
-                autoClickers++;
-                autoClickerCost = Math.floor(autoClickerCost * 1.5); // Increase cost
-                buyBtn.innerText = `Buy Auto-Clicker (Cost: ${autoClickerCost})`;
-                updateDisplay();
-            } else {
-                alert("Not enough cookies!");
-            }
-        });
-
-        // Automatic Logic (1 cookie per second per auto-clicker)
-        setInterval(() => {
-            cookies += autoClickers;
-            updateDisplay();
-        }, 1000);
-
-        function updateDisplay() {
-            cookieDisplay.innerText = Math.floor(cookies);
-            cpsDisplay.innerText = autoClickers;
+    function buyItem(idx) {
+        const item = state.items[idx];
+        if (state.cookies >= item.cost) {
+            state.cookies -= item.cost;
+            item.count++;
+            item.cost *= 1.15;
+            renderShop();
+            updateUI();
+            save();
         }
-    </script>
+    }
+
+    function spawnGoldenCookie() {
+        setTimeout(() => {
+            const gc = document.createElement('div');
+            gc.className = 'golden-cookie';
+            gc.style.left = Math.random() * 80 + '%';
+            gc.style.top = Math.random() * 80 + '%';
+            gc.onclick = () => {
+                const bonus = Math.max(77, state.cookies * 0.1);
+                state.cookies += bonus;
+                createParticle(window.innerWidth/2, window.innerHeight/2, "GOLDEN BONUS!");
+                gc.remove();
+                spawnGoldenCookie();
+            };
+            document.getElementById('game-area').appendChild(gc);
+            setTimeout(() => { if(gc) gc.remove(); spawnGoldenCookie(); }, 8000);
+        }, Math.random() * 60000 + 30000);
+    }
+
+    function updateUI() {
+        document.getElementById('cookie-display').innerText = Math.floor(state.cookies).toLocaleString();
+        let totalCPS = state.items.reduce((acc, i) => acc + (i.count * i.cps), 0);
+        document.getElementById('cps-display').innerText = totalCPS.toFixed(1);
+    }
+
+    function gameLoop() {
+        let totalCPS = state.items.reduce((acc, i) => acc + (i.count * i.cps), 0);
+        state.cookies += totalCPS / 60; // 60 FPS logic
+        updateUI();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function save() { localStorage.setItem('zenith_save', JSON.stringify(state)); }
+    setInterval(save, 30000);
+
+    init();
+</script>
 </body>
 </html>
