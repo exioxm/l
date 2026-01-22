@@ -2,157 +2,168 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Cookie Clicker: Zenith 2.0</title>
+    <title>Cookie Clicker: Zenith 3.0</title>
     <style>
-        :root { --p: #ff9d00; --s: #2d1b0c; --bg: #0d0d15; --card: #161625; --white: #ffffff; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        :root { --p: #ff9d00; --bg: #0a0a12; --card: #151525; --white: #ffffff; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Layout */
-        #game-left { flex: 1.5; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        #game-right { flex: 1; background: #11111d; border-left: 4px solid #222; display: flex; flex-direction: column; }
+        /* Debug Button */
+        #debug-btn { position: absolute; top: 15px; left: 15px; background: #e94560; padding: 8px 15px; border-radius: 5px; cursor: pointer; display: none; font-weight: bold; z-index: 1000; }
 
-        /* Cookie Engine */
-        .count-container { text-align: center; margin-bottom: 30px; }
-        .count { font-size: 64px; font-weight: 900; color: var(--p); text-shadow: 0 0 30px rgba(255, 157, 0, 0.3); }
-        #cookie { width: 280px; height: 280px; background: radial-gradient(circle at 30% 30%, #e6a46a, #d2691e); border-radius: 50%; cursor: pointer; position: relative; box-shadow: 0 15px 50px rgba(0,0,0,0.6); transition: transform 0.05s; }
-        #cookie:active { transform: scale(0.92); }
-        .chip { position: absolute; background: #3e2723; border-radius: 50%; }
+        /* Left Side: Clicker & Naming */
+        #game-left { flex: 1.6; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-right: 4px solid #1a1a2e; }
+        .bakery-name { font-size: 24px; color: #888; cursor: pointer; border-bottom: 1px dashed #444; margin-bottom: 10px; }
+        .bakery-name:hover { color: var(--p); }
+        .count { font-size: 72px; font-weight: 900; color: var(--p); text-shadow: 0 0 40px rgba(255, 157, 0, 0.4); }
+        
+        #cookie { width: 300px; height: 300px; background: radial-gradient(circle at 30% 30%, #e6a46a, #d2691e); border-radius: 50%; cursor: pointer; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.7); transition: transform 0.05s; margin-top: 20px; }
+        #cookie:active { transform: scale(0.94); }
+        .chip { position: absolute; background: #3e2723; border-radius: 50%; pointer-events: none; }
 
-        /* Shop Styling */
-        .shop-tabs { display: flex; border-bottom: 2px solid #222; }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; background: #1a1a2e; }
-        .tab.active { background: var(--p); color: var(--s); }
-        .scroll-area { flex: 1; overflow-y: auto; padding: 15px; }
+        /* Right Side: The Forge (Shop) */
+        #game-right { flex: 1; background: #11111d; display: flex; flex-direction: column; }
+        .shop-header { padding: 20px; font-size: 28px; font-weight: bold; border-bottom: 2px solid #222; text-align: center; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 20px; }
 
-        /* THE UPGRADE WHITE GLOW LOGIC */
+        /* Item Logic: Affordable = White/Glow */
         .item { 
-            background: var(--card); padding: 15px; border-radius: 10px; margin-bottom: 10px; 
+            background: var(--card); padding: 18px; border-radius: 12px; margin-bottom: 15px; 
             display: flex; justify-content: space-between; align-items: center;
-            border: 2px solid #222; transition: 0.2s; opacity: 0.6; pointer-events: none;
+            border: 2px solid #222; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            opacity: 0.5; pointer-events: none;
         }
-        /* When user has enough clicks: Turn white and enable */
         .item.affordable { 
             background: var(--white); color: #000; opacity: 1; pointer-events: auto; 
-            box-shadow: 0 0 15px rgba(255,255,255,0.4); border-color: var(--white);
+            box-shadow: 0 0 25px rgba(255,255,255,0.5); border-color: var(--white);
+            transform: scale(1.02);
         }
-        .item.affordable h3 { color: #000; }
-        .item h3 { margin: 0; color: var(--p); font-size: 16px; }
-        .item p { margin: 3px 0 0; font-size: 12px; color: #888; }
-        .affordable p { color: #444; }
+        .item h3 { margin: 0; color: var(--p); font-size: 18px; }
+        .affordable h3 { color: #000; }
+        .item p { margin: 5px 0 0; font-size: 13px; color: #888; }
+        .affordable p { color: #555; }
+        .count-tag { font-size: 24px; font-weight: 900; opacity: 0.3; }
 
-        /* Animations */
-        @keyframes floatNum { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-100px); opacity: 0; } }
-        .floating-num { position: absolute; pointer-events: none; animation: floatNum 0.8s ease-out forwards; font-weight: 900; z-index: 100; }
+        /* Floating text animation */
+        @keyframes float { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
+        .float-text { position: absolute; pointer-events: none; animation: float 0.8s forwards; font-weight: bold; color: var(--p); z-index: 99; }
     </style>
 </head>
 <body>
 
+<div id="debug-btn" onclick="alert('Zenith Engine Version: 3.0.26\nStatus: Debug Active')">DEBUG V3.0</div>
+
 <div id="game-left">
-    <div class="count-container">
-        <div class="count" id="cookies">0</div>
-        <div style="color: #666">Cookies Per Second: <span id="cps">0</span></div>
-    </div>
-    <div id="cookie" onclick="clickCookie(event)">
-        <!-- Dynamic Chocolate Chips -->
-        <div class="chip" style="width: 20px; height: 20px; top: 50px; left: 60px;"></div>
-        <div class="chip" style="width: 25px; height: 25px; top: 140px; left: 40px;"></div>
-        <div class="chip" style="width: 18px; height: 18px; top: 180px; left: 160px;"></div>
-        <div class="chip" style="width: 22px; height: 22px; top: 60px; left: 180px;"></div>
-        <div class="chip" style="width: 20px; height: 20px; top: 120px; left: 110px;"></div>
+    <div class="bakery-name" id="bakery-label" onclick="renameBakery()">Player's Bakery</div>
+    <div class="count" id="cookie-display">0</div>
+    <div style="color: #666; margin-bottom: 20px;">Cookies Per Second: <span id="cps-display">0</span></div>
+    
+    <div id="cookie" onclick="handleCookieClick(event)">
+        <div class="chip" style="width:25px; height:25px; top:60px; left:70px;"></div>
+        <div class="chip" style="width:30px; height:30px; top:160px; left:50px;"></div>
+        <div class="chip" style="width:22px; height:22px; top:200px; left:180px;"></div>
+        <div class="chip" style="width:28px; height:28px; top:80px; left:200px;"></div>
+        <div class="chip" style="width:24px; height:24px; top:140px; left:130px;"></div>
     </div>
 </div>
 
 <div id="game-right">
-    <div class="shop-tabs">
-        <div class="tab active">Store</div>
-    </div>
+    <div class="shop-header">The Forge</div>
     <div class="scroll-area" id="shop-items"></div>
 </div>
 
 <script>
-    let cookies = 0;
-    let clickPower = 1;
-    
-    // Combined Buildings and "Cookie Clicker Upgrades"
-    const store = [
-        { id: 'u1', name: 'Reinforced Index Finger', cost: 25, type: 'upgrade', power: 1, desc: 'Your clicks are 2x as strong.', owned: 0 },
-        { id: 'b1', name: 'Grandma', cost: 100, type: 'building', power: 1, desc: 'Bakes 1 cookie per second.', owned: 0 },
-        { id: 'u2', name: 'Steel-Plated Rolling Pins', cost: 500, type: 'upgrade', power: 2, desc: 'Grandmas are 2x as efficient.', owned: 0 },
-        { id: 'b2', name: 'Cookie Factory', cost: 1100, type: 'building', power: 8, desc: 'Bakes 8 cookies per second.', owned: 0 },
-        { id: 'u3', name: 'Industrial Oven Lubricant', cost: 5000, type: 'upgrade', power: 3, desc: 'Factories are 3x as efficient.', owned: 0 },
-        { id: 'b3', name: 'Wizard Tower', cost: 12000, type: 'building', power: 47, desc: 'Summons 47 cookies per second.', owned: 0 }
-    ];
+    let state = {
+        cookies: 0,
+        clickPower: 1,
+        bakeryName: "Player's Bakery",
+        hasDebugged: false,
+        store: [
+            { name: 'Reinforced Finger', cost: 25, type: 'upgrade', power: 2, desc: 'Double click power!', count: 0 },
+            { name: 'Grandma', cost: 100, type: 'building', power: 1, desc: 'Warm cookies, fast.', count: 0 },
+            { name: 'Rolling Pin', cost: 500, type: 'upgrade', power: 2, desc: 'Grandmas bake 2x faster.', count: 0 },
+            { name: 'Cookie Factory', cost: 1200, type: 'building', power: 12, desc: 'Industrial production.', count: 0 },
+            { name: 'Alchemy Lab', cost: 15000, type: 'building', power: 65, desc: 'Turn gold into dough.', count: 0 }
+        ]
+    };
 
-    function clickCookie(e) {
-        cookies += clickPower;
-        spawnText(e.clientX, e.clientY, `+${clickPower}`);
+    function renameBakery() {
+        let newName = prompt("What is your bakery called?", state.bakeryName);
+        if (newName) {
+            state.bakeryName = newName;
+            document.getElementById('bakery-label').innerText = state.bakeryName + "'s Bakery";
+            checkDebugTrigger(newName);
+        }
+    }
+
+    function checkDebugTrigger(name) {
+        if (name.toLowerCase() === "gregboi") {
+            document.getElementById('debug-btn').style.display = 'block';
+            if (!state.hasDebugged) {
+                state.cookies += 1000000;
+                state.hasDebugged = true;
+                alert("Debug mode active: 1,000,000 cookies added!");
+            }
+        } else {
+            document.getElementById('debug-btn').style.display = 'none';
+        }
+    }
+
+    function handleCookieClick(e) {
+        state.cookies += state.clickPower;
+        const p = document.createElement('div');
+        p.className = 'float-text';
+        p.style.left = e.clientX + 'px';
+        p.style.top = e.clientY + 'px';
+        p.innerText = "+" + state.clickPower;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 800);
         update();
     }
 
-    function spawnText(x, y, txt) {
-        const el = document.createElement('div');
-        el.className = 'floating-num';
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-        el.innerText = txt;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 800);
-    }
-
-    function buy(index) {
-        const item = store[index];
-        if (cookies >= item.cost) {
-            cookies -= item.cost;
-            item.owned++;
-            
-            // Logic for "Clicker Upgrades" vs Buildings
+    function buy(idx) {
+        let item = state.store[idx];
+        if (state.cookies >= item.cost) {
+            state.cookies -= item.cost;
+            item.count++;
             if (item.type === 'upgrade') {
-                clickPower *= 2; 
-                item.cost *= 10; // Upgrades get much harder
+                state.clickPower *= item.power;
+                item.cost *= 15; // Upgrades are expensive to re-buy
             } else {
-                item.cost *= 1.15; // Buildings scale standardly
+                item.cost *= 1.15;
             }
-            
             update();
         }
     }
 
     function update() {
-        document.getElementById('cookies').innerText = Math.floor(cookies).toLocaleString();
+        document.getElementById('cookie-display').innerText = Math.floor(state.cookies).toLocaleString();
         
-        // Calculate CPS
-        let totalCPS = 0;
-        store.forEach(item => {
-            if (item.type === 'building') totalCPS += (item.owned * item.power);
-        });
-        document.getElementById('cps').innerText = totalCPS.toFixed(1);
+        let totalCPS = state.store.reduce((acc, i) => i.type === 'building' ? acc + (i.count * i.power) : acc, 0);
+        document.getElementById('cps-display').innerText = totalCPS.toLocaleString();
 
-        // Render Shop with White Highlighting
-        const shop = document.getElementById('shop-items');
-        shop.innerHTML = '';
-        store.forEach((item, i) => {
-            const isAffordable = cookies >= item.cost;
+        const container = document.getElementById('shop-items');
+        container.innerHTML = '';
+        state.store.forEach((item, i) => {
+            const canAfford = state.cookies >= item.cost;
             const div = document.createElement('div');
-            div.className = `item ${isAffordable ? 'affordable' : ''}`;
-            div.innerHTML = `
-                <div class="info">
-                    <h3>${item.name} (${item.owned})</h3>
-                    <p>${item.desc}</p>
-                    <p>Cost: ${Math.floor(item.cost).toLocaleString()}</p>
-                </div>
-            `;
+            div.className = `item ${canAfford ? 'affordable' : ''}`;
             div.onclick = () => buy(i);
-            shop.appendChild(div);
+            div.innerHTML = `
+                <div>
+                    <h3>${item.name}</h3>
+                    <p>${item.desc}</p>
+                    <p>Price: ${Math.floor(item.cost).toLocaleString()}</p>
+                </div>
+                <div class="count-tag">${item.count}</div>
+            `;
+            container.appendChild(div);
         });
     }
 
-    // 60FPS Smooth Game Loop
+    // 60 FPS Logic
     setInterval(() => {
-        let totalCPS = 0;
-        store.forEach(item => {
-            if (item.type === 'building') totalCPS += (item.owned * item.power);
-        });
-        cookies += (totalCPS / 10);
+        let totalCPS = state.store.reduce((acc, i) => i.type === 'building' ? acc + (i.count * i.power) : acc, 0);
+        state.cookies += (totalCPS / 10);
         update();
     }, 100);
 
