@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Clicker Game</title>
+    <style>
+        body { text-align: center; font-family: sans-serif; background: #f0e6d2; padding-top: 50px; }
+        .cookie { width: 200px; cursor: pointer; transition: transform 0.1s; }
+        .cookie:active { transform: scale(0.9); }
+        .stats { font-size: 24px; margin: 20px; }
+        .shop { margin-top: 30px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Cookie Clicker</h1>
+    <div class="stats">
+        Cookies: <span id="cookie-count">0</span><br>
+        Per Second: <span id="cps-count">0</span>
+    </div>
+
+    <!-- Replace the src with a cookie image URL or local path -->
+    <img src="https://www.freeiconspng.com" 
+         class="cookie" id="cookie-btn" alt="Cookie">
+
+    <div class="shop">
+        <button id="buy-auto-clicker">Buy Auto-Clicker (Cost: 10)</button>
+    </div>
+
+    <script>
+        let cookies = 0;
+        let autoClickers = 0;
+        let autoClickerCost = 10;
+
+        const cookieBtn = document.getElementById('cookie-btn');
+        const cookieDisplay = document.getElementById('cookie-count');
+        const cpsDisplay = document.getElementById('cps-count');
+        const buyBtn = document.getElementById('buy-auto-clicker');
+
+        // Manual Click Logic
+        cookieBtn.addEventListener('click', () => {
+            cookies++;
+            updateDisplay();
+        });
+
+        // Shop Logic
+        buyBtn.addEventListener('click', () => {
+            if (cookies >= autoClickerCost) {
+                cookies -= autoClickerCost;
+                autoClickers++;
+                autoClickerCost = Math.floor(autoClickerCost * 1.5); // Increase cost
+                buyBtn.innerText = `Buy Auto-Clicker (Cost: ${autoClickerCost})`;
+                updateDisplay();
+            } else {
+                alert("Not enough cookies!");
+            }
+        });
+
+        // Automatic Logic (1 cookie per second per auto-clicker)
+        setInterval(() => {
+            cookies += autoClickers;
+            updateDisplay();
+        }, 1000);
+
+        function updateDisplay() {
+            cookieDisplay.innerText = Math.floor(cookies);
+            cpsDisplay.innerText = autoClickers;
+        }
+    </script>
+</body>
+</html>
