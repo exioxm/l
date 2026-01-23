@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cookie Clicker: Ultra v1.0.4</title>
+    <title>Cookie Clicker: v2.0.52 Ultra</title>
     <style>
         :root { --gold: #f1c40f; --glass: rgba(255, 255, 255, 0.07); --bg: #0f172a; }
         * { box-sizing: border-box; user-select: none; }
@@ -12,51 +12,43 @@
             margin: 0; display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* Left Panel: The Kitchen */
+        /* Left Panel */
         #left-panel { flex: 1.5; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 2px solid #222; position: relative; }
         
-        #bakery-name { 
-            font-size: 1.8rem; background: none; border: none; color: #94a3b8; 
-            text-align: center; border-bottom: 1px dashed #444; margin-bottom: 15px; width: 80%;
+        #bakery-name-container { 
+            font-size: 1.8rem; color: #94a3b8; text-align: center; 
+            border-bottom: 1px dashed #444; margin-bottom: 15px; cursor: pointer;
+            padding: 5px 15px; transition: 0.2s;
         }
-        #bakery-name:focus { outline: none; border-bottom-color: var(--gold); color: white; }
-        
-        #cookie { width: 320px; height: 320px; cursor: pointer; transition: transform 0.05s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(0 0 50px rgba(0,0,0,0.5)); }
-        #cookie:active { transform: scale(0.92); }
+        #bakery-name-container:hover { color: white; border-bottom-color: var(--gold); background: rgba(255,255,255,0.05); }
+
+        /* Procedural Cookie (No Image) */
+        #cookie-container { width: 320px; height: 320px; cursor: pointer; transition: transform 0.05s; filter: drop-shadow(0 0 50px rgba(0,0,0,0.5)); }
+        #cookie-container:active { transform: scale(0.92); }
+        .cookie-svg { width: 100%; height: 100%; }
 
         #stats-hud { text-align: center; margin-bottom: 2rem; }
-        #cookie-count { font-size: 4.5rem; font-weight: 900; color: var(--gold); margin: 0; text-shadow: 0 0 20px rgba(241, 196, 15, 0.3); }
+        #cookie-count { font-size: 4.5rem; font-weight: 900; color: var(--gold); margin: 0; text-shadow: 0 0 20px rgba(241,196,15,0.3); }
         #cps-text { font-size: 1.2rem; color: #94a3b8; }
+        #version-tag { position: absolute; bottom: 10px; left: 15px; font-size: 0.75rem; color: #475569; letter-spacing: 1px; }
 
-        /* Right Panel: The Store */
+        /* Right Panel */
         #right-panel { flex: 1; display: flex; flex-direction: column; background: var(--glass); backdrop-filter: blur(20px); border-left: 1px solid rgba(255,255,255,0.1); }
-        
-        .section-header { padding: 15px; background: rgba(0,0,0,0.4); font-weight: bold; letter-spacing: 1px; font-size: 0.8rem; color: #94a3b8; border-bottom: 1px solid #333; }
-        
-        /* Upgrades Zone */
+        .section-header { padding: 15px; background: rgba(0,0,0,0.4); font-weight: bold; font-size: 0.8rem; color: #94a3b8; border-bottom: 1px solid #333; }
         #upgrades-container { height: 85px; display: flex; gap: 10px; padding: 10px; overflow-x: auto; background: rgba(0,0,0,0.2); align-items: center; }
         .upgrade-icon { width: 48px; height: 48px; background: #2d3748; border: 2px solid #4a5568; border-radius: 6px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; transition: 0.2s; }
-        .upgrade-icon:hover { transform: scale(1.1); }
         .upgrade-icon.affordable { border-color: var(--gold); background: #4a5568; }
-
-        /* Buildings Zone */
+        
         #buildings-container { flex: 1; overflow-y: auto; padding: 15px; }
-        .building-card { 
-            background: rgba(0,0,0,0.3); padding: 14px; margin-bottom: 10px; border-radius: 12px;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s;
-        }
+        .building-card { background: rgba(0,0,0,0.3); padding: 14px; margin-bottom: 10px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
         .building-card:hover:not(.locked) { background: rgba(255,255,255,0.05); border-color: var(--gold); transform: translateX(-5px); }
         .building-card.locked { opacity: 0.25; cursor: not-allowed; }
         .building-info b { font-size: 1.1rem; display: block; }
         .building-info small { color: #94a3b8; }
         
-        /* Versioning & Footer */
-        #version-tag { position: absolute; bottom: 10px; left: 15px; font-size: 0.75rem; color: #475569; letter-spacing: 1px; }
         #footer { padding: 15px; background: #000; display: flex; gap: 10px; }
         .btn { background: #334155; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s; }
         .btn:hover { background: #475569; }
-
-        /* Particles */
         .particle { position: absolute; color: var(--gold); font-weight: bold; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 100; font-size: 1.5rem; }
         @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
     </style>
@@ -64,41 +56,63 @@
 <body>
 
 <div id="left-panel">
-    <input type="text" id="bakery-name" placeholder="Enter Bakery Name" onchange="saveGame()">
+    <div id="bakery-name-container" onclick="changeBakeryName()">
+        <span id="display-name">Chef</span>'s Bakery
+    </div>
     <div id="stats-hud">
         <h1 id="cookie-count">0</h1>
         <div id="cps-text">per second: 0.0</div>
     </div>
-    <img id="cookie" src="https://www.svgrepo.com" onclick="clickCookie(event)">
-    <div id="version-tag">VER 1.0.4 PLATINUM</div>
+    <div id="cookie-container" onclick="clickCookie(event)">
+        <!-- Procedural Detailed Cookie SVG -->
+        <svg class="cookie-svg" viewBox="0 0 100 100">
+            <defs>
+                <radialGradient id="cookieGrad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" style="stop-color:#d2691e;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#8b4513;stop-opacity:1" />
+                </radialGradient>
+            </defs>
+            <!-- Main Body -->
+            <circle cx="50" cy="50" r="46" fill="url(#cookieGrad)" stroke="#5d2e0a" stroke-width="2"/>
+            <!-- Texture/Pits -->
+            <circle cx="30" cy="30" r="2" fill="#bc5e1a" opacity="0.5"/>
+            <circle cx="70" cy="65" r="3" fill="#bc5e1a" opacity="0.5"/>
+            <!-- Detailed Chocolate Chips -->
+            <path d="M25,35 Q30,25 35,35 T45,35" fill="#3d1f00" transform="rotate(10 25 35)"/>
+            <circle cx="35" cy="40" r="6" fill="#3d1f00"/>
+            <circle cx="65" cy="30" r="5" fill="#2d1700"/>
+            <circle cx="55" cy="60" r="7" fill="#3d1f00"/>
+            <circle cx="25" cy="70" r="5" fill="#2d1700"/>
+            <circle cx="75" cy="55" r="6" fill="#3d1f00"/>
+            <circle cx="50" cy="20" r="4" fill="#3d1f00"/>
+            <circle cx="80" cy="35" r="3" fill="#2d1700"/>
+        </svg>
+    </div>
+    <div id="version-tag">VER 2.0.52 PLATINUM</div>
 </div>
 
 <div id="right-panel">
     <div class="section-header">STORE UPGRADES</div>
     <div id="upgrades-container"></div>
-
     <div class="section-header">BUILDINGS</div>
     <div id="buildings-container"></div>
-
     <div id="footer">
-        <button class="btn" onclick="saveGame()">Manual Save</button>
-        <button class="btn" onclick="exportSave()">Export File</button>
-        <button class="btn" onclick="importSave()">Import File</button>
-        <button class="btn" onclick="resetGame()" style="background: #991b1b;">Wipe Save</button>
+        <button class="btn" onclick="saveGame()">Save Game</button>
+        <button class="btn" onclick="exportSave()">Export JSON</button>
+        <button class="btn" onclick="importSave()">Import JSON</button>
+        <button class="btn" onclick="resetGame()" style="background: #991b1b;">Reset</button>
     </div>
 </div>
 
 <script>
-    // --- 2026 ENGINE STATE ---
     let state = {
         cookies: 0,
-        bakeryName: "Chef's Bakery",
+        ownerName: "Chef",
         lastTick: Date.now(),
         buildingCounts: {},
         ownedUpgrades: []
     };
 
-    // Full Building Roster
     const buildings = [
         { id: 'cursor', name: 'Cursor', cost: 15, cps: 0.1, icon: '🖱️' },
         { id: 'grandma', name: 'Grandma', cost: 100, cps: 1, icon: '👵' },
@@ -107,31 +121,47 @@
         { id: 'factory', name: 'Factory', cost: 130000, cps: 260, icon: '🏭' },
         { id: 'bank', name: 'Bank', cost: 1400000, cps: 1400, icon: '🏦' },
         { id: 'temple', name: 'Temple', cost: 20000000, cps: 7800, icon: '⛩️' },
-        { id: 'wizard', name: 'Wizard Tower', cost: 330000000, cps: 44000, icon: '🧙' }
+        { id: 'wizard', name: 'Wizard Tower', cost: 330000000, cps: 44000, icon: '🧙' },
+        { id: 'shipment', name: 'Shipment', cost: 5100000000, cps: 260000, icon: '🚚' },
+        { id: 'lab', name: 'Alchemy Lab', cost: 75000000000, cps: 1600000, icon: '⚗️' },
+        { id: 'portal', name: 'Portal', cost: 1000000000000, cps: 10000000, icon: '🌀' },
+        { id: 'machine', name: 'Time Machine', cost: 14000000000000, cps: 65000000, icon: '⏳' },
+        { id: 'condenser', name: 'Antimatter Condenser', cost: 170000000000000, cps: 430000000, icon: '🌌' },
+        { id: 'prism', name: 'Prism', cost: 2100000000000000, cps: 2900000000, icon: '🌈' },
+        { id: 'chancemaker', name: 'Chancemaker', cost: 26000000000000000, cps: 21000000000, icon: '🎲' },
+        { id: 'fractal', name: 'Fractal Engine', cost: 310000000000000000, cps: 150000000000, icon: '🌀' },
+        { id: 'js', name: 'Javascript Console', cost: 7100000000000000000, cps: 1100000000000, icon: '💻' },
+        { id: 'idle', name: 'Idleverse', cost: 120000000000000000000, cps: 8300000000000, icon: '🌌' },
+        { id: 'cord', name: 'Cortex Baker', cost: 1900000000000000000000, cps: 64000000000000, icon: '🧠' },
+        { id: 'you', name: 'You', cost: 54000000000000000000000, cps: 510000000000000, icon: '👤' }
     ];
 
-    // Multiplier Upgrades
     const upgrades = [
         { id: 'u1', name: 'Reinforced Finger', cost: 100, target: 'cursor', mult: 2, icon: '☝️' },
         { id: 'u2', name: 'Rolling Pins', cost: 500, target: 'grandma', mult: 2, icon: '🥖' },
-        { id: 'u3', name: 'Steel-toed Boots', cost: 2000, target: 'cursor', mult: 2, icon: '🥾' },
-        { id: 'u4', name: 'Fertilizer', cost: 10000, target: 'farm', mult: 2, icon: '🌱' }
+        { id: 'u3', name: 'Steel-toed Boots', cost: 2000, target: 'cursor', mult: 2, icon: '🥾' }
     ];
 
     function init() {
         buildings.forEach(b => { if (state.buildingCounts[b.id] === undefined) state.buildingCounts[b.id] = 0; });
         loadGame();
-        document.getElementById('bakery-name').value = state.bakeryName;
         gameLoop();
+    }
+
+    function changeBakeryName() {
+        const newName = prompt("Enter your name (Max 14 characters):", state.ownerName);
+        if (newName !== null && newName.trim() !== "") {
+            state.ownerName = newName.substring(0, 14).trim();
+            document.getElementById('display-name').innerText = state.ownerName;
+            saveGame();
+        }
     }
 
     function getCPS() {
         let total = 0;
         buildings.forEach(b => {
             let bCPS = b.cps;
-            upgrades.forEach(u => {
-                if (u.target === b.id && state.ownedUpgrades.includes(u.id)) bCPS *= u.mult;
-            });
+            upgrades.forEach(u => { if (u.target === b.id && state.ownedUpgrades.includes(u.id)) bCPS *= u.mult; });
             total += state.buildingCounts[b.id] * bCPS;
         });
         return total;
@@ -141,7 +171,6 @@
         const now = Date.now();
         const delta = (now - state.lastTick) / 1000;
         state.lastTick = now;
-
         state.cookies += getCPS() * delta;
         render();
         requestAnimationFrame(gameLoop);
@@ -149,9 +178,9 @@
 
     function render() {
         document.getElementById('cookie-count').innerText = Math.floor(state.cookies).toLocaleString();
+        document.getElementById('display-name').innerText = state.ownerName;
         document.getElementById('cps-text').innerText = `per second: ${getCPS().toLocaleString(undefined, {minimumFractionDigits: 1})}`;
 
-        // Render Buildings
         const bList = document.getElementById('buildings-container');
         bList.innerHTML = buildings.map(b => {
             const cost = Math.floor(b.cost * Math.pow(1.15, state.buildingCounts[b.id]));
@@ -166,12 +195,11 @@
                 </div>`;
         }).join('');
 
-        // Render Upgrades
         const uList = document.getElementById('upgrades-container');
         uList.innerHTML = upgrades.map(u => {
             if (state.ownedUpgrades.includes(u.id)) return '';
             const affordable = state.cookies >= u.cost;
-            return `<div class="upgrade-icon ${affordable ? 'affordable' : ''}" title="${u.name} (Cost: ${u.cost})" onclick="buyUpgrade('${u.id}', ${u.cost})">${u.icon}</div>`;
+            return `<div class="upgrade-icon ${affordable ? 'affordable' : ''}" title="${u.name}" onclick="buyUpgrade('${u.id}', ${u.cost})">${u.icon}</div>`;
         }).join('');
     }
 
@@ -186,40 +214,25 @@
     }
 
     function buyBuilding(id, cost) {
-        if (state.cookies >= cost) {
-            state.cookies -= cost;
-            state.buildingCounts[id]++;
-            saveGame();
-        }
+        if (state.cookies >= cost) { state.cookies -= cost; state.buildingCounts[id]++; saveGame(); }
     }
 
     function buyUpgrade(id, cost) {
-        if (state.cookies >= cost) {
-            state.cookies -= cost;
-            state.ownedUpgrades.push(id);
-            saveGame();
-        }
+        if (state.cookies >= cost) { state.cookies -= cost; state.ownedUpgrades.push(id); saveGame(); }
     }
 
-    // Save & Load Engine
-    document.getElementById('bakery-name').oninput = (e) => { state.bakeryName = e.target.value; saveGame(); };
-
-    function saveGame() { localStorage.setItem('cookieUltra_v104', JSON.stringify(state)); }
-
+    function saveGame() { localStorage.setItem('cookieUltra_v2052p', JSON.stringify(state)); }
     function loadGame() {
-        const saved = localStorage.getItem('cookieUltra_v104');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            state = Object.assign(state, parsed);
-        }
+        const saved = localStorage.getItem('cookieUltra_v2052p');
+        if (saved) state = Object.assign(state, JSON.parse(saved));
         state.lastTick = Date.now();
     }
 
     function exportSave() {
         const blob = new Blob([JSON.stringify(state)], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `${state.bakeryName.replace(/\s/g, '_')}_save.json`;
+        a.href = URL.createObjectURL(blob);
+        a.download = `bakery_save.json`;
         a.click();
     }
 
@@ -227,19 +240,14 @@
         const input = document.createElement('input');
         input.type = 'file';
         input.onchange = e => {
-            const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onload = event => {
-                state = JSON.parse(event.target.result);
-                saveGame();
-                location.reload();
-            };
-            reader.readAsText(file);
+            reader.onload = ev => { state = JSON.parse(ev.target.result); saveGame(); location.reload(); };
+            reader.readAsText(e.target.files[0]);
         };
         input.click();
     }
 
-    function resetGame() { if (confirm("Wipe all cookies and buildings?")) { localStorage.clear(); location.reload(); } }
+    function resetGame() { if (confirm("Wipe all progress?")) { localStorage.clear(); location.reload(); } }
 
     init();
 </script>
