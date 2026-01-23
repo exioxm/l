@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Advanced Cookie Clicker</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    text-align: center;
+    margin: 0;
+  }
+
+  header {
+    background: #ffb347;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  h1 { margin: 0; color: #4b2e2e; }
+
+  #cookie {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #f7d9a5, #c58b4e);
+    margin: 20px auto;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+
+  #cookie:hover { transform: scale(1.05); }
+  #cookie:active { transform: scale(0.95); }
+
+  .chip {
+    width: 22px;
+    height: 22px;
+    background: #4b2e2e;
+    border-radius: 50%;
+    position: absolute;
+  }
+
+  #stats { font-size: 20px; margin-top: 10px; }
+  #cps { font-size: 14px; color: #555; }
+
+  #shop {
+    margin: 30px auto;
+    max-width: 500px;
+    text-align: left;
+  }
+
+  .upgrade {
+    background: #fff;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+
+  .upgrade.disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Floating +1 particle */
+  .float {
+    position: absolute;
+    color: #4b2e2e;
+    font-weight: bold;
+    animation: floatUp 1s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes floatUp {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-40px); }
+  }
+
+  /* Golden cookie */
+  #golden {
+    width: 90px;
+    height: 90px;
+    background: gold;
+    border-radius: 50%;
+    position: absolute;
+    display: none;
+    cursor: pointer;
+    box-shadow: 0 0 20px gold;
+  }
+
+  /* Achievement popup */
+  #achievementPopup {
+    position: fixed;
+    top: 20px;
+    right: -300px;
+    background: #fff;
+    padding: 15px;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    transition: right 0.5s ease;
+    font-weight: bold;
+  }
+
+  #prestigePanel {
+    margin-top: 20px;
+    padding: 10px;
+    background: #fff3d1;
+    border-radius: 6px;
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+
+<header><h1>Advanced Cookie Clicker</h1></header>
+
+<div id="stats">
+  Cookies: <span id="cookieCount">0</span><br>
+  <span id="cps">Per second: 0</span>
+</div>
+
+<div id="prestigePanel">
+  Prestige: <span id="prestigePoints">0</span>  
+  <button id="prestigeBtn">Prestige</button>
+</div>
+
+<div id="cookie">
+  <div class="chip" style="top:40px; left:60px;"></div>
+  <div class="chip" style="top:80px; left:120px;"></div>
+  <div class="chip" style="top:130px; left:80px;"></div>
+  <div class="chip" style="top:60px; left:130px;"></div>
+  <div class="chip" style="top:110px; left:40px;"></div>
+</div>
+
+<div id="golden"></div>
+
+<div id="shop">
+  <h2>Shop</h2>
+</div>
+
+<div id="achievementPopup"></div>
+<script>
+/* ===========================
+   CORE GAME VARIABLES
+=========================== */
+
+let cookies = 0;
+let cookiesPerSecond = 0;
+let clickPower = 1;
+
+let prestige = 0;
+let prestigeMultiplier = 1;
+
+let boost = 1; // Golden cookie multiplier
+
+const cookieEl = document.getElementById("cookie");
+const cookieCountEl = document.getElementById("cookieCount");
+const cpsEl = document.getElementById("cps");
+const prestigeEl = document.getElementById("prestigePoints");
+const prestigeBtn = document.getElementById("prestigeBtn");
+const shopEl = document.getElementById("shop");
+const goldenEl = document.getElementById("golden");
+const achievementPopup = document.getElementById("achievementPopup");
+
+/* ===========================
+   UPGRADE DEFINITIONS
+=========================== */
+
+const upgrades = {
+  cursor: { name:"Cursor", baseCost:15, cost:15, cps:0.1, owned:0 },
+  grandma: { name:"Grandma", baseCost:100, cost:100, cps:1, owned:0 },
+  farm: { name:"Farm", baseCost:1100, cost:1100, cps:8, owned:0 },
+  factory: { name:"Factory", baseCost:12000, cost:12000, cps:47, owned:0 },
+  mine: { name:"Mine", baseCost:130000, cost:130000, cps:260, owned:0 },
+  shipment: { name:"Shipment", baseCost:1400000, cost:1400000, cps:1400, owned:0 }
+};
+
+/* ===========================
+   ACHIEVEMENTS
+=========================== */
+
+const achievements = [
+  { id: "100cookies", name: "Starter Baker", condition: () => cookies >= 100 },
+  { id: "1k", name: "Cookie Enthusiast", condition: () => cookies >= 1000 },
+  { id: "10k", name: "Cookie Addict", condition: () => cookies >= 10000 },
+  { id: "100k", name: "Cookie Master", condition: () => cookies >= 100000 },
+  { id: "1m", name: "Cookie Overlord", condition: () => cookies >= 1000000 },
+
+  { id: "10cps", name: "Automation Begins", condition: () => cookiesPerSecond >= 10 },
+  { id: "100cps", name: "Industrial Revolution", condition: () => cookiesPerSecond >= 100 },
+  { id: "1kcps", name: "Cookie Factory Tycoon", condition: () => cookiesPerSecond >= 1000 },
+
+  { id: "10clicks", name: "Clicker", condition: () => totalClicks >= 10 },
+  { id: "100clicks", name: "Click Maniac", condition: () => totalClicks >= 100 },
+  { id: "1kclicks", name: "Click Demon", condition: () => totalClicks >= 1000 },
+
+  { id: "prestige1", name: "Ascended", condition: () => prestige >= 1 },
+  { id: "prestige10", name: "Heavenly Being", condition: () => prestige >= 10 }
+];
+
+let unlockedAchievements = {};
+let totalClicks = 0;
+
+/* ===========================
+   UI UPDATE FUNCTIONS
+=========================== */
+
+function updateDisplay() {
+  cookieCountEl.textContent = Math.floor(cookies);
+  cpsEl.textContent = "Per second: " + (cookiesPerSecond * boost * prestigeMultiplier).toFixed(1);
+  prestigeEl.textContent = prestige;
+
+  document.querySelectorAll(".upgrade").forEach(el => {
+    const id = el.dataset.id;
+    const upg = upgrades[id];
+    el.querySelector(".cost").textContent = Math.floor(upg.cost);
+    el.querySelector(".owned").textContent = upg.owned;
+    el.classList.toggle("disabled", cookies < upg.cost);
+  });
+}
+
+function recalcCPS() {
+  let total = 0;
+  for (const id in upgrades) {
+    total += upgrades[id].cps * upgrades[id].owned;
+  }
+  cookiesPerSecond = total;
+}
+
+/* ===========================
+   SHOP CREATION
+=========================== */
+
+function createShop() {
+  for (const id in upgrades) {
+    const upg = upgrades[id];
+    const div = document.createElement("div");
+    div.className = "upgrade";
+    div.dataset.id = id;
+    div.innerHTML = `
+      <div>
+        <strong>${upg.name}</strong><br>
+        Cost: <span class="cost">${upg.cost}</span><br>
+        +${upg.cps} cps
+      </div>
+      <div>Owned: <span class="owned">${upg.owned}</span></div>
+    `;
+    div.addEventListener("click", () => buyUpgrade(id));
+    shopEl.appendChild(div);
+  }
+}
+
+/* ===========================
+   BUYING UPGRADES
+=========================== */
+
+function buyUpgrade(id) {
+  const upg = upgrades[id];
+  if (cookies >= upg.cost) {
+    cookies -= upg.cost;
+    upg.owned++;
+
+    // Smooth exponential scaling
+    upg.cost = Math.floor(upg.baseCost * Math.pow(1.15, upg.owned));
+
+    recalcCPS();
+    updateDisplay();
+    saveGame();
+  }
+}
+
+/* ===========================
+   CLICKING THE COOKIE
+=========================== */
+
+function spawnFloat(x, y, text) {
+  const f = document.createElement("div");
+  f.className = "float";
+  f.textContent = text;
+  f.style.left = x + "px";
+  f.style.top = y + "px";
+  document.body.appendChild(f);
+  setTimeout(() => f.remove(), 1000);
+}
+
+cookieEl.addEventListener("click", e => {
+  totalClicks++;
+  const gain = clickPower * boost * prestigeMultiplier;
+  cookies += gain;
+  spawnFloat(e.clientX, e.clientY, "+" + gain);
+  updateDisplay();
+  saveGame();
+});
+
+/* ===========================
+   GOLDEN COOKIE EVENTS
+=========================== */
+
+function spawnGolden() {
+  goldenEl.style.display = "block";
+  goldenEl.style.left = Math.random() * (window.innerWidth - 100) + "px";
+  goldenEl.style.top = Math.random() * (window.innerHeight - 200) + 100 + "px";
+}
+
+goldenEl.addEventListener("click", () => {
+  goldenEl.style.display = "none";
+
+  const eventType = Math.random();
+
+  if (eventType < 0.5) {
+    // Frenzy
+    boost = 7;
+    setTimeout(() => boost = 1, 15000);
+  } else if (eventType < 0.8) {
+    // Lucky
+    cookies += Math.floor(cookies * 0.1 + 100);
+  } else {
+    // Click storm
+    let storm = setInterval(() => {
+      cookies += clickPower * prestigeMultiplier;
+      updateDisplay();
+    }, 50);
+    setTimeout(() => clearInterval(storm), 5000);
+  }
+
+  updateDisplay();
+});
+
+setInterval(() => {
+  if (Math.random() < 0.002) spawnGolden();
+}, 1000);
+
+/* ===========================
+   PASSIVE INCOME LOOP
+=========================== */
+
+setInterval(() => {
+  cookies += (cookiesPerSecond * boost * prestigeMultiplier) / 10;
+  updateDisplay();
+  saveGame();
+}, 100);
+
+/* ===========================
+   ACHIEVEMENT SYSTEM
+=========================== */
+
+function unlockAchievement(id, name) {
+  if (unlockedAchievements[id]) return;
+  unlockedAchievements[id] = true;
+
+  achievementPopup.textContent = "Achievement unlocked: " + name;
+  achievementPopup.style.right = "20px";
+
+  setTimeout(() => {
+    achievementPopup.style.right = "-300px";
+  }, 3000);
+}
+
+function checkAchievements() {
+  achievements.forEach(a => {
+    if (a.condition() && !unlockedAchievements[a.id]) {
+      unlockAchievement(a.id, a.name);
+    }
+  });
+}
+
+setInterval(checkAchievements, 500);
+
+/* ===========================
+   PRESTIGE SYSTEM
+=========================== */
+
+function calculatePrestigeGain() {
+  return Math.floor(Math.sqrt(cookies / 100000));
+}
+
+prestigeBtn.onclick = () => {
+  const gain = calculatePrestigeGain();
+  if (gain <= 0) return;
+
+  if (!confirm(`Prestige for ${gain} heavenly chips?`)) return;
+
+  prestige += gain;
+  prestigeMultiplier = 1 + prestige * 0.1;
+
+  // Reset game
+  cookies = 0;
+  cookiesPerSecond = 0;
+  clickPower = 1;
+
+  for (const id in upgrades) {
+    upgrades[id].owned = 0;
+    upgrades[id].cost = upgrades[id].baseCost;
+  }
+
+  saveGame();
+  updateDisplay();
+};
+
+/* ===========================
+   SAVE / LOAD SYSTEM
+=========================== */
+
+function saveGame() {
+  const data = {
+    cookies,
+    upgrades,
+    prestige,
+    prestigeMultiplier,
+    unlockedAchievements,
+    totalClicks
+  };
+  localStorage.setItem("cookieSave", JSON.stringify(data));
+}
+
+function loadGame() {
+  const save = JSON.parse(localStorage.getItem("cookieSave"));
+  if (!save) return;
+
+  cookies = save.cookies;
+  prestige = save.prestige;
+  prestigeMultiplier = save.prestigeMultiplier || 1;
+  unlockedAchievements = save.unlockedAchievements || {};
+  totalClicks = save.totalClicks || 0;
+
+  for (const id in save.upgrades) {
+    upgrades[id].owned = save.upgrades[id].owned;
+    upgrades[id].cost = save.upgrades[id].cost;
+  }
+
+  recalcCPS();
+}
+
+createShop();
+loadGame();
+updateDisplay();
+</script>
+<script>
+/* ===========================
+   MANUAL SAVE EXPORT / IMPORT
+=========================== */
+
+function exportSave() {
+  const data = localStorage.getItem("cookieSave");
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cookie_save.json";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importSave(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      localStorage.setItem("cookieSave", e.target.result);
+      loadGame();
+      updateDisplay();
+      alert("Save imported successfully");
+    } catch {
+      alert("Invalid save file");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ===========================
+   AUTO-SAVE EVERY 5 SECONDS
+=========================== */
+
+setInterval(saveGame, 5000);
+
+/* ===========================
+   ADD SAVE/LOAD BUTTONS
+=========================== */
+
+const saveControls = document.createElement("div");
+saveControls.style.marginTop = "20px";
+
+saveControls.innerHTML = `
+  <button id="exportBtn">Export Save</button>
+  <input type="file" id="importInput" style="display:none">
+  <button id="importBtn">Import Save</button>
+`;
+
+document.body.appendChild(saveControls);
+
+document.getElementById("exportBtn").onclick = exportSave;
+document.getElementById("importBtn").onclick = () =>
+  document.getElementById("importInput").click();
+
+document.getElementById("importInput").onchange = e =>
+  importSave(e.target.files[0]);
+
+</script>
+
+</body>
+</html>
