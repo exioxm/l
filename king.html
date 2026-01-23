@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Clicker 2026: Final Platinum</title>
+    <style>
+        :root { --gold: #f1c40f; --glass: rgba(255, 255, 255, 0.07); --bg: #0f172a; }
+        * { box-sizing: border-box; user-select: none; }
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            background: radial-gradient(circle at center, #1e293b 0%, var(--bg) 100%);
+            color: white; margin: 0; display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* Clicking Zone */
+        #click-zone { flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        #cookie { 
+            width: 280px; height: 280px; cursor: pointer; transition: transform 0.05s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 0 50px rgba(0,0,0,0.5)); z-index: 5;
+        }
+        #cookie:active { transform: scale(0.92); }
+
+        .stats-hub { text-align: center; margin-bottom: 3rem; pointer-events: none; }
+        #cookie-display { font-size: 5rem; font-weight: 900; color: var(--gold); margin: 0; text-shadow: 0 0 20px rgba(241, 196, 15, 0.3); }
+        #cps-display { font-size: 1.2rem; color: #94a3b8; margin-top: 0.5rem; }
+
+        /* Shop Sidebar */
+        #shop { 
+            flex: 1; background: var(--glass); backdrop-filter: blur(20px); 
+            border-left: 1px solid rgba(255,255,255,0.1); padding: 2rem; 
+            display: flex; flex-direction: column; overflow-y: auto;
+        }
+        .upgrade-card { 
+            background: rgba(0,0,0,0.3); padding: 1.2rem; margin-bottom: 1rem; border-radius: 16px;
+            cursor: pointer; border: 1px solid transparent; transition: all 0.2s ease;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .upgrade-card:hover:not(.locked) { border-color: var(--gold); background: rgba(255,255,255,0.05); transform: translateX(-5px); }
+        .upgrade-card.locked { opacity: 0.3; cursor: not-allowed; }
+        .upgrade-card b { display: block; font-size: 1.1rem; }
+        .upgrade-card small { color: #94a3b8; }
+        .cost-text { font-weight: bold; color: var(--gold); font-size: 1.1rem; }
+
+        /* Floating Particles */
+        .particle { 
+            position: absolute; color: var(--gold); font-weight: bold; 
+            pointer-events: none; pointer-events: none; animation: floatUp 0.8s forwards ease-out;
+            font-size: 1.5rem; z-index: 10;
+        }
+        @keyframes floatUp { 
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-150px) scale(1.5); }
+        }
+
+        /* Bonus: Golden Cookie */
+        .golden { 
+            position: absolute; width: 80px; cursor: pointer; z-index: 100;
+            filter: drop-shadow(0 0 25px gold) brightness(1.5); animation: goldenPulse 0.5s infinite alternate;
+        }
+        @keyframes goldenPulse { from { transform: scale(1); } to { transform: scale(1.15); } }
+        
+        .footer { margin-top: auto; padding-top: 2rem; display: flex; justify-content: space-between; opacity: 0.4; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div id="click-zone">
+    <div class="stats-hub">
+        <h1 id="cookie-display">0</h1>
+        <div id="cps-display">Cookies per second: 0</div>
+    </div>
+    <!-- High-res SVG Cookie -->
+    <svg id="cookie" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="#d2691e" stroke="#8b4513" stroke-width="2"/>
+        <circle cx="30" cy="30" r="6" fill="#3d1f00" />
+        <circle cx="70" cy="40" r="7" fill="#3d1f00" />
+        <circle cx="45" cy="70" r="5" fill="#3d1f00" />
+        <circle cx="65" cy="75" r="6" fill="#3d1f00" />
+        <circle cx="55" cy="22" r="5" fill="#3d1f00" />
+    </svg>
+</div>
+
+<div id="shop">
+    <h2 style="margin: 0 0 1.5rem 0; letter-spacing: 1px;">BAKERY UPGRADES</h2>
+    <div id="item-list"></div>
+    
+    <div class="footer">
+        <span id="save-status">Game Saved</span>
+        <span onclick="resetGame()" style="cursor:pointer">Hard Reset</span>
+    </div>
+</div>
+
+<script>
+    // --- CORE GAME STATE ---
+    let state = {
+        cookies: 0,
+        multiplier: 1,
+        lastTick: Date.now(),
+        inventory: {
+            cursor: { name: "Auto-Cursor", count: 0, baseCost: 15, power: 1 },
+            grandma: { name: "Grandma", count: 0, baseCost: 100, power: 5 },
+            factory: { name: "Factory", count: 0, baseCost: 1100, power: 24 },
+            mine: { name: "Cookie Mine", count: 0, baseCost: 12000, power: 100 },
+            wizard: { name: "Wizard Tower", count: 0, baseCost: 130000, power: 450 }
+        }
+    };
+
+    // --- LOGIC ENGINE ---
+
+    const getCPS = () => {
+        let base = 0;
+        for (let key in state.inventory) {
+            base += state.inventory[key].count * state.inventory[key].power;
+        }
+        return base * state.multiplier;
+    };
+
+    const getCost = (id) => {
+        const item = state.inventory[id];
+        return Math.floor(item.baseCost * Math.pow(1.15, item.count));
+    };
+
+    // Frame-Independent Loop
+    function update() {
+        const now = Date.now();
+        const delta = (now - state.lastTick) / 1000;
+        state.lastTick = now;
+
+        state.cookies += getCPS() * delta;
+        render();
+        requestAnimationFrame(update);
+    }
+
+    function render() {
+        document.getElementById('cookie-display').innerText = Math.floor(state.cookies).toLocaleString();
+        document.getElementById('cps-display').innerText = `per second: ${getCPS().toLocaleString(undefined, {minimumFractionDigits: 1})}`;
+        
+        // Update Shop items without destroying DOM elements to prevent flicker
+        const container = document.getElementById('item-list');
+        let html = '';
+        for (let key in state.inventory) {
+            const item = state.inventory[key];
+            const cost = getCost(key);
+            const isLocked = state.cookies < cost;
+            html += `
+                <div class="upgrade-card ${isLocked ? 'locked' : ''}" onclick="buyItem('${key}')">
+                    <div>
+                        <b>${item.name}</b>
+                        <small>Own: ${item.count} (+${item.power} CPS)</small>
+                    </div>
+                    <div class="cost-text">${cost.toLocaleString()}</div>
+                </div>`;
+        }
+        container.innerHTML = html;
+    }
+
+    function buyItem(id) {
+        const cost = getCost(id);
+        if (state.cookies >= cost) {
+            state.cookies -= cost;
+            state.inventory[id].count++;
+            saveGame();
+        }
+    }
+
+    // --- INTERACTIONS ---
+
+    document.getElementById('cookie').onclick = (e) => {
+        const gain = 1 * state.multiplier;
+        state.cookies += gain;
+        spawnParticle(e.clientX, e.clientY, `+${gain}`);
+    };
+
+    function spawnParticle(x, y, text) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = (x - 20) + 'px';
+        p.style.top = (y - 20) + 'px';
+        p.innerText = text;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 800);
+    }
+
+    function spawnGoldenCookie() {
+        const g = document.createElement('div');
+        g.className = 'golden';
+        g.style.left = (Math.random() * 70 + 5) + '%';
+        g.style.top = (Math.random() * 70 + 5) + '%';
+        g.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="gold" stroke="#b8860b" stroke-width="2"/></svg>`;
+        
+        g.onclick = () => {
+            state.multiplier = 7;
+            g.remove();
+            document.body.style.boxShadow = "inset 0 0 100px gold";
+            setTimeout(() => {
+                state.multiplier = 1;
+                document.body.style.boxShadow = "none";
+            }, 15000);
+        };
+        
+        document.getElementById('click-zone').appendChild(g);
+        setTimeout(() => { if(g) g.remove(); }, 8000);
+    }
+
+    // --- PERSISTENCE ---
+
+    function saveGame() {
+        localStorage.setItem('cookiePlatinum_v3', JSON.stringify(state));
+        const status = document.getElementById('save-status');
+        status.innerText = "Auto-saving...";
+        setTimeout(() => status.innerText = "Game Saved", 1000);
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem('cookiePlatinum_v3');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            state = {...state, ...parsed};
+        }
+        state.lastTick = Date.now(); // Reset tick to current to avoid "over-calculated" gain
+    }
+
+    function resetGame() {
+        if (confirm("This will permanently delete all your cookies. Are you sure?")) {
+            localStorage.removeItem('cookiePlatinum_v3');
+            location.reload();
+        }
+    }
+
+    // Initialize
+    setInterval(spawnGoldenCookie, 45000);
+    setInterval(saveGame, 30000); // Save every 30s as backup
+    loadGame();
+    update();
+</script>
+</body>
+</html>
