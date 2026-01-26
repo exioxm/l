@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Tower Defense</title>
+    <style>
+        body { background: #222; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        canvas { background: #333; border: 2px solid #555; cursor: crosshair; }
+        .ui { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h2>Simple Tower Defense</h2>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div class="ui">
+        Gold: <span id="gold">100</span> | Lives: <span id="lives">10</span>
+        <button onclick="placeTowerMode = true">Buy Tower (50g)</button>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const goldEl = document.getElementById('gold');
+const livesEl = document.getElementById('lives');
+
+// Game State
+let gold = 100;
+let lives = 10;
+let placeTowerMode = false;
+const towers = [];
+const enemies = [];
+const projectiles = [];
+const path = [{x: 0, y: 200}, {x: 200, y: 200}, {x: 200, y: 100}, {x: 400, y: 100}, {x: 400, y: 300}, {x: 600, y: 300}];
+
+// Tower Class
+class Tower {
+    constructor(x, y) {
+        this.x = x; this.y = y;
+        this.range = 100;
+        this.reload = 0;
+    }
+    draw() {
+        ctx.fillStyle = '#3498db';
+        ctx.fillRect(this.x - 15, this.y - 15, 30, 30);
+    }
+    update() {
+        if (this.reload > 0) this.reload--;
+        let target = enemies.find(e => Math.hypot(e.x - this.x, e.y - this.y) < this.range);
+        if (target && this.reload <= 0) {
+            projectiles.push(new Projectile(this.x, this.y, target));
+            this.reload = 30; // Fire rate
+        }
+    }
+}
+
+// Enemy Class
+class Enemy {
+    constructor() {
+        this.x = path[0].x; this.y = path[0].y;
+        this.speed = 1.5;
+        this.hp = 3;
+        this.pathIndex = 0;
+    }
+    draw() {
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath(); ctx.arc(this.x, this.y, 10, 0, Math.PI*2); ctx.fill();
+    }
+    update() {
+        let target = path[this.pathIndex + 1];
+        let angle = Math.atan2(target.y - this.y, target.x - this.x);
+        this.x += Math.cos(angle) * this.speed;
+        this.y += Math.sin(angle) * this.speed;
+        if (Math.hypot(target.x - this.x, target.y - this.y) < 2) this.pathIndex++;
+    }
+}
+
+// Projectile Class
+class Projectile {
+    constructor(x, y, target) {
+        this.x = x; this.y = y; this.target = target;
+        this.speed = 5;
+    }
+    draw() {
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI*2); ctx.fill();
+    }
+    update() {
+        let angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        this.x += Math.cos(angle) * this.speed;
+        this.y += Math.sin(angle) * this.speed;
+    }
+}
+
+// Main Loop
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw Path
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 40; ctx.beginPath();
+    path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+
+    // Update Enemies
+    if (Math.random() < 0.02) enemies.push(new Enemy());
+    enemies.forEach((e, i) => {
+        e.update(); e.draw();
+        if (e.pathIndex >= path.length - 1) { enemies.splice(i, 1); lives--; }
+    });
+
+    // Update Towers
+    towers.forEach(t => { t.update(); t.draw(); });
+
+    // Update Projectiles
+    projectiles.forEach((p, pi) => {
+        p.update(); p.draw();
+        enemies.forEach((e, ei) => {
+            if (Math.hypot(e.x - p.x, e.y - p.y) < 10) {
+                e.hp--; projectiles.splice(pi, 1);
+                if (e.hp <= 0) { enemies.splice(ei, 1); gold += 10; }
+            }
+        });
+    });
+
+    goldEl.innerText = gold; livesEl.innerText = lives;
+    if (lives > 0) requestAnimationFrame(animate);
+    else alert("Game Over!");
+}
+
+canvas.onclick = (e) => {
+    if (placeTowerMode && gold >= 50) {
+        towers.push(new Tower(e.offsetX, e.offsetY));
+        gold -= 50;
+        placeTowerMode = false;
+    }
+};
+
+animate();
+</script>
+</body>
+</html>
