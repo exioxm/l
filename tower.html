@@ -2,139 +2,231 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Simple Tower Defense</title>
+    <title>Quantum Defense: Multiverse</title>
     <style>
-        body { background: #222; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-        canvas { background: #333; border: 2px solid #555; cursor: crosshair; }
-        .ui { margin-top: 10px; }
+        :root { --neon: #00f2ff; --bg: #05050a; --accent: #7000ff; --danger: #ff0055; }
+        body { background: var(--bg); color: var(--neon); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        /* UI Layers */
+        .screen { position: absolute; width: 900px; height: 600px; display: none; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); border: 2px solid var(--accent); box-shadow: 0 0 30px rgba(112, 0, 255, 0.3); }
+        .active { display: flex; }
+
+        canvas { background: #000; border: 1px solid var(--accent); cursor: crosshair; }
+
+        /* Typography & Buttons */
+        h1 { font-size: 3.5rem; text-transform: uppercase; letter-spacing: 10px; margin-bottom: 30px; text-shadow: 0 0 20px var(--neon); }
+        .btn-group { display: flex; gap: 20px; margin-top: 20px; }
+        button { background: transparent; border: 1px solid var(--neon); color: var(--neon); padding: 15px 30px; font-size: 1rem; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        button:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
+        
+        #game-ui { position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; padding: 15px 30px; box-sizing: border-box; pointer-events: none; background: rgba(0,0,0,0.6); }
+        .shop { position: absolute; bottom: 0; width: 100%; display: flex; justify-content: center; gap: 10px; padding: 15px; background: rgba(0,0,0,0.8); }
     </style>
 </head>
 <body>
-    <h2>Simple Tower Defense</h2>
-    <canvas id="gameCanvas" width="600" height="400"></canvas>
-    <div class="ui">
-        Gold: <span id="gold">100</span> | Lives: <span id="lives">10</span>
-        <button onclick="placeTowerMode = true">Buy Tower (50g)</button>
+
+    <!-- MAIN MENU -->
+    <div id="menu-screen" class="screen active">
+        <h1>Quantum Defense</h1>
+        <div class="btn-group">
+            <button onclick="showScreen('map-screen')">Start Mission</button>
+            <button onclick="alert('2026 Tech Tree Locked')">Databank</button>
+        </div>
+    </div>
+
+    <!-- MAP & DIFFICULTY SELECT -->
+    <div id="map-screen" class="screen">
+        <h2>Select Sector & Difficulty</h2>
+        <div class="btn-group">
+            <button onclick="setMap(0)">Sector Alpha (Linear)</button>
+            <button onclick="setMap(1)">Sector ZigZag (Complex)</button>
+        </div>
+        <div class="btn-group" style="margin-top: 40px;">
+            <button onclick="startGame('easy')">Easy</button>
+            <button onclick="startGame('medium')">Medium</button>
+            <button onclick="startGame('hard')">Hard</button>
+        </div>
+        <button onclick="showScreen('menu-screen')" style="margin-top: 50px; border-color: var(--danger); color: var(--danger);">Back</button>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="gameover-screen" class="screen">
+        <h1 style="color: var(--danger);">Critical Failure</h1>
+        <p id="final-stats">Wave Reached: 0</p>
+        <div class="btn-group">
+            <button onclick="showScreen('map-screen')">Retry</button>
+            <button onclick="showScreen('menu-screen')">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- GAMEPLAY AREA -->
+    <div id="game-screen" class="screen" style="border: none;">
+        <div id="game-ui">
+            <div>CORE: <span id="lives">20</span></div>
+            <div>CREDITS: <span id="gold">200</span></div>
+            <div>THREAT: <span id="wave">1</span></div>
+        </div>
+        <canvas id="gameCanvas" width="900" height="500"></canvas>
+        <div class="shop">
+            <button onclick="setBuild('pulse', 60)">Pulse (60)</button>
+            <button onclick="setBuild('frost', 100)">Frost (100)</button>
+            <button onclick="setBuild('beam', 180)">Beam (180)</button>
+            <button onclick="nextWave()">Next Wave</button>
+        </div>
     </div>
 
 <script>
+/** @type {HTMLCanvasElement} */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const goldEl = document.getElementById('gold');
-const livesEl = document.getElementById('lives');
 
-// Game State
-let gold = 100;
-let lives = 10;
-let placeTowerMode = false;
-const towers = [];
-const enemies = [];
-const projectiles = [];
-const path = [{x: 0, y: 200}, {x: 200, y: 200}, {x: 200, y: 100}, {x: 400, y: 100}, {x: 400, y: 300}, {x: 600, y: 300}];
+// Game Configuration
+const maps = [
+    [{x:0, y:250}, {x:900, y:250}], // Map 0
+    [{x:0, y:100}, {x:200, y:100}, {x:200, y:400}, {x:500, y:400}, {x:500, y:150}, {x:900, y:150}] // Map 1
+];
 
-// Tower Class
-class Tower {
-    constructor(x, y) {
-        this.x = x; this.y = y;
-        this.range = 100;
-        this.reload = 0;
-    }
-    draw() {
-        ctx.fillStyle = '#3498db';
-        ctx.fillRect(this.x - 15, this.y - 15, 30, 30);
-    }
-    update() {
-        if (this.reload > 0) this.reload--;
-        let target = enemies.find(e => Math.hypot(e.x - this.x, e.y - this.y) < this.range);
-        if (target && this.reload <= 0) {
-            projectiles.push(new Projectile(this.x, this.y, target));
-            this.reload = 30; // Fire rate
-        }
-    }
+let currentMap = maps[0];
+let difficulty = 'medium';
+let gold, lives, wave, buildMode, buildCost, gameActive = false;
+let enemies = [], towers = [], projectiles = [], particles = [];
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    gameActive = (id === 'game-screen');
 }
 
-// Enemy Class
-class Enemy {
-    constructor() {
-        this.x = path[0].x; this.y = path[0].y;
-        this.speed = 1.5;
-        this.hp = 3;
-        this.pathIndex = 0;
-    }
-    draw() {
-        ctx.fillStyle = '#e74c3c';
-        ctx.beginPath(); ctx.arc(this.x, this.y, 10, 0, Math.PI*2); ctx.fill();
-    }
-    update() {
-        let target = path[this.pathIndex + 1];
-        let angle = Math.atan2(target.y - this.y, target.x - this.x);
-        this.x += Math.cos(angle) * this.speed;
-        this.y += Math.sin(angle) * this.speed;
-        if (Math.hypot(target.x - this.x, target.y - this.y) < 2) this.pathIndex++;
-    }
+function setMap(idx) { 
+    currentMap = maps[idx]; 
+    alert("Sector " + (idx === 0 ? "Alpha" : "ZigZag") + " Selected");
 }
 
-// Projectile Class
-class Projectile {
-    constructor(x, y, target) {
-        this.x = x; this.y = y; this.target = target;
-        this.speed = 5;
-    }
-    draw() {
-        ctx.fillStyle = 'yellow';
-        ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI*2); ctx.fill();
-    }
-    update() {
-        let angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-        this.x += Math.cos(angle) * this.speed;
-        this.y += Math.sin(angle) * this.speed;
-    }
-}
-
-// Main Loop
-function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function startGame(diff) {
+    difficulty = diff;
+    // Difficulty Balancing
+    if(diff === 'easy') { gold = 300; lives = 30; }
+    else if(diff === 'medium') { gold = 200; lives = 20; }
+    else { gold = 150; lives = 10; }
     
-    // Draw Path
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 40; ctx.beginPath();
-    path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-    ctx.stroke();
+    wave = 0; enemies = []; towers = []; projectiles = []; particles = [];
+    showScreen('game-screen');
+    if(!loopStarted) { loop(); loopStarted = true; }
+}
 
-    // Update Enemies
-    if (Math.random() < 0.02) enemies.push(new Enemy());
-    enemies.forEach((e, i) => {
-        e.update(); e.draw();
-        if (e.pathIndex >= path.length - 1) { enemies.splice(i, 1); lives--; }
-    });
+function setBuild(type, cost) { buildMode = type; buildCost = cost; }
 
-    // Update Towers
-    towers.forEach(t => { t.update(); t.draw(); });
+// --- Game Logic Classes (Simplified for readability) ---
 
-    // Update Projectiles
-    projectiles.forEach((p, pi) => {
-        p.update(); p.draw();
-        enemies.forEach((e, ei) => {
-            if (Math.hypot(e.x - p.x, e.y - p.y) < 10) {
-                e.hp--; projectiles.splice(pi, 1);
-                if (e.hp <= 0) { enemies.splice(ei, 1); gold += 10; }
-            }
-        });
-    });
+class Enemy {
+    constructor(w) {
+        this.pos = {...currentMap[0]};
+        const hpMult = difficulty === 'hard' ? 20 : (difficulty === 'medium' ? 12 : 8);
+        this.maxHp = 15 + (w * hpMult);
+        this.hp = this.maxHp;
+        this.speed = (difficulty === 'hard' ? 2.0 : 1.5) + (w * 0.05);
+        this.pIdx = 0;
+        this.slowed = 0;
+    }
+    update() {
+        if (this.slowed > 0) { this.slowed--; var s = this.speed * 0.5; } else { var s = this.speed; }
+        const target = currentMap[this.pIdx + 1];
+        const dist = Math.hypot(target.x - this.pos.x, target.y - this.pos.y);
+        if (dist < s) {
+            this.pIdx++;
+            return (this.pIdx < currentMap.length - 1);
+        }
+        this.pos.x += ((target.x - this.pos.x)/dist) * s;
+        this.pos.y += ((target.y - this.pos.y)/dist) * s;
+        return true;
+    }
+}
 
-    goldEl.innerText = gold; livesEl.innerText = lives;
-    if (lives > 0) requestAnimationFrame(animate);
-    else alert("Game Over!");
+class Tower {
+    constructor(x, y, type) {
+        this.x = x; this.y = y; this.type = type;
+        this.range = type === 'beam' ? 220 : 130;
+        this.cd = 0;
+    }
+    draw() {
+        ctx.fillStyle = this.type === 'pulse' ? '#7000ff' : (this.type === 'frost' ? '#00f2ff' : '#ffcc00');
+        ctx.fillRect(this.x-15, this.y-15, 30, 30);
+    }
 }
 
 canvas.onclick = (e) => {
-    if (placeTowerMode && gold >= 50) {
-        towers.push(new Tower(e.offsetX, e.offsetY));
-        gold -= 50;
-        placeTowerMode = false;
+    if (buildMode && gold >= buildCost) {
+        const r = canvas.getBoundingClientRect();
+        towers.push(new Tower(e.clientX - r.left, e.clientY - r.top, buildMode));
+        gold -= buildCost;
+        buildMode = null;
     }
 };
 
-animate();
+function nextWave() {
+    wave++;
+    let count = 5 + wave;
+    const spawn = setInterval(() => {
+        if (!gameActive || count-- <= 0) clearInterval(spawn);
+        else enemies.push(new Enemy(wave));
+    }, 600);
+}
+
+let loopStarted = false;
+function loop() {
+    if (!gameActive) { requestAnimationFrame(loop); return; }
+
+    ctx.fillStyle = '#05050a'; ctx.fillRect(0,0,900,500);
+    
+    // Draw Path
+    ctx.strokeStyle = '#111122'; ctx.lineWidth = 40; ctx.lineJoin = 'round';
+    ctx.beginPath(); currentMap.forEach((p,i) => i==0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
+
+    towers.forEach(t => {
+        t.draw();
+        if (t.cd > 0) t.cd--;
+        const target = enemies.find(e => Math.hypot(e.pos.x - t.x, e.pos.y - t.y) < t.range);
+        if (target && t.cd <= 0) {
+            projectiles.push({x: t.x, y: t.y, target, type: t.type});
+            t.cd = t.type === 'pulse' ? 20 : 60;
+        }
+    });
+
+    enemies = enemies.filter(e => {
+        if (!e.update()) { lives--; return false; }
+        if (e.hp <= 0) { gold += 20; return false; }
+        ctx.fillStyle = e.slowed > 0 ? '#00f2ff' : '#ff0055';
+        ctx.beginPath(); ctx.arc(e.pos.x, e.pos.y, 10, 0, Math.PI*2); ctx.fill();
+        return true;
+    });
+
+    projectiles = projectiles.filter(p => {
+        const d = Math.hypot(p.target.pos.x - p.x, p.target.pos.y - p.y);
+        p.x += ((p.target.pos.x - p.x)/d) * 10;
+        p.y += ((p.target.pos.y - p.y)/d) * 10;
+        ctx.fillStyle = '#fff'; ctx.fillRect(p.x, p.y, 4, 4);
+        if (d < 10) {
+            p.target.hp -= (p.type === 'beam' ? 50 : 10);
+            if (p.type === 'frost') p.target.slowed = 60;
+            return false;
+        }
+        return d < 1000;
+    });
+
+    document.getElementById('gold').innerText = gold;
+    document.getElementById('lives').innerText = lives;
+    document.getElementById('wave').innerText = wave;
+
+    if (lives <= 0) {
+        gameActive = false;
+        document.getElementById('final-stats').innerText = "Sector Overrun at Wave " + wave;
+        showScreen('gameover-screen');
+    }
+    requestAnimationFrame(loop);
+}
+
+// Initial start
+showScreen('menu-screen');
 </script>
 </body>
 </html>
