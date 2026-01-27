@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HYPERDRIVE CHROMIUM</title>
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        #canvas-wrap { position: relative; border: 2px solid #333; }
+        .menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .btn { background: #111; border: 1px solid #00f2ff; color: #00f2ff; padding: 10px; cursor: pointer; font-size: 11px; width: 140px; }
+        .btn:hover { background: #00f2ff; color: #000; }
+        .active-p { border-color: #ff007f; color: #ff007f; }
+        .hud { position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; padding: 10px; box-sizing: border-box; font-size: 14px; background: rgba(0,0,0,0.7); }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-wrap">
+        <!-- HUD -->
+        <div id="hud" class="hud" style="display:none">
+            <div id="p1-score">P1: 0</div>
+            <div id="p2-score" style="color:#ff007f"></div>
+            <div id="money">$: 0</div>
+        </div>
+
+        <!-- HOME SCREEN -->
+        <div id="menu" class="menu">
+            <h1 style="color:#00f2ff; margin:0;">HYPERDRIVE 2026</h1>
+            <p>CHROMEBOOK OPTIMIZED EDITION</p>
+            
+            <div style="margin:10px">
+                <button id="p1btn" class="btn active-p" onclick="setPlayers(1)">1 PLAYER</button>
+                <button id="p2btn" class="btn" onclick="setPlayers(2)">2 PLAYER</button>
+            </div>
+
+            <div class="grid" id="mode-grid"></div>
+        </div>
+
+        <canvas id="game"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+        canvas.width = 400; canvas.height = 600;
+
+        const MODES = [
+            { name: "CLASSIC", speed: 6, freq: 40 },
+            { name: "HYPER", speed: 12, freq: 35 },
+            { name: "BULLET", speed: 5, freq: 15 },
+            { name: "ZEN", speed: 3, freq: 60 },
+            { name: "TRUCKS", speed: 7, freq: 45, boss: true },
+            { name: "DRIFT", speed: 8, freq: 30 },
+            { name: "GHOST", speed: 9, freq: 40 },
+            { name: "CHAOS", speed: 10, freq: 20 },
+            { name: "NIGHT", speed: 7, freq: 45 },
+            { name: "ENDLESS", speed: 5, freq: 40 }
+        ];
+
+        let state = { active: false, players: 1, credits: 0, mode: null };
+        let p1 = { x: 0, lane: 1, color: "#00f2ff", score: 0 };
+        let p2 = { x: 0, lane: 1, color: "#ff007f", score: 0 };
+        let enemies = [];
+        let timer = 0;
+
+        function init() {
+            const grid = document.getElementById("mode-grid");
+            MODES.forEach(m => {
+                const b = document.createElement("button");
+                b.className = "btn";
+                b.innerText = m.name;
+                b.onclick = () => start(m);
+                grid.appendChild(b);
+            });
+        }
+
+        function setPlayers(n) {
+            state.players = n;
+            document.getElementById("p1btn").className = n===1 ? "btn active-p" : "btn";
+            document.getElementById("p2btn").className = n===2 ? "btn active-p" : "btn";
+        }
+
+        function start(m) {
+            state.mode = m;
+            state.active = true;
+            enemies = [];
+            p1.score = 0; p2.score = 0;
+            p1.lane = 0; p2.lane = 2;
+            document.getElementById("menu").style.display = "none";
+            document.getElementById("hud").style.display = "flex";
+            if(state.players === 2) document.getElementById("p2-score").innerText = "P2: 0";
+            requestAnimationFrame(tick);
+        }
+
+        function tick() {
+            if(!state.active) return;
+
+            // Clear Screen (Simple black for Chromebook performance)
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0,0,400,600);
+
+            // Draw Lanes
+            ctx.strokeStyle = "#222";
+            for(let i=1; i<3; i++) {
+                ctx.beginPath(); ctx.moveTo(i*133, 0); ctx.lineTo(i*133, 600); ctx.stroke();
+            }
+
+            // Update Players
+            [p1, p2].forEach((p, idx) => {
+                if(idx === 1 && state.players === 1) return;
+                let targetX = (p.lane * 133) + 66 - 20;
+                p.x += (targetX - p.x) * 0.2;
+                
+                // Draw Car (High contrast rectangle)
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, 500, 40, 70);
+                ctx.strokeStyle = "#fff";
+                ctx.strokeRect(p.x, 500, 40, 70);
+            });
+
+            // Enemy Logic
+            timer++;
+            if(timer > state.mode.freq) {
+                enemies.push({ lane: Math.floor(Math.random()*3), y: -100, w: state.mode.boss?100:40 });
+                timer = 0;
+            }
+
+            enemies.forEach((en, i) => {
+                en.y += state.mode.speed;
+                let ex = (en.lane * 133) + 66 - (en.w/2);
+
+                // Draw Enemy
+                ctx.fillStyle = "#333";
+                ctx.fillRect(ex, en.y, en.w, 70);
+                ctx.strokeStyle = "#ff4444";
+                ctx.strokeRect(ex, en.y, en.w, 70);
+
+                // Collision
+                [p1, p2].forEach((p, idx) => {
+                    if(idx === 1 && state.players === 1) return;
+                    if(p.lane === en.lane && en.y > 430 && en.y < 570) stop();
+                });
+
+                if(en.y > 600) {
+                    enemies.splice(i, 1);
+                    p1.score += 10;
+                    state.credits++;
+                    document.getElementById("p1-score").innerText = "P1: " + p1.score;
+                    document.getElementById("money").innerText = "$: " + state.credits;
+                }
+            });
+
+            requestAnimationFrame(tick);
+        }
+
+        function stop() {
+            state.active = false;
+            document.getElementById("menu").style.display = "flex";
+            document.getElementById("hud").style.display = "none";
+        }
+
+        window.addEventListener("keydown", e => {
+            const k = e.key.toLowerCase();
+            if(k === 'a' && p1.lane > 0) p1.lane--;
+            if(k === 'd' && p1.lane < 2) p1.lane++;
+            if(k === 'arrowleft' && state.players === 2 && p2.lane > 0) p2.lane--;
+            if(k === 'arrowright' && state.players === 2 && p2.lane < 2) p2.lane++;
+        });
+
+        init();
+    </script>
+</body>
+</html>
