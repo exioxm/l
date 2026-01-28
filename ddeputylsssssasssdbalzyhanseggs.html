@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>LASD: DTLA Advanced Command</title>
+    <title>LASD: DTLA v13 - Selection Fixed</title>
     <style>
         body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
         #game-container { position: relative; display: flex; border: 4px solid #444; }
-        canvas { background: #111; cursor: crosshair; }
+        canvas { background: #111; cursor: pointer; }
         .ui-top { position: absolute; top: -50px; width: 800px; display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; color: #f1c40f; }
         #side-panel { width: 250px; background: #222; padding: 20px; border-left: 4px solid #f1c40f; overflow-y: auto; height: 500px; }
         .unit-card { background: #333; padding: 10px; margin-bottom: 8px; border-radius: 5px; border-left: 5px solid #f1c40f; cursor: pointer; font-size: 12px; }
-        .btn-dispatch { background: #d35400; border: none; color: white; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
+        .btn-dispatch { background: #d35400; border: none; color: white; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; }
+        .btn-dispatch:hover { transform: scale(1.05); background: #e67e22; }
         .btn-near { background: #2980b9; }
+        .btn-near:hover { background: #3498db; }
         #radio-log { position: absolute; bottom: 20px; left: 20px; width: 280px; height: 70px; background: rgba(0,0,0,0.8); padding: 10px; font-size: 11px; color: #2ecc71; pointer-events: none; border-radius: 5px; }
     </style>
 </head>
@@ -23,16 +25,16 @@
     </div>
     <canvas id="cityCanvas" width="800" height="500"></canvas>
     <div id="side-panel">
-        <h3 style="margin-top:0; color:#f1c40f;">DISPATCH CENTER</h3>
+        <h3 style="margin-top:0; color:#f1c40f;">DISPATCH</h3>
         <button class="btn-dispatch btn-near" onclick="dispatchNearest()">DISPATCH NEAREST</button>
-        <button class="btn-dispatch" onclick="dispatchAll()">DISPATCH ALL UNITS</button>
+        <button class="btn-dispatch" onclick="dispatchAll()">DISPATCH ALL</button>
         
         <h3 style="color:#f1c40f; font-size: 16px;">FLEET SHOP</h3>
-        <div class="unit-card" onclick="buy('crown')"><b>Crown Vic</b><br>Fast & Classic</div>
-        <div class="unit-card" onclick="buy('explorer')"><b>Explorer</b><br>Standard Utility</div>
-        <div class="unit-card" onclick="buy('tahoe')"><b>Tahoe</b><br>Heavy Duty</div>
-        <div class="unit-card" onclick="buy('pierce')"><b>Pierce Command</b><br>Mobile HQ</div>
-        <div class="unit-card" onclick="buy('air')"><b>Aero Bureau</b><br>Air Support</div>
+        <div class="unit-card" onclick="buy('crown')"><b>Crown Vic</b><br>Classic Patrol - $300</div>
+        <div class="unit-card" onclick="buy('explorer')"><b>Explorer</b><br>Standard SUV - $500</div>
+        <div class="unit-card" onclick="buy('tahoe')"><b>Tahoe</b><br>Pursuit SUV - $800</div>
+        <div class="unit-card" onclick="buy('pierce')"><b>Pierce Command</b><br>Mobile HQ - $2500</div>
+        <div class="unit-card" onclick="buy('air')"><b>Aero Bureau</b><br>Helicopter - $1500</div>
     </div>
     <div id="radio-log"></div>
 </div>
@@ -40,15 +42,14 @@
 <script>
 const canvas = document.getElementById('cityCanvas');
 const ctx = canvas.getContext('2d');
-const tileSize = 25, cols = 32, rows = 20; // Doubled resolution for lanes
+const tileSize = 25, cols = 32, rows = 20;
 
 // 0=Road, 1=Building, 2=HQ
-// Map updated for 32x20 grid (2-tile wide roads)
 const cityMap = Array.from({length: rows}, (_, r) => 
     Array.from({length: cols}, (_, c) => {
-        if (r % 5 === 0 || r % 5 === 1 || c % 8 === 0 || c % 8 === 1) return 0; // Road (2 tiles wide)
-        if (r > 8 && r < 12 && c > 14 && c < 18) return 2; // HQ Area
-        return 1; // Building
+        if (r % 5 === 0 || r % 5 === 1 || c % 8 === 0 || c % 8 === 1) return 0;
+        if (r > 8 && r < 12 && c > 14 && c < 18) return 2;
+        return 1;
     })
 );
 
@@ -58,69 +59,44 @@ class Unit {
     constructor(type) {
         this.type = type;
         this.x = 16 * tileSize + 12; this.y = 10 * tileSize + 12;
-        this.speed = (type === 'air') ? 4 : (type === 'pierce') ? 1.5 : (type === 'crown' ? 3.5 : 3);
+        this.speed = (type === 'air') ? 4.5 : (type === 'pierce') ? 1.5 : (type === 'crown' ? 3.8 : 3.2);
         this.path = []; this.target = null;
-        this.laneOffset = (Math.random() - 0.5) * 10; // Personal space within lane
     }
-
     update() {
         if (this.target) {
             let dx = this.target.x - this.x, dy = this.target.y - this.y, dist = Math.hypot(dx, dy);
-            
-            // Overtaking / Avoidance logic
-            let currentSpeed = this.speed;
-            units.forEach(other => {
-                if (other === this) return;
-                let d = Math.hypot(other.x - this.x, other.y - this.y);
-                if (d < 30 && Math.abs(Math.atan2(dy, dx) - Math.atan2(other.y - this.y, other.x - this.x)) < 0.5) {
-                    currentSpeed *= 0.5; // Slow down if car in front
-                }
-            });
-
             if (this.type === 'air') {
-                if (dist > 5) { this.x += (dx/dist)*currentSpeed; this.y += (dy/dist)*currentSpeed; }
+                if (dist > 10) { this.x += (dx/dist)*this.speed; this.y += (dy/dist)*this.speed; }
             } else {
-                if (frames % 60 === 0 && this.target.isMoving) this.recalculatePath();
+                if (this.target.isMoving && frames % 60 === 0) this.recalculatePath();
                 if (this.path.length > 0) {
-                    let next = this.path, tx = next.c * tileSize + (tileSize/2) + this.laneOffset, ty = next.r * tileSize + (tileSize/2) + this.laneOffset;
+                    let next = this.path, tx = next.c * tileSize + 12, ty = next.r * tileSize + 12;
                     let dnx = tx - this.x, dny = ty - this.y, ddist = Math.hypot(dnx, dny);
                     if (ddist < 10) this.path.shift();
-                    else { this.x += (dnx/ddist)*currentSpeed; this.y += (dny/ddist)*currentSpeed; }
+                    else { this.x += (dnx/ddist)*this.speed; this.y += (dny/ddist)*this.speed; }
                 }
             }
-
-            if (dist < 40) {
-                this.target.progress += (this.type === 'pierce' ? 1.2 : 0.4) / (this.target.type === 'high' ? 4 : 1);
+            if (dist < 45) {
+                this.target.progress += (this.type === 'pierce' ? 1.5 : 0.5) / (this.target.type === 'high' ? 4 : 1);
                 if (this.target.progress >= 100) {
-                    money += this.target.type === 'high' ? 2000 : 500;
+                    money += this.target.type === 'high' ? 2500 : 600;
                     calls = calls.filter(c => c !== this.target);
                     units.forEach(u => { if(u.target === this.target) u.target = null; });
-                    playRadio(`Code 4. Suspect 10-15.`);
+                    playRadio(`Code 4 at location.`);
                 }
             }
         }
     }
-
     recalculatePath() {
-        let sr = Math.floor(this.y/tileSize), sc = Math.floor(this.x/tileSize);
-        let tr = Math.floor(this.target.y/tileSize), tc = Math.floor(this.target.x/tileSize);
-        this.path = findPath(sr, sc, tr, tc);
+        this.path = findPath(Math.floor(this.y/tileSize), Math.floor(this.x/tileSize), Math.floor(this.target.y/tileSize), Math.floor(this.target.x/tileSize));
     }
-
     draw() {
         ctx.save(); ctx.translate(this.x, this.y);
-        let angle = this.target ? Math.atan2(this.target.y - this.y, this.target.x - this.x) : 0;
-        ctx.rotate(angle);
-        
+        if(this.target) ctx.rotate(Math.atan2(this.target.y - this.y, this.target.x - this.x));
         ctx.fillStyle = this.type === 'air' ? '#f1c40f' : (this.type === 'pierce' ? '#fff' : '#000');
-        
-        if (this.type === 'pierce') { ctx.fillRect(-20, -10, 40, 20); ctx.fillStyle="#c0392b"; ctx.fillRect(5, -10, 5, 20); }
-        else if (this.type === 'explorer') { ctx.fillRect(-12, -8, 24, 16); ctx.fillStyle="white"; ctx.fillRect(-8, -8, 8, 16); }
-        else if (this.type === 'tahoe') { ctx.fillRect(-15, -9, 30, 18); ctx.fillStyle="white"; ctx.fillRect(-10, -9, 10, 18); }
-        else if (this.type === 'crown') { ctx.fillRect(-14, -7, 28, 14); ctx.fillStyle="white"; ctx.fillRect(-12, -7, 12, 14); }
-        else if (this.type === 'air') { ctx.fillRect(-15, -5, 30, 10); ctx.fillStyle="white"; ctx.fillRect(-2, -15, 4, 30); }
-
-        if (this.target) { ctx.fillStyle = frames % 10 < 5 ? 'red' : 'blue'; ctx.fillRect(8, -5, 5, 5); }
+        let w = (this.type === 'pierce') ? 38 : 24, h = (this.type === 'pierce') ? 18 : 12;
+        ctx.fillRect(-w/2, -h/2, w, h);
+        if (this.target) { ctx.fillStyle = frames % 10 < 5 ? 'red' : 'blue'; ctx.fillRect(w/4, -h/2, 6, 6); }
         ctx.restore();
     }
 }
@@ -129,23 +105,26 @@ class Call {
     constructor(type) {
         this.type = type;
         let r, c; do { r = Math.floor(Math.random()*rows); c = Math.floor(Math.random()*cols); } while(cityMap[r][c] !== 0);
-        this.x = c * tileSize + tileSize/2; this.y = r * tileSize + tileSize/2;
+        this.x = c * tileSize + 12; this.y = r * tileSize + 12;
         this.progress = 0; this.isMoving = type === 'moving';
-        this.dir = {r: 0, c: 1}; this.speed = 1.2;
+        this.dir = {r: 0, c: 1};
     }
     update() {
-        if (this.isMoving) {
-            let nx = this.x + this.dir.c*this.speed, ny = this.y + this.dir.r*this.speed;
+        if (this.isMoving && frames % 2 === 0) {
+            let nx = this.x + this.dir.c*1.5, ny = this.y + this.dir.r*1.5;
             let gr = Math.floor(ny/tileSize), gc = Math.floor(nx/tileSize);
             if (cityMap[gr] && cityMap[gr][gc] === 0) { this.x = nx; this.y = ny; }
             else { this.dir = [{r:0,c:1},{r:0,c:-1},{r:1,c:0},{r:-1,c:0}][Math.floor(Math.random()*4)]; }
         }
     }
     draw() {
-        if (selectedCall === this) { ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, 15, 0, Math.PI*2); ctx.stroke(); }
+        ctx.shadowBlur = (selectedCall === this) ? 15 : 0;
+        ctx.shadowColor = "white";
         ctx.fillStyle = this.type === 'high' ? '#9b59b6' : (this.type === 'moving' ? '#e74c3c' : '#3498db');
-        ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#2ecc71'; ctx.fillRect(this.x-10, this.y+10, (this.progress/100)*20, 3);
+        ctx.beginPath(); ctx.arc(this.x, this.y, 10, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        if(selectedCall === this) { ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.stroke(); }
+        ctx.fillStyle = '#2ecc71'; ctx.fillRect(this.x-15, this.y+15, (this.progress/100)*30, 5);
     }
 }
 
@@ -166,13 +145,15 @@ function findPath(sr, sc, tr, tc) {
 canvas.onclick = (e) => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left, y = e.clientY - rect.top;
-    selectedCall = calls.find(c => Math.hypot(c.x-x, c.y-y) < 20) || null;
+    // Increased detection radius to 40px
+    let found = calls.find(c => Math.hypot(c.x - x, c.y - y) < 40);
+    selectedCall = found || null;
 };
 
 function dispatchNearest() {
-    if (!selectedCall) return;
+    if (!selectedCall) return playRadio("Select a target first.");
     let available = units.filter(u => !u.target);
-    if (available.length === 0) return playRadio("No available units.");
+    if (!available.length) return playRadio("No available units.");
     available.sort((a,b) => Math.hypot(a.x-selectedCall.x, a.y-selectedCall.y) - Math.hypot(b.x-selectedCall.x, b.y-selectedCall.y));
     let u = available[0];
     u.target = selectedCall;
@@ -181,12 +162,12 @@ function dispatchNearest() {
 }
 
 function dispatchAll() {
-    if (!selectedCall) return;
+    if (!selectedCall) return playRadio("Select a target first.");
     units.forEach(u => { 
         u.target = selectedCall; 
         if (u.type !== 'air') u.recalculatePath();
     });
-    playRadio(`All units enroute.`);
+    playRadio(`Dispatching fleet.`);
 }
 
 function buy(t) {
@@ -207,7 +188,7 @@ function gameLoop() {
             ctx.fillRect(c*tileSize, r*tileSize, tileSize, tileSize);
         }
     }
-    if (frames % 400 === 0) calls.push(new Call('standard'));
+    if (frames % 500 === 0) calls.push(new Call('standard'));
     if (frames % 1200 === 0) calls.push(new Call('high'));
     if (frames % 800 === 0) calls.push(new Call('moving'));
     calls.forEach(c => { c.update(); c.draw(); });
