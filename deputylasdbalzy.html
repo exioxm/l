@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LASD: Pursuit Command v4</title>
+    <style>
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        #game-container { position: relative; }
+        canvas { background: #2c3e50; border: 4px solid #f1c40f; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.6); }
+        .ui { position: absolute; top: -50px; width: 100%; display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; color: #f1c40f; text-shadow: 2px 2px black; }
+        #side-panel { position: absolute; right: -260px; top: 0; width: 230px; background: #2c3e50; padding: 15px; border: 2px solid #f1c40f; border-radius: 10px; }
+        .btn { background: #f1c40f; border: none; color: #111; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: #d4ac0d; transform: translateY(-2px); }
+        .hint-box { background: #34495e; padding: 10px; border-radius: 5px; margin-top: 15px; font-size: 12px; color: #ecf0f1; border-left: 3px solid #f1c40f; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="ui">
+        <span>💰 Budget: $<span id="money">500</span></span>
+        <span>🚔 Units: <span id="fleet-count">1</span></span>
+    </div>
+    <canvas id="cityCanvas" width="800" height="500"></canvas>
+    <div id="side-panel">
+        <h3 style="margin:0; text-align:center;">LASD DISPATCH</h3>
+        <button class="btn" onclick="buyUnit('patrol')">Deploy Patrol Car ($200)</button>
+        <button class="btn" onclick="buyUnit('air')">Deploy Aero Bureau ($1500)</button>
+        
+        <div class="hint-box">
+            <b>PIT MANEUVER:</b><br>
+            When a car is pursuing a suspect, <b>Click the Car</b> to ram them!<br><br>
+            Stuns suspect and gives +25% capture progress.
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('cityCanvas');
+const ctx = canvas.getContext('2d');
+const tileSize = 50;
+const cols = 16, rows = 10;
+
+// 0=Road, 1=Building, 2=Station
+const cityMap = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+    [1,0,1,1,0,1,1,1,1,1,0,1,0,1,0,1],
+    [1,0,1,2,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,1,0,1,1,0,1,1,1,1,0,1,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1],
+    [1,0,1,1,1,1,1,0,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+let money = 500, units = [], crimes = [], frames = 0;
+
+class PatrolUnit {
+    constructor(type) {
+        this.type = type;
+        this.x = 3 * tileSize + 25; this.y = 3 * tileSize + 25;
+        this.speed = type === 'air' ? 4 : 2.8;
+        this.target = null;
+        this.status = 'Idle';
+    }
+    update() {
+        if (!this.target) return;
+        let dx = this.target.x - this.x, dy = this.target.y - this.y, dist = Math.hypot(dx, dy);
+
+        // Pursue progress logic
+        if (dist < 40) {
+            this.target.progress += 0.4;
+            if (this.target.progress >= 100) {
+                money += 300;
+                crimes = crimes.filter(c => c !== this.target);
+                this.target = null; this.status = 'Idle';
+                return;
+            }
+            this.status = 'Pursuing';
+        } else { this.status = 'Responding'; }
+
+        // Movement
+        let moveX = (dx / dist) * this.speed;
+        let moveY = (dy / dist) * this.speed;
+
+        if (this.type === 'air') { this.x += moveX; this.y += moveY; } 
+        else {
+            if (canMove(this.x + moveX, this.y)) this.x += moveX;
+            if (canMove(this.x, this.y + moveY)) this.y += moveY;
+        }
+    }
+    draw() {
+        ctx.save(); ctx.translate(this.x, this.y);
+        if (this.type === 'air') {
+            ctx.fillStyle = '#f1c40f'; ctx.fillRect(-18, -6, 36, 12);
+            ctx.fillStyle = '#333'; 
+            ctx.save(); ctx.rotate(frames * 0.5); ctx.fillRect(-25, -2, 50, 4); ctx.restore();
+        } else {
+            ctx.fillStyle = 'black'; ctx.fillRect(-15, -9, 30, 18);
+            ctx.fillStyle = 'white'; ctx.fillRect(-12, -7, 12, 14);
+            ctx.fillStyle = (frames % 10 < 5) ? 'red' : 'blue'; ctx.fillRect(10, -9, 6, 6);
+        }
+        ctx.restore();
+    }
+}
+
+class Suspect {
+    constructor() {
+        let r, c;
+        do { r = Math.floor(Math.random() * rows); c = Math.floor(Math.random() * cols); } while (cityMap[r][c] !== 0);
+        this.x = c * tileSize + 25; this.y = r * tileSize + 25;
+        this.progress = 0; this.isClaimed = false;
+        this.speed = 1.8; this.stunTimer = 0;
+        this.dir = {x: 1, y: 0};
+    }
+    update() {
+        if (this.stunTimer > 0) { this.stunTimer--; return; }
+        let nextX = this.x + this.dir.x * this.speed;
+        let nextY = this.y + this.dir.y * this.speed;
+        if (canMove(nextX, nextY)) { this.x = nextX; this.y = nextY; } 
+        else { this.dir = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}][Math.floor(Math.random()*4)]; }
+        if (Math.random() < 0.01) this.dir = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}][Math.floor(Math.random()*4)];
+    }
+    draw() {
+        ctx.save(); ctx.translate(this.x, this.y);
+        if (this.stunTimer > 0) ctx.rotate(0.5);
+        ctx.fillStyle = this.isClaimed ? '#d35400' : '#c0392b';
+        ctx.fillRect(-12, -7, 24, 14);
+        ctx.restore();
+        
+        ctx.fillStyle = 'white'; ctx.font = 'bold 11px Arial'; ctx.fillText("🚨 SUSPECT", this.x - 25, this.y - 15);
+        ctx.fillStyle = "#333"; ctx.fillRect(this.x-15, this.y+15, 30, 5);
+        ctx.fillStyle = "#2ecc71"; ctx.fillRect(this.x-15, this.y+15, (this.progress/100)*30, 5);
+    }
+}
+
+function canMove(x, y) {
+    let gx = Math.floor(x / tileSize), gy = Math.floor(y / tileSize);
+    return (gx >= 0 && gx < cols && gy >= 0 && gy < rows && cityMap[gy][gx] !== 1);
+}
+
+canvas.onclick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    
+    // 1. Check for PIT Maneuver (Clicking a Pursuing Car)
+    let car = units.find(u => u.type === 'patrol' && u.status === 'Pursuing' && Math.hypot(u.x - x, u.y - y) < 25);
+    if (car) {
+        car.target.stunTimer = 60; // 1 second stun
+        car.target.progress += 25; // Massive progress boost
+        return;
+    }
+
+    // 2. Check for Dispatching
+    let crime = crimes.find(c => !c.isClaimed && Math.hypot(c.x - x, c.y - y) < 30);
+    if (crime) {
+        let idleUnit = units.find(u => u.status === 'Idle');
+        if (idleUnit) { crime.isClaimed = true; idleUnit.target = crime; }
+    }
+};
+
+function buyUnit(type) {
+    let cost = type === 'air' ? 1500 : 200;
+    if (money >= cost) { money -= cost; units.push(new PatrolUnit(type)); }
+}
+
+function drawCity() {
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (cityMap[r][c] === 1) {
+                ctx.fillStyle = '#2c3e50'; ctx.fillRect(c*tileSize, r*tileSize, tileSize, tileSize);
+                ctx.strokeStyle = '#34495e'; ctx.strokeRect(c*tileSize, r*tileSize, tileSize, tileSize);
+            } else if (cityMap[r][c] === 2) {
+                ctx.fillStyle = '#27ae60'; ctx.fillRect(c*tileSize, r*tileSize, tileSize, tileSize);
+            } else {
+                ctx.fillStyle = '#7f8c8d'; ctx.fillRect(c*tileSize, r*tileSize, tileSize, tileSize);
+            }
+        }
+    }
+}
+
+function gameLoop() {
+    frames++; ctx.clearRect(0, 0, 800, 500); drawCity();
+    if (frames % 400 === 0) crimes.push(new Suspect());
+    crimes.forEach(c => { c.update(); c.draw(); });
+    units.forEach(u => { u.update(); u.draw(); });
+    document.getElementById('money').innerText = Math.floor(money);
+    document.getElementById('fleet-count').innerText = units.length;
+    requestAnimationFrame(gameLoop);
+}
+
+units.push(new PatrolUnit('patrol'));
+gameLoop();
+</script>
+</body>
+</html>
