@@ -1,133 +1,167 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>LASD: Special Ops</title>
+    <title>LASD Patrol Command</title>
     <style>
-        body { text-align: center; background: #050505; color: #d4af37; font-family: 'Verdana', sans-serif; margin: 0; overflow: hidden; }
-        canvas { background: #1a1a1a; border-bottom: 8px solid #d4af37; }
-        .hud { position: absolute; width: 100%; top: 10px; pointer-events: none; }
-        .stats { display: flex; justify-content: space-around; font-weight: bold; background: rgba(0,0,0,0.7); padding: 10px; }
-        .damage-bar { width: 150px; height: 15px; border: 2px solid #fff; display: inline-block; position: relative; }
-        #health { height: 100%; background: #2ecc71; width: 100%; }
-        #dispatch { color: #fff; font-style: italic; margin-top: 5px; }
+        body { background: #111; color: white; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        #game-container { position: relative; }
+        canvas { background: #222; border: 4px solid #f1c40f; border-radius: 8px; cursor: crosshair; }
+        .ui { position: absolute; top: -50px; width: 100%; display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: #f1c40f; }
+        #dispatch-panel { position: absolute; right: -250px; top: 0; width: 220px; background: #2c3e50; padding: 15px; border-radius: 10px; border: 2px solid #f1c40f; }
+        .btn { background: #f1c40f; border: none; color: #111; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        .btn:disabled { background: #7f8c8d; cursor: not-allowed; }
+        #status-feed { font-size: 12px; color: #bdc3c7; margin-top: 10px; height: 100px; overflow-y: hidden; border-top: 1px solid #444; }
     </style>
 </head>
 <body>
-    <div class="hud">
-        <div class="stats">
-            <div>RANK: <span id="rank">DEPUTY</span></div>
-            <div>ARRESTS: <span id="score">0</span></div>
-            <div>CRUISER: <div class="damage-bar"><div id="health"></div></div></div>
-            <div>BACKUP: <span id="backupStatus">READY</span></div>
-        </div>
-        <div id="dispatch">"10-8, patrolling Central Sector..."</div>
+
+<div id="game-container">
+    <div class="ui">
+        <span>💰 Budget: $<span id="money">500</span></span>
+        <span>🚔 Fleet: <span id="fleet-count">1</span> Units</span>
     </div>
-    <canvas id="gameCanvas"></canvas>
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = window.innerWidth;
-        canvas.height = 500;
+    <canvas id="mapCanvas" width="800" height="500"></canvas>
 
-        let score = 0, health = 100, gameActive = true;
-        let backupActive = false, backupTimer = 0, repairActive = false;
-        const ranks = ["DEPUTY", "SERGEANT", "LIEUTENANT", "CAPTAIN", "UNDERSHERIFF", "SHERIFF"];
+    <div id="dispatch-panel">
+        <h3>STATION SHOP</h3>
+        <button class="btn" onclick="buyUnit('patrol')">Add Patrol Car ($200)</button>
+        <button class="btn" onclick="buyUnit('k9')">Add K9 Unit ($500)</button>
+        <button class="btn" onclick="buyUnit('air')">Add Aero Bureau ($1500)</button>
         
-        let deputy = { x: 100, y: 250, w: 75, h: 32, speed: 8 };
-        let backup = { x: -100, y: 300, w: 75, h: 32, speed: 9 };
-        let suspect = { x: 800, y: 250, w: 60, h: 30, speed: 6 };
-        let repair = { x: -100, y: 0, w: 40, h: 40 };
-        let keys = {};
+        <div id="status-feed">
+            <p>> Station Online...</p>
+            <p>> Waiting for calls...</p>
+        </div>
+    </div>
+</div>
 
-        window.addEventListener("keydown", e => {
-            keys[e.code] = true;
-            if(e.code === "KeyB" && !backupActive) {
-                backupActive = true; backup.x = -100;
-                document.getElementById("dispatch").innerText = '"SCC: Code 997, Backup units responding Code 3."';
-                document.getElementById("backupStatus").innerText = "ON SCENE";
-            }
-        });
-        window.addEventListener("keyup", e => keys[e.code] = false);
+<script>
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
 
-        function resetSuspect() {
-            suspect.x = canvas.width + 100;
-            suspect.y = Math.random() * (canvas.height - 100) + 50;
-            suspect.speed = 6 + (score * 0.4);
-            if(Math.random() > 0.7) spawnRepair();
-        }
+let money = 500;
+let units = [];
+let crimes = [];
+let frames = 0;
 
-        function spawnRepair() {
-            repair.x = canvas.width + 200;
-            repair.y = Math.random() * (canvas.height - 50) + 25;
-            repairActive = true;
-        }
-
-        function draw() {
-            if (!gameActive) return;
-            ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+class PatrolUnit {
+    constructor(type) {
+        this.type = type;
+        this.x = 400; this.y = 250; // Start at Station (Center)
+        this.speed = type === 'air' ? 4 : (type === 'k9' ? 2.5 : 2);
+        this.target = null;
+        this.status = 'Idle';
+        this.color = type === 'air' ? '#f1c40f' : 'white';
+    }
+    update() {
+        if (this.target) {
+            let dx = this.target.x - this.x;
+            let dy = this.target.y - this.y;
+            let dist = Math.hypot(dx, dy);
             
-            // Draw Road Lines
-            ctx.strokeStyle = "#444"; ctx.setLineDash([20, 20]);
-            ctx.beginPath(); ctx.moveTo(0, 166); ctx.lineTo(canvas.width, 166); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 333); ctx.lineTo(canvas.width, 333); ctx.stroke();
-
-            // Repair Station Icon
-            if(repairActive) {
-                ctx.fillStyle = "#3498db"; ctx.fillRect(repair.x, repair.y, repair.w, repair.h);
-                ctx.fillStyle = "white"; ctx.font = "20px Bold"; ctx.fillText("🔧", repair.x+10, repair.y+28);
-                repair.x -= 5;
-                if(Math.abs(deputy.x - repair.x) < 40 && Math.abs(deputy.y - repair.y) < 40) {
-                    health = 100; document.getElementById("health").style.width = "100%";
-                    repairActive = false; document.getElementById("dispatch").innerText = '"10-19, vehicle maintained at Fleet Services."';
-                }
-            }
-
-            // Draw LASD Deputy & Backup
-            function drawCar(car, isBackup) {
-                ctx.fillStyle = "black"; ctx.fillRect(car.x, car.y, car.w, car.h);
-                ctx.fillStyle = "white"; ctx.fillRect(car.x+15, car.y, 45, car.h);
-                ctx.fillStyle = "#d4af37"; ctx.beginPath(); ctx.arc(car.x+38, car.y+16, 6, 0, 7); ctx.fill();
-                ctx.fillStyle = (Date.now() % 300 < 150) ? "red" : "blue";
-                ctx.fillRect(car.x+20, car.y-6, 35, 6);
-            }
-            drawCar(deputy);
-            if(backupActive) {
-                drawCar(backup);
-                backup.x += (backup.x < deputy.x - 40) ? 2 : 0;
-                backup.y += (backup.y < suspect.y) ? 1 : -1;
-                if(Math.abs(backup.x - suspect.x) < 50 && Math.abs(backup.y - suspect.y) < 20) {
-                    suspect.speed = 2; // Backup box-in effect
-                }
-            }
-
-            // Draw Suspect
-            ctx.fillStyle = "#e67e22"; ctx.fillRect(suspect.x, suspect.y, suspect.w, suspect.h);
-
-            // Movement Logic
-            if(keys["ArrowUp"]) deputy.y -= deputy.speed;
-            if(keys["ArrowDown"]) deputy.y += deputy.speed;
-            if(keys["ArrowRight"]) deputy.x += deputy.speed;
-            if(keys["ArrowLeft"]) deputy.x -= deputy.speed;
-            suspect.x -= (suspect.speed - 5);
-            
-            // Collision & Arrest
-            if(Math.abs(deputy.x - suspect.x) < 50 && Math.abs(deputy.y - suspect.y) < 25) {
-                if(keys["Space"]) {
-                    score++; document.getElementById("score").innerText = score;
-                    document.getElementById("dispatch").innerText = '"10-15, Prisoner in custody."';
-                    resetSuspect();
+            if (dist < 5) {
+                // At crime scene
+                this.target.progress += 1;
+                if (this.target.progress > 100) {
+                    money += this.target.value;
+                    logStatus(`Unit resolved ${this.target.name}. +$${this.target.value}`);
+                    crimes = crimes.filter(c => c !== this.target);
+                    this.target = null;
+                    this.status = 'Idle';
                 } else {
-                    health -= 0.5; document.getElementById("health").style.width = health + "%";
+                    this.status = 'On Scene';
                 }
+            } else {
+                this.x += (dx / dist) * this.speed;
+                this.y += (dy / dist) * this.speed;
+                this.status = 'Responding';
             }
-
-            if(suspect.x < -100) { health -= 15; resetSuspect(); }
-            if(health <= 0) gameActive = false;
-
-            requestAnimationFrame(draw);
         }
-        resetSuspect(); draw();
-    </script>
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x - 5, this.y - 5, 10, 10); // Car
+        ctx.font = "10px Arial";
+        ctx.fillText(this.status, this.x - 15, this.y + 20);
+    }
+}
+
+class CrimeCall {
+    constructor() {
+        this.x = Math.random() * (canvas.width - 40);
+        this.y = Math.random() * (canvas.height - 40);
+        this.progress = 0;
+        this.name = ["459 Burglary", "211 Robbery", "GTA", "Trespass"][Math.floor(Math.random() * 4)];
+        this.value = Math.floor(Math.random() * 50) + 50;
+    }
+    draw() {
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath(); ctx.arc(this.x, this.y, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "white"; ctx.font = "12px Arial";
+        ctx.fillText("🚨 " + this.name, this.x - 20, this.y - 20);
+        // Progress Bar
+        ctx.fillStyle = "#444"; ctx.fillRect(this.x - 15, this.y + 20, 30, 4);
+        ctx.fillStyle = "#2ecc71"; ctx.fillRect(this.x - 15, this.y + 20, (this.progress / 100) * 30, 4);
+    }
+}
+
+// Logic: Dispatch nearest available car on click
+canvas.onclick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    
+    let clickedCrime = crimes.find(c => Math.hypot(c.x - x, c.y - y) < 30);
+    if (clickedCrime) {
+        let availableUnit = units.find(u => u.status === 'Idle');
+        if (availableUnit) {
+            availableUnit.target = clickedCrime;
+            logStatus(`Dispatching unit to ${clickedCrime.name}`);
+        } else {
+            logStatus("No units available!");
+        }
+    }
+};
+
+function buyUnit(type) {
+    let cost = {patrol: 200, k9: 500, air: 1500}[type];
+    if (money >= cost) {
+        money -= cost;
+        units.push(new PatrolUnit(type));
+        logStatus(`Purchased ${type.toUpperCase()} unit.`);
+    }
+}
+
+function logStatus(msg) {
+    const feed = document.getElementById('status-feed');
+    feed.innerHTML = `<p>> ${msg}</p>` + feed.innerHTML;
+}
+
+function startGame() {
+    units.push(new PatrolUnit('patrol'));
+    gameLoop();
+}
+
+function gameLoop() {
+    frames++;
+    ctx.clearRect(0, 0, 800, 500);
+    
+    // Draw Station
+    ctx.fillStyle = '#34495e'; ctx.fillRect(380, 230, 40, 40);
+    ctx.fillStyle = 'white'; ctx.fillText("LASD STATION", 365, 220);
+
+    if (frames % 200 === 0) crimes.push(new CrimeCall());
+
+    units.forEach(u => { u.update(); u.draw(); });
+    crimes.forEach(c => c.draw());
+
+    document.getElementById('money').innerText = money;
+    document.getElementById('fleet-count').innerText = units.length;
+
+    requestAnimationFrame(gameLoop);
+}
+
+startGame();
+</script>
 </body>
 </html>
