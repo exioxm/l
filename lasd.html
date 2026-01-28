@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LASD: Special Ops</title>
+    <style>
+        body { text-align: center; background: #050505; color: #d4af37; font-family: 'Verdana', sans-serif; margin: 0; overflow: hidden; }
+        canvas { background: #1a1a1a; border-bottom: 8px solid #d4af37; }
+        .hud { position: absolute; width: 100%; top: 10px; pointer-events: none; }
+        .stats { display: flex; justify-content: space-around; font-weight: bold; background: rgba(0,0,0,0.7); padding: 10px; }
+        .damage-bar { width: 150px; height: 15px; border: 2px solid #fff; display: inline-block; position: relative; }
+        #health { height: 100%; background: #2ecc71; width: 100%; }
+        #dispatch { color: #fff; font-style: italic; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <div class="stats">
+            <div>RANK: <span id="rank">DEPUTY</span></div>
+            <div>ARRESTS: <span id="score">0</span></div>
+            <div>CRUISER: <div class="damage-bar"><div id="health"></div></div></div>
+            <div>BACKUP: <span id="backupStatus">READY</span></div>
+        </div>
+        <div id="dispatch">"10-8, patrolling Central Sector..."</div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = 500;
+
+        let score = 0, health = 100, gameActive = true;
+        let backupActive = false, backupTimer = 0, repairActive = false;
+        const ranks = ["DEPUTY", "SERGEANT", "LIEUTENANT", "CAPTAIN", "UNDERSHERIFF", "SHERIFF"];
+        
+        let deputy = { x: 100, y: 250, w: 75, h: 32, speed: 8 };
+        let backup = { x: -100, y: 300, w: 75, h: 32, speed: 9 };
+        let suspect = { x: 800, y: 250, w: 60, h: 30, speed: 6 };
+        let repair = { x: -100, y: 0, w: 40, h: 40 };
+        let keys = {};
+
+        window.addEventListener("keydown", e => {
+            keys[e.code] = true;
+            if(e.code === "KeyB" && !backupActive) {
+                backupActive = true; backup.x = -100;
+                document.getElementById("dispatch").innerText = '"SCC: Code 997, Backup units responding Code 3."';
+                document.getElementById("backupStatus").innerText = "ON SCENE";
+            }
+        });
+        window.addEventListener("keyup", e => keys[e.code] = false);
+
+        function resetSuspect() {
+            suspect.x = canvas.width + 100;
+            suspect.y = Math.random() * (canvas.height - 100) + 50;
+            suspect.speed = 6 + (score * 0.4);
+            if(Math.random() > 0.7) spawnRepair();
+        }
+
+        function spawnRepair() {
+            repair.x = canvas.width + 200;
+            repair.y = Math.random() * (canvas.height - 50) + 25;
+            repairActive = true;
+        }
+
+        function draw() {
+            if (!gameActive) return;
+            ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Road Lines
+            ctx.strokeStyle = "#444"; ctx.setLineDash([20, 20]);
+            ctx.beginPath(); ctx.moveTo(0, 166); ctx.lineTo(canvas.width, 166); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 333); ctx.lineTo(canvas.width, 333); ctx.stroke();
+
+            // Repair Station Icon
+            if(repairActive) {
+                ctx.fillStyle = "#3498db"; ctx.fillRect(repair.x, repair.y, repair.w, repair.h);
+                ctx.fillStyle = "white"; ctx.font = "20px Bold"; ctx.fillText("🔧", repair.x+10, repair.y+28);
+                repair.x -= 5;
+                if(Math.abs(deputy.x - repair.x) < 40 && Math.abs(deputy.y - repair.y) < 40) {
+                    health = 100; document.getElementById("health").style.width = "100%";
+                    repairActive = false; document.getElementById("dispatch").innerText = '"10-19, vehicle maintained at Fleet Services."';
+                }
+            }
+
+            // Draw LASD Deputy & Backup
+            function drawCar(car, isBackup) {
+                ctx.fillStyle = "black"; ctx.fillRect(car.x, car.y, car.w, car.h);
+                ctx.fillStyle = "white"; ctx.fillRect(car.x+15, car.y, 45, car.h);
+                ctx.fillStyle = "#d4af37"; ctx.beginPath(); ctx.arc(car.x+38, car.y+16, 6, 0, 7); ctx.fill();
+                ctx.fillStyle = (Date.now() % 300 < 150) ? "red" : "blue";
+                ctx.fillRect(car.x+20, car.y-6, 35, 6);
+            }
+            drawCar(deputy);
+            if(backupActive) {
+                drawCar(backup);
+                backup.x += (backup.x < deputy.x - 40) ? 2 : 0;
+                backup.y += (backup.y < suspect.y) ? 1 : -1;
+                if(Math.abs(backup.x - suspect.x) < 50 && Math.abs(backup.y - suspect.y) < 20) {
+                    suspect.speed = 2; // Backup box-in effect
+                }
+            }
+
+            // Draw Suspect
+            ctx.fillStyle = "#e67e22"; ctx.fillRect(suspect.x, suspect.y, suspect.w, suspect.h);
+
+            // Movement Logic
+            if(keys["ArrowUp"]) deputy.y -= deputy.speed;
+            if(keys["ArrowDown"]) deputy.y += deputy.speed;
+            if(keys["ArrowRight"]) deputy.x += deputy.speed;
+            if(keys["ArrowLeft"]) deputy.x -= deputy.speed;
+            suspect.x -= (suspect.speed - 5);
+            
+            // Collision & Arrest
+            if(Math.abs(deputy.x - suspect.x) < 50 && Math.abs(deputy.y - suspect.y) < 25) {
+                if(keys["Space"]) {
+                    score++; document.getElementById("score").innerText = score;
+                    document.getElementById("dispatch").innerText = '"10-15, Prisoner in custody."';
+                    resetSuspect();
+                } else {
+                    health -= 0.5; document.getElementById("health").style.width = health + "%";
+                }
+            }
+
+            if(suspect.x < -100) { health -= 15; resetSuspect(); }
+            if(health <= 0) gameActive = false;
+
+            requestAnimationFrame(draw);
+        }
+        resetSuspect(); draw();
+    </script>
+</body>
+</html>
