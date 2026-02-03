@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Police Dispatcher HQ</title>
+    <style>
+        body { margin: 0; font-family: 'Courier New', Courier, monospace; background: #111; color: #0f0; overflow: hidden; }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        
+        /* Main Menu Styling */
+        #main-menu {
+            position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10;
+        }
+        button {
+            padding: 15px 30px; font-size: 20px; cursor: pointer; background: #222; color: #0f0;
+            border: 2px solid #0f0; transition: 0.3s;
+        }
+        button:hover { background: #0f0; color: #000; }
+
+        /* Game UI */
+        #hud { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #0f0; }
+        #map { width: 100%; height: 100%; background: #1a1a1a; position: relative; }
+        
+        .crime {
+            position: absolute; width: 20px; height: 20px; background: red; border-radius: 50%;
+            cursor: pointer; box-shadow: 0 0 15px red; animation: blink 1s infinite;
+        }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        .unit {
+            position: absolute; width: 15px; height: 15px; background: #00f; border-radius: 2px;
+            transition: all 2s linear; box-shadow: 0 0 10px blue;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Main Menu -->
+        <div id="main-menu">
+            <h1>POLICE DISPATCH SIMULATOR</h1>
+            <p>Direct units to crimes. Keep the city safe.</p>
+            <button onclick="startGame()">INITIALIZE SYSTEM</button>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud">
+            Units Available: <span id="unit-count">3</span> | 
+            Crimes Cleared: <span id="score">0</span>
+            <div id="logs" style="font-size: 12px; margin-top: 5px; color: #888;">System Ready...</div>
+        </div>
+
+        <!-- Game Map -->
+        <div id="map" onclick="mapClick(event)"></div>
+    </div>
+
+<script>
+    let score = 0;
+    let availableUnits = 3;
+    const map = document.getElementById('map');
+    const logs = document.getElementById('logs');
+
+    function startGame() {
+        document.getElementById('main-menu').style.display = 'none';
+        spawnUnit(50, 50); // Station location
+        spawnUnit(60, 50);
+        spawnUnit(70, 50);
+        setInterval(randomCrime, 4000); // New crime every 4 seconds
+    }
+
+    function randomCrime() {
+        const crime = document.createElement('div');
+        crime.className = 'crime';
+        crime.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+        crime.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+        
+        crime.onclick = (e) => {
+            e.stopPropagation();
+            dispatchUnit(crime);
+        };
+        
+        map.appendChild(crime);
+        logs.innerText = "REPORT: Active crime detected!";
+    }
+
+    function dispatchUnit(crimeElement) {
+        if (availableUnits > 0) {
+            availableUnits--;
+            updateHUD();
+            
+            // Visual "Dispatch"
+            const unit = document.createElement('div');
+            unit.className = 'unit';
+            unit.style.left = '50px'; unit.style.top = '50px';
+            map.appendChild(unit);
+
+            // Move to crime
+            setTimeout(() => {
+                unit.style.left = crimeElement.style.left;
+                unit.style.top = crimeElement.style.top;
+            }, 100);
+
+            // Resolve crime
+            setTimeout(() => {
+                crimeElement.remove();
+                unit.remove();
+                availableUnits++;
+                score++;
+                updateHUD();
+                logs.innerText = "SUCCESS: Code 4 - Scene clear.";
+            }, 4000); 
+
+        } else {
+            logs.innerText = "WARNING: No units available!";
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('unit-count').innerText = availableUnits;
+        document.getElementById('score').innerText = score;
+    }
+
+    function spawnUnit(x, y) {
+        // Just visual indicators of the station
+    }
+</script>
+</body>
+</html>
