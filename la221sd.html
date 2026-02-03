@@ -1,6 +1,60 @@
-) to find a direct URL.
-siren.src = "https://cdn.pixabay.com"; 
-siren.loop = true;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dispatch: CHP - Los Angeles</title>
+    <style>
+        :root { --chp-yellow: #F7B500; --bright-yellow: #FFFF00; --chp-blue: #003da7; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Arial Black', sans-serif; background: var(--chp-yellow); }
+        #menu { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; background: var(--chp-yellow); }
+        #title { font-size: 80px; color: var(--bright-yellow); -webkit-text-stroke: 3px black; text-shadow: 4px 4px 0px #000; margin-bottom: 30px; }
+        .btn { padding: 20px 50px; font-size: 24px; background: var(--bright-yellow); border: 5px solid black; cursor: pointer; font-weight: bold; }
+        #game-ui { display: none; width: 100%; height: 100%; }
+        #sidebar { position: absolute; right: 0; top: 0; width: 240px; height: 100%; background: rgba(0,0,0,0.9); color: white; padding: 15px; border-left: 4px solid var(--chp-blue); overflow-y: auto; }
+        .shop-item { background: #222; border: 1px solid #444; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .buy-btn { background: var(--chp-yellow); color: black; border: none; width: 100%; padding: 8px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+        #station-info { position: absolute; left: 20px; top: 20px; background: rgba(255,255,255,0.95); border: 4px solid var(--chp-blue); padding: 15px; border-radius: 8px; box-shadow: 5px 5px 15px rgba(0,0,0,0.3); }
+        #hotkey-hint { position: absolute; bottom: 20px; left: 20px; color: white; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <div id="title">Dispatch: CHP</div>
+    <button class="btn" onclick="initGame()">Start game</button>
+</div>
+
+<div id="game-ui">
+    <canvas id="gameCanvas"></canvas>
+    <div id="station-info">
+        <strong style="font-size:1.2em; color:var(--chp-blue);">CENTRAL L.A. STATION</strong><br>
+        Cash: <span id="money" style="color:green; font-weight:bold;">$500</span><br>
+        Active Units: <span id="unit-count">3</span>
+    </div>
+    <div id="hotkey-hint"><strong>SPACEBAR:</strong> Dispatch ALL units to last crime</div>
+    <div id="sidebar">
+        <h3 style="color:var(--chp-yellow); border-bottom: 1px solid #444;">PURCHASE FLEET</h3>
+        <div class="shop-item">Crown Vic ($500)<br><button class="buy-btn" onclick="buyVehicle('CrownVic')">BUY</button></div>
+        <div class="shop-item">Explorer ($800)<br><button class="buy-btn" onclick="buyVehicle('Explorer')">BUY</button></div>
+        <div class="shop-item">Charger ($1200)<br><button class="buy-btn" onclick="buyVehicle('Charger')">BUY</button></div>
+        <div class="shop-item">Tahoe ($1500)<br><button class="buy-btn" onclick="buyVehicle('Tahoe')">BUY</button></div>
+        <div class="shop-item">Dodge Durango ($2000)<br><button class="buy-btn" onclick="buyVehicle('Durango')">BUY</button></div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let money = 500, units = [], crimes = [], lastCrime = null;
+const gridSize = 100;
+
+const vehicleData = {
+    'CrownVic': { speed: 2.2, color: '#FFFFFF', cost: 500 },
+    'Explorer': { speed: 2.6, color: '#000000', cost: 800 },
+    'Charger': { speed: 3.8, color: '#FFFFFF', cost: 1200 },
+    'Tahoe': { speed: 2.4, color: '#000000', cost: 1500 },
+    'Durango': { speed: 4.2, color: '#333333', cost: 2000 }
+};
 
 function initGame() {
     document.getElementById('menu').style.display = 'none';
@@ -51,10 +105,8 @@ function dispatchUnits(crime, all = false) {
             if(!all && dispatchedCount >= 1) return; 
         }
     });
-    if (dispatchedCount > 0 && siren.paused) siren.play().catch(()=>{});
 }
 
-// Spacebar Listener
 window.addEventListener('keydown', (e) => {
     if(e.code === 'Space') {
         e.preventDefault();
@@ -65,7 +117,7 @@ window.addEventListener('keydown', (e) => {
 function gameLoop() {
     ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw Downtown LA Skyscrapers
+    // Draw LA Skyscrapers
     ctx.fillStyle = "#333";
     for(let i=0; i<canvas.width; i+=gridSize*1.5) {
         for(let j=0; j<canvas.height; j+=gridSize*1.5) {
@@ -74,7 +126,6 @@ function gameLoop() {
         }
     }
 
-    // Update Crimes
     crimes.forEach((c, i) => {
         c.unitsOnScene = units.filter(u => u.targetCrime === c && u.status === 'ON_SCENE').length;
         if(c.unitsOnScene >= c.req) {
@@ -83,7 +134,6 @@ function gameLoop() {
                 money += c.reward; document.getElementById('money').innerText = `$${money}`;
                 units.filter(u => u.targetCrime === c).forEach(u => { u.status = 'IDLE'; u.targetCrime = null; });
                 crimes.splice(i, 1);
-                if(units.every(u => u.status === 'IDLE')) siren.pause();
                 return;
             }
         }
@@ -92,7 +142,6 @@ function gameLoop() {
         ctx.fillStyle = "white"; ctx.fillText(c.name + ` (${Math.ceil(c.progress)}%)`, c.x-30, c.y-25);
     });
 
-    // Update Units
     units.forEach(u => {
         if(u.status === 'ENROUTE') {
             if(u.targetCrime) { u.tx = u.targetCrime.x; u.ty = u.targetCrime.y; }
