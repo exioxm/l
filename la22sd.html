@@ -1,0 +1,84 @@
+<script src="https://unpkg.com"></script>
+<script>
+    let map, money = 1000, units = 2, score = 0, chaos = 0;
+    let activeCrimes = 0;
+    let riotActive = false;
+    const stationPos = [34.048, -118.248]; // Near LAPD HQ / DTLA
+
+    const CRIME_TYPES = [
+        { name: "Motor Vehicle Accident (MVA)", priority: 3, colorClass: 'crime-priority-3', reward: 100, chaosIncrease: 2 },
+        { name: "Theft/Shoplifting", priority: 2, colorClass: 'crime-priority-2', reward: 150, chaosIncrease: 5 },
+        { name: "Assault (Code 3)", priority: 1, colorClass: 'crime-priority-1', reward: 300, chaosIncrease: 15 }
+    ];
+
+    function initGame() {
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+        document.getElementById('shop').style.display = 'block';
+
+        map = L.map('map', { zoomControl: false }).setView(stationPos, 15);
+        L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png').addTo(map);
+        L.marker(stationPos, { icon: L.divIcon({className: 'station-icon', iconSize: [30, 30]}) }).addTo(map);
+
+        setInterval(spawnCrime, 4000);
+        setInterval(updateChaos, 1000);
+        updateUI();
+    }
+
+    function spawnCrime() {
+        if (riotActive) return; // Stop random crimes during a riot
+
+        // Randomly select a crime type
+        const crimeType = CRIME_TYPES[Math.floor(Math.random() * CRIME_TYPES.length)];
+
+        activeCrimes++;
+        // Use coordinates slightly randomized around the station location
+        const lat = stationPos[0] + (Math.random() - 0.5) * 0.02;
+        const lng = stationPos[1] + (Math.random() - 0.5) * 0.02;
+        
+        const crimeMarker = L.marker([lat, lng], {
+            icon: L.divIcon({className: 'crime-icon ' + crimeType.colorClass, iconSize: [20, 20]})
+        }).addTo(map);
+
+        crimeMarker.bindPopup(`**PRIORITY ${crimeType.priority}**<br>${crimeType.name}`).openPopup();
+
+        crimeMarker.on('click', () => {
+            if (units > 0) {
+                dispatch(crimeMarker, crimeType);
+            } else {
+                // Audio cue here: "Dispatch, no units available 10-10"
+            }
+        });
+    }
+
+    function dispatch(marker, type) {
+        units--;
+        activeCrimes--;
+        updateUI();
+
+        // Simulate travel and resolution time (faster for low priority, longer for high?)
+        const resolutionTime = type.priority * 1500 + 2000; 
+        
+        setTimeout(() => {
+            map.removeLayer(marker);
+            units++;
+            score++;
+            money += type.reward; 
+            chaos = Math.max(0, chaos - type.chaosIncrease); // Clearing crimes reduces chaos
+            updateUI();
+        }, resolutionTime);
+    }
+
+    function updateChaos() {
+        if (activeCrimes > 0 && !riotActive) {
+            chaos += Math.ceil(activeCrimes / 2); 
+        }
+        if (chaos >= 100 && !riotActive) {
+            startRiot();
+        }
+        document.getElementById('chaos-bar').style.width = Math.min(chaos, 100) + "%";
+    }
+    
+    // ... startRiot, deployNationalGuard, suppressRiot, purchaseUnit, updateUI functions from previous message ...
+    // Note: You must copy the other functions from my previous response into this script block for it to work.
+</script>
