@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dispatch: CHP - Los Angeles</title>
+    <style>
+        :root { --chp-yellow: #F7B500; --bright-yellow: #FFFF00; --chp-blue: #003da7; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Arial Black', sans-serif; background: var(--chp-yellow); }
+        
+        #menu { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; background: var(--chp-yellow); }
+        #title { font-size: 80px; color: var(--bright-yellow); -webkit-text-stroke: 3px black; text-shadow: 4px 4px 0px #000; margin-bottom: 30px; }
+        .btn { padding: 20px 50px; font-size: 24px; background: var(--bright-yellow); border: 5px solid black; cursor: pointer; font-weight: bold; }
+
+        #game-ui { display: none; width: 100%; height: 100%; position: relative; }
+        canvas { background: #111; cursor: crosshair; }
+        
+        /* Floating Menus */
+        .context-menu { 
+            position: absolute; display: none; background: rgba(0,0,0,0.95); 
+            border: 2px solid var(--chp-yellow); padding: 10px; border-radius: 4px; z-index: 500;
+            color: white; font-family: 'Segoe UI', sans-serif; width: 180px;
+        }
+        .dispatch-btn { 
+            width: 100%; padding: 10px; margin: 4px 0; border: none; 
+            cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.2s;
+        }
+        .near-btn { background: #2E7D32; color: white; }
+        .all-btn { background: #C62828; color: white; }
+        .mil-btn { background: #37474F; color: white; border: 1px solid #546E7A; }
+        .mil-btn:hover { background: #546E7A; }
+
+        /* Fleet Bar at Bottom */
+        #fleet-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
+            background: var(--chp-yellow); border-top: 5px solid black;
+            display: flex; align-items: center; padding: 0 20px; box-sizing: border-box;
+            overflow-x: auto; gap: 15px; z-index: 100;
+        }
+        .fleet-unit { background: white; border: 2px solid black; padding: 5px 10px; height: 60px; min-width: 120px; font-size: 10px; display: flex; flex-direction: column; justify-content: center; }
+
+        /* Sidebar for Purchasing */
+        #shop-sidebar { 
+            position: absolute; right: 0; top: 0; width: 220px; height: calc(100% - 105px); 
+            background: rgba(0,0,0,0.85); border-left: 5px solid var(--chp-blue); color: white;
+            padding: 15px; overflow-y: auto; z-index: 90;
+        }
+        .shop-card { background: #222; border: 1px solid #444; padding: 8px; margin-bottom: 12px; }
+        .buy-btn { background: var(--chp-yellow); color: black; border: none; width: 100%; padding: 5px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+
+        #station-stats { position: absolute; left: 20px; top: 120px; background: rgba(0,0,0,0.7); color: white; border-left: 5px solid var(--chp-yellow); padding: 10px; z-index: 80; }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <div id="title">Dispatch: CHP</div>
+    <button class="btn" onclick="initGame()">Start game</button>
+</div>
+
+<!-- Crime Menu -->
+<div id="dispatch-menu" class="context-menu">
+    <div id="crime-name-label" style="font-weight:bold; margin-bottom:5px; text-align:center; color: var(--chp-yellow);">CRIME</div>
+    <button class="dispatch-btn near-btn" onclick="dispatchNearest()">NEAREST UNIT</button>
+    <button class="dispatch-btn all-btn" onclick="dispatchAll()">ALL UNITS</button>
+</div>
+
+<!-- MCC / National Guard Menu -->
+<div id="mcc-menu" class="context-menu">
+    <div style="font-weight:bold; margin-bottom:5px; text-align:center; color: #4CAF50;">NATIONAL GUARD</div>
+    <button class="dispatch-btn mil-btn" onclick="spawnNationalGuard('Humvee')">HUMVEE</button>
+    <button class="dispatch-btn mil-btn" onclick="spawnNationalGuard('MRAP')">MRAP</button>
+    <button class="dispatch-btn mil-btn" onclick="spawnNationalGuard('APC')">APC</button>
+    <hr>
+    <button class="dispatch-btn all-btn" style="background:#555;" onclick="deployMCC()">MOVE COMMAND CTR</button>
+</div>
+
+<div id="game-ui">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="station-stats">
+        CASH: <span id="money" style="color:var(--bright-yellow);">$500</span><br>
+        FLEET SIZE: <span id="unit-count">3</span>
+    </div>
+
+    <div id="shop-sidebar">
+        <h3 style="color:var(--chp-yellow); font-size:14px; margin-top:0;">POLICE FLEET</h3>
+        <div class="shop-card">Crown Vic ($500) <button class="buy-btn" onclick="buyVehicle('CrownVic')">BUY</button></div>
+        <div class="shop-card">Explorer ($800) <button class="buy-btn" onclick="buyVehicle('Explorer')">BUY</button></div>
+        <div class="shop-card">Charger ($1200) <button class="buy-btn" onclick="buyVehicle('Charger')">BUY</button></div>
+        <div class="shop-card">BearCat ($3000) <button class="buy-btn" onclick="buyVehicle('BearCat')">BUY</button></div>
+        <div class="shop-card">Command Ctr ($5000) <button class="buy-btn" onclick="buyVehicle('MCC')">BUY</button></div>
+    </div>
+
+    <div id="fleet-bar">
+        <!-- Fleet icons injected here -->
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const dMenu = document.getElementById('dispatch-menu');
+const mccMenu = document.getElementById('mcc-menu');
+let money = 2000, units = [], crimes = [], selectedCrime = null, selectedMCC = null;
+const gridSize = 100;
+const stationPos = { x: 0, y: 10, w: 200, h: 100 };
+
+const vehicleData = {
+    'CrownVic': { speed: 2.2, color: 'white', cost: 500, detail: 'Patrol', pwr: 1 },
+    'Explorer': { speed: 2.6, color: 'black', cost: 800, detail: 'SUV', pwr: 1.5 },
+    'Charger': { speed: 3.8, color: 'white', cost: 1200, detail: 'Pursuit', pwr: 1.2 },
+    'BearCat': { speed: 1.8, color: '#222', cost: 3000, detail: 'Armor', pwr: 5 }, // Can solo bank
+    'MCC': { speed: 1.2, color: '#444', cost: 5000, detail: 'Command', pwr: 0 },
+    'Humvee': { speed: 2.5, color: '#7a7d4d', cost: 0, detail: 'NG', pwr: 5 },
+    'MRAP': { speed: 2.0, color: '#5d603d', cost: 0, detail: 'NG', pwr: 8 },
+    'APC': { speed: 1.5, color: '#4b4d31', cost: 0, detail: 'NG', pwr: 12 }
+};
+
+function initGame() {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('game-ui').style.display = 'block';
+    canvas.width = window.innerWidth - 220;
+    canvas.height = window.innerHeight - 100;
+    stationPos.x = (canvas.width / 2) - 100;
+    
+    spawnUnit('CrownVic'); spawnUnit('CrownVic'); spawnUnit('Explorer');
+    requestAnimationFrame(gameLoop);
+    setInterval(spawnCrime, 8000);
+}
+
+function spawnUnit(type) {
+    units.push({ 
+        type, x: stationPos.x + 100, y: stationPos.y + 120, tx: 0, ty: 0, 
+        status: 'IDLE', speed: vehicleData[type].speed, targetCrime: null,
+        pwr: vehicleData[type].pwr
+    });
+    updateUI();
+}
+
+function buyVehicle(type) {
+    if(money >= vehicleData[type].cost) {
+        money -= vehicleData[type].cost;
+        spawnUnit(type);
+    }
+}
+
+function spawnNationalGuard(type) {
+    if(!selectedMCC) return;
+    const u = { 
+        type, x: selectedMCC.x, y: selectedMCC.y, tx: 0, ty: 0, 
+        status: 'IDLE', speed: vehicleData[type].speed, targetCrime: null, pwr: vehicleData[type].pwr
+    };
+    units.push(u);
+    mccMenu.style.display = 'none';
+    updateUI();
+}
+
+function spawnCrime() {
+    const types = [
+        { name: 'Bank Robbery', req: 3, reward: 2000, color: 'red', moving: false },
+        { name: 'Store Robbery', req: 1, reward: 400, color: 'orange', moving: false },
+        { name: 'Reckless Driver', req: 1, reward: 700, color: 'magenta', moving: true }
+    ];
+    const c = types[Math.floor(Math.random() * types.length)];
+    crimes.push({ ...c, x: Math.random()*(canvas.width-200)+100, y: Math.random()*(canvas.height-400)+200, progress: 100 });
+}
+
+function deployMCC() {
+    if(selectedMCC) {
+        selectedMCC.status = 'MOVING_BASE';
+        mccMenu.style.display = 'none';
+    }
+}
+
+function dispatchNearest() {
+    if(!selectedCrime) return;
+    let nearest = null, minDist = Infinity;
+    units.forEach(u => {
+        if(u.status === 'IDLE' && u.type !== 'MCC') {
+            const dist = Math.sqrt((u.x-selectedCrime.x)**2 + (u.y-selectedCrime.y)**2);
+            if(dist < minDist) { minDist = dist; nearest = u; }
+        }
+    });
+    if(nearest) { nearest.status = 'ENROUTE'; nearest.targetCrime = selectedCrime; }
+    dMenu.style.display = 'none';
+}
+
+function dispatchAll() {
+    if(!selectedCrime) return;
+    units.forEach(u => {
+        if((u.status === 'IDLE' || u.targetCrime !== selectedCrime) && u.type !== 'MCC') {
+            u.status = 'ENROUTE'; u.targetCrime = selectedCrime;
+        }
+    });
+    dMenu.style.display = 'none';
+}
+
+function gameLoop() {
+    ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Skyscrapers
+    ctx.fillStyle = "#1a1a1a";
+    for(let i=0; i<canvas.width; i+=gridSize*1.2) {
+        for(let j=150; j<canvas.height; j+=gridSize*1.2) {
+            ctx.fillRect(i+20, j+20, 60, 60);
+            ctx.strokeStyle = "#333"; ctx.strokeRect(i+20, j+20, 60, 60);
+        }
+    }
+
+    // Station
+    ctx.fillStyle = "#444"; ctx.fillRect(stationPos.x, stationPos.y, stationPos.w, stationPos.h);
+    ctx.fillStyle = var(--chp-blue); ctx.fillRect(stationPos.x, stationPos.y+70, stationPos.w, 10);
+    ctx.fillStyle = "white"; ctx.font = "12px sans-serif"; ctx.fillText("CHP HQ - L.A. DISTRICT", stationPos.x+30, stationPos.y+40);
+
+    // Crimes
+    crimes.forEach((c, i) => {
+        const onsite = units.filter(u => u.targetCrime === c && u.status === 'ON_SCENE');
+        const totalPwr = onsite.reduce((sum, u) => sum + u.pwr, 0);
+        
+        // Boost from MCC
+        let boost = 1.0;
+        units.filter(u => u.type === 'MCC').forEach(mcc => {
+            if(Math.sqrt((mcc.x-c.x)**2 + (mcc.y-c.y)**2) < 200) {
+                boost = 1.25;
+                ctx.strokeStyle = "rgba(0,255,0,0.2)"; ctx.beginPath(); ctx.arc(mcc.x, mcc.y, 200, 0, Math.PI*2); ctx.stroke();
+            }
+        });
+
+        if(totalPwr >= c.req) {
+            c.progress -= (0.05 * totalPwr * boost);
+            if(c.progress <= 0) {
+                money += c.reward; updateUI();
+                units.filter(u => u.targetCrime === c).forEach(u => { u.status = 'IDLE'; u.targetCrime = null; });
+                crimes.splice(i, 1); return;
+            }
+        }
+        ctx.fillStyle = c.color; ctx.beginPath(); ctx.arc(c.x, c.y, 15, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "white"; ctx.fillText(`${c.name} (${Math.ceil(c.progress)}%)`, c.x-40, c.y-20);
+    });
+
+    // Units
+    units.forEach(u => {
+        if((u.status === 'ENROUTE' || u.status === 'MOVING_BASE') && (u.targetCrime || u.status === 'MOVING_BASE')) {
+            let targetX = u.status === 'MOVING_BASE' ? u.tx : u.targetCrime.x;
+            let targetY = u.status === 'MOVING_BASE' ? u.ty : u.targetCrime.y;
+            let dx = targetX - u.x, dy = targetY - u.y, dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist > 5) { u.x += (dx/dist)*u.speed; u.y += (dy/dist)*u.speed; }
+            else u.status = (u.status === 'MOVING_BASE' ? 'IDLE' : 'ON_SCENE');
+        } else if (u.status === 'IDLE' && u.type !== 'MCC') {
+            let dx = (stationPos.x + 100) - u.x, dy = (stationPos.y + 120) - u.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist > 10) { u.x += (dx/dist)*u.speed; u.y += (dy/dist)*u.speed; }
+        }
+
+        // Detailed Car Drawing
+        ctx.fillStyle = vehicleData[u.type].color;
+        ctx.fillRect(u.x-8, u.y-5, 16, 10); // Body
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(u.x-2, u.y-3, 6, 6); // Windshield
+        if(u.status === 'ENROUTE') {
+            ctx.fillStyle = (Date.now()%200<100)?'red':'blue'; ctx.fillRect(u.x-8, u.y-7, 16, 2);
+        }
+    });
+    requestAnimationFrame(gameLoop);
+}
+
+canvas.addEventListener('mousedown', (e) => {
+    let found = false;
+    // Check Crimes
+    crimes.forEach(c => {
+        if(Math.sqrt((e.offsetX-c.x)**2 + (e.offsetY-c.y)**2) < 30) {
+            selectedCrime = c; dMenu.style.display = 'block'; mccMenu.style.display = 'none';
+            dMenu.style.left = e.clientX + 'px'; dMenu.style.top = (e.clientY - 120) + 'px';
+            document.getElementById('crime-name-label').innerText = c.name;
+            found = true;
+        }
+    });
+    // Check MCC
+    units.forEach(u => {
+        if(u.type === 'MCC' && Math.sqrt((e.offsetX-u.x)**2 + (e.offsetY-u.y)**2) < 30) {
+            selectedMCC = u; mccMenu.style.display = 'block'; dMenu.style.display = 'none';
+            mccMenu.style.left = e.clientX + 'px'; mccMenu.style.top = (e.clientY - 150) + 'px';
+            found = true;
+        }
+    });
+
+    if(!found && selectedMCC && selectedMCC.status === 'MOVING_BASE') {
+        selectedMCC.tx = e.offsetX; selectedMCC.ty = e.offsetY;
+    }
+    if(!found) { dMenu.style.display = 'none'; mccMenu.style.display = 'none'; }
+});
+
+function updateUI() {
+    document.getElementById('money').innerText = `$${money}`;
+    document.getElementById('unit-count').innerText = units.length;
+    const bar = document.getElementById('fleet-bar');
+    bar.innerHTML = units.map(u => `
+        <div class="fleet-unit">
+            <strong>${u.type}</strong>
+            <span style="color:${u.status === 'IDLE'?'green':'red'}">${u.status}</span>
+            <span>PWR: ${u.pwr}</span>
+        </div>
+    `).join('');
+}
+</script>
+</body>
+</html>
