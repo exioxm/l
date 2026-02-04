@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dispatch: CHP - Detailed Graphics</title>
+    <style>
+        :root { --chp-yellow: #F7B500; --bright-yellow: #FFFF00; --chp-blue: #003da7; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Arial Black', sans-serif; background: var(--chp-yellow); }
+        #menu { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; background: var(--chp-yellow); }
+        #title { font-size: 60px; color: var(--bright-yellow); -webkit-text-stroke: 3px black; text-shadow: 4px 4px 0px #000; margin-bottom: 20px; }
+        .btn { padding: 15px 40px; font-size: 22px; background: var(--bright-yellow); border: 5px solid black; cursor: pointer; font-weight: bold; }
+        #game-ui { display: none; width: 100%; height: 100%; position: relative; }
+        canvas { background: #1a1a1a; cursor: crosshair; }
+        .context-menu { position: absolute; display: none; background: rgba(0,0,0,0.95); border: 2px solid var(--chp-yellow); padding: 10px; border-radius: 4px; z-index: 500; color: white; width: 180px; }
+        .dispatch-btn { width: 100%; padding: 10px; margin: 4px 0; border: none; cursor: pointer; font-weight: bold; font-size: 11px; }
+        #fleet-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; background: var(--chp-yellow); border-top: 5px solid black; display: flex; align-items: center; padding: 0 20px; gap: 15px; overflow-x: auto; box-sizing: border-box; }
+        .fleet-unit { background: white; border: 2px solid black; padding: 5px 10px; min-width: 130px; font-size: 11px; display: flex; flex-direction: column; color: black; }
+        #shop-sidebar { position: absolute; right: 0; top: 0; width: 220px; height: calc(100% - 100px); background: rgba(0,0,0,0.9); border-left: 5px solid var(--chp-blue); color: white; padding: 15px; z-index: 90; box-sizing: border-box; }
+        .shop-card { background: #222; border: 1px solid #444; padding: 8px; margin-bottom: 12px; }
+        .buy-btn { background: var(--chp-yellow); color: black; border: none; width: 100%; padding: 5px; cursor: pointer; font-weight: bold; }
+        #stats { position: absolute; left: 20px; top: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-left: 5px solid var(--chp-yellow); z-index: 80; }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <div id="title">Dispatch: CHP</div>
+    <button class="btn" onclick="initGame()">Start game</button>
+</div>
+
+<div id="dispatch-menu" class="context-menu">
+    <div id="crime-label" style="font-weight:bold; margin-bottom:5px; text-align:center;">CRIME</div>
+    <button class="dispatch-btn" style="background:#2E7D32; color:white;" onclick="dispatchNearest()">SEND NEAREST</button>
+    <button class="dispatch-btn" style="background:#C62828; color:white;" onclick="dispatchAll()">SEND ALL UNITS</button>
+</div>
+
+<div id="game-ui">
+    <canvas id="gameCanvas"></canvas>
+    <div id="stats">CASH: <span id="money" style="color:var(--bright-yellow);">$2000</span></div>
+    <div id="shop-sidebar">
+        <h3 style="color:var(--chp-yellow);">CHP FLEET</h3>
+        <div class="shop-card">Crown Vic ($500) <button class="buy-btn" onclick="buyVehicle('CrownVic')">BUY</button></div>
+        <div class="shop-card">Explorer ($800) <button class="buy-btn" onclick="buyVehicle('Explorer')">BUY</button></div>
+    </div>
+    <div id="fleet-bar"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const dMenu = document.getElementById('dispatch-menu');
+let money = 2000, units = [], crimes = [], lights = [], mapBuildings = [];
+const roadSize = 160, laneWidth = 30;
+
+// Update vehicle data to include custom shape function
+const vehicleData = {
+    'CrownVic': { speed: 2.5, color: '#f0f0f0', cost: 500, pwr: 1, shape: drawSedan },
+    'Explorer': { speed: 2.2, color: '#111', cost: 800, pwr: 1.5, shape: drawSUV }
+};
+
+function initGame() {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('game-ui').style.display = 'block';
+    canvas.width = window.innerWidth - 220;
+    canvas.height = window.innerHeight - 100;
+    
+    generateCity();
+    spawnUnit('CrownVic'); spawnUnit('Explorer');
+    requestAnimationFrame(gameLoop);
+    setInterval(spawnCrime, 8000);
+}
+
+function generateCity() {
+    mapBuildings.push({ x: 180, y: 180, w: 120, h: 120, name: "Apartments", color: "#555" });
+    mapBuildings.push({ x: 340, y: 180, w: 120, h: 120, name: "Supermarket", color: "#4CAF50" });
+    mapBuildings.push({ x: 180, y: 340, w: 280, h: 120, name: "City Park", color: "#2E7D32" });
+
+    for(let x=roadSize; x<canvas.width; x+=roadSize) {
+        for(let y=roadSize; y<canvas.height; y+=roadSize) {
+            lights.push({ x, y, state: 'green', timer: Math.random() * 5000 });
+        }
+    }
+}
+
+function spawnUnit(type) {
+    units.push({ 
+        type, x: roadSize + 40, y: roadSize + 40, status: 'IDLE', 
+        patrolTarget: null, ...vehicleData[type], targetCrime: null,
+        dx: 1, dy: 0 // Initial direction of travel for rotation
+    });
+    updateUI();
+}
+
+function buyVehicle(type) { if(money >= vehicleData[type].cost) { money -= vehicleData[type].cost; spawnUnit(type); updateUI(); } }
+function spawnCrime() {
+    const types = [{name: 'Robbery', req: 1, reward: 500, color: 'red'}];
+    const c = types;
+    let rx = Math.floor(Math.random() * (canvas.width/roadSize)) * roadSize + roadSize/2;
+    let ry = Math.floor(Math.random() * (canvas.height/roadSize)) * roadSize + roadSize/2;
+    crimes.push({ ...c, x: rx, y: ry, progress: 100 });
+}
+function dispatchNearest() { /*...*/ } function dispatchAll() { /*...*/ }
+
+// --- Detailed Vehicle Drawing Functions ---
+function drawSedan(u, x, y) {
+    ctx.beginPath();
+    ctx.moveTo(x - 12, y - 5);
+    ctx.lineTo(x + 8, y - 5);
+    ctx.lineTo(x + 12, y); // Taper rear
+    ctx.lineTo(x + 8, y + 5);
+    ctx.lineTo(x - 12, y + 5);
+    ctx.closePath();
+    ctx.fill();
+    // Windshield
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x - 6, y - 4, 8, 8);
+}
+
+function drawSUV(u, x, y) {
+    ctx.beginPath();
+    ctx.rect(x - 10, y - 8, 22, 16); // More square shape for SUV
+    ctx.fill();
+     // Windshield
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x - 4, y - 6, 8, 12);
+}
+// --- End Drawing Functions ---
+
+
+function gameLoop() {
+    ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw Roads & Lanes (same as before)
+    for(let x=0; x<canvas.width; x+=roadSize) {
+        for(let y=0; y<canvas.height; y+=roadSize) {
+            ctx.fillStyle = "#222"; ctx.fillRect(x, 0, 80, canvas.height); ctx.fillRect(0, y, canvas.width, 80);
+            ctx.strokeStyle = "#F7B500"; ctx.setLineDash();
+            ctx.beginPath(); ctx.moveTo(x + 40, 0); ctx.lineTo(x + 40, canvas.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, y + 40); ctx.lineTo(canvas.width, y + 40); ctx.stroke();
+            ctx.setLineDash([]); 
+        }
+    }
+    // Draw Buildings
+    mapBuildings.forEach(b => { ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h); ctx.fillStyle = "white"; ctx.fillText(b.name, b.x+5, b.y+15); });
+    // Lights
+    lights.forEach(l => {
+        l.timer += 16; if(l.timer > 4000) { l.state = (l.state === 'green' ? 'red' : 'green'); l.timer = 0; }
+        ctx.fillStyle = l.state; ctx.beginPath(); ctx.arc(l.x+40, l.y+40, 6, 0, Math.PI*2); ctx.fill();
+    });
+    // Crimes (same as before)
+    crimes.forEach((c, i) => { ctx.fillStyle = c.color; ctx.beginPath(); ctx.arc(c.x, c.y, 12, 0, Math.PI*2); ctx.fill(); if (c.progress <= 0) { crimes.splice(i, 1); money += 500; updateUI(); } });
+
+
+    // Units (Movement & Drawing)
+    units.forEach(u => {
+        // Update direction based on target logic at intersections
+        if (u.x % roadSize < u.speed && u.y % roadSize < u.speed) { // Check if at an intersection node
+            if(Math.random() < 0.4) { u.dx = 1; u.dy = 0; } // Turn logic placeholder
+        }
+
+        u.x += u.dx * u.speed;
+        u.y += u.dy * u.speed;
+
+        // Visual Rotation: Calculate angle based on direction vector (dx, dy)
+        let angle = Math.atan2(u.dy, u.dx);
+        
+        ctx.save();
+        ctx.translate(u.x, u.y);
+        ctx.rotate(angle);
+        
+        // Draw the detailed shape using the assigned function
+        ctx.fillStyle = u.color;
+        u.shape(u, 0, 0); // Pass 0,0 because we are using canvas translation/rotation
+
+        if (u.status === 'ENROUTE') {
+            ctx.fillStyle = (Date.now()%200<100)?'red':'blue'; 
+            ctx.fillRect(-10, -9, 20, 3); // Siren bar
+        }
+        
+        // Turn Signals (Simple flash logic)
+        // Check if car is about to change direction (e.g. at an intersection node)
+        // Simplified visual blinker:
+        if (u.status === 'IDLE' && (Date.now() % 500 > 250) && Math.abs(u.x % roadSize - 40) < 20) {
+             ctx.fillStyle = 'orange';
+             ctx.fillRect(8, -4, 2, 8); // Right blinker (local X axis)
+        }
+
+        ctx.restore();
+    });
+
+    requestAnimationFrame(gameLoop);
+}
+
+canvas.addEventListener('mousedown', (e) => { /*...*/ });
+function updateUI() { /*...*/ }
+</script>
+</body>
+</html>
