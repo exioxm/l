@@ -7,14 +7,12 @@
         :root { --chp-yellow: #F7B500; --bright-yellow: #FFFF00; --chp-blue: #003da7; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Arial Black', sans-serif; background: var(--chp-yellow); }
         #menu { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; background: var(--chp-yellow); }
-        #title { font-size: 60px; color: var(--bright-yellow); -webkit-text-stroke: 3px black; text-shadow: 4px 4px 0px #000; margin-bottom: 20px; }
+        #title { font-size: 60px; color: var(--bright-yellow); -webkit-text-stroke: 3px black; text-shadow: 4px 4px 0px #000; margin-bottom: 20px; text-align: center; }
         .btn { padding: 15px 40px; font-size: 22px; background: var(--bright-yellow); border: 5px solid black; cursor: pointer; font-weight: bold; }
         #game-ui { display: none; width: 100%; height: 100%; position: relative; }
         canvas { background: #222; cursor: crosshair; }
         .context-menu { position: absolute; display: none; background: rgba(0,0,0,0.95); border: 2px solid var(--chp-yellow); padding: 10px; border-radius: 4px; z-index: 500; color: white; width: 180px; }
         .dispatch-btn { width: 100%; padding: 10px; margin: 4px 0; border: none; cursor: pointer; font-weight: bold; font-size: 11px; }
-        .near-btn { background: #2E7D32; color: white; }
-        .all-btn { background: #C62828; color: white; }
         #fleet-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; background: var(--chp-yellow); border-top: 5px solid black; display: flex; align-items: center; padding: 0 20px; gap: 15px; overflow-x: auto; box-sizing: border-box; }
         .fleet-unit { background: white; border: 2px solid black; padding: 5px 10px; min-width: 130px; font-size: 11px; display: flex; flex-direction: column; color: black; }
         #shop-sidebar { position: absolute; right: 0; top: 0; width: 220px; height: calc(100% - 100px); background: rgba(0,0,0,0.9); border-left: 5px solid var(--chp-blue); color: white; padding: 15px; z-index: 90; box-sizing: border-box; }
@@ -51,8 +49,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const dMenu = document.getElementById('dispatch-menu');
-let money = 2000, units = [], crimes = [], lights = [], selectedCrime = null;
-const roadSize = 120, buildingSize = 80;
+let money = 2000, units = [], crimes = [], lights = [], mapBuildings = [];
+const roadSize = 120, laneOffset = 20;
 
 const vehicleData = {
     'CrownVic': { speed: 2.2, color: '#f0f0f0', cost: 500, pwr: 1 },
@@ -65,21 +63,31 @@ function initGame() {
     canvas.width = window.innerWidth - 220;
     canvas.height = window.innerHeight - 100;
     
-    // Create Traffic Lights at every intersection
-    for(let x=roadSize; x<canvas.width; x+=roadSize) {
-        for(let y=roadSize; y<canvas.height; y+=roadSize) {
-            lights.push({ x, y, state: 'green', timer: Math.random() * 5000 });
-        }
-    }
-    
+    generateMap();
     spawnUnit('CrownVic'); spawnUnit('Explorer');
     requestAnimationFrame(gameLoop);
     setInterval(spawnCrime, 8000);
 }
 
+function generateMap() {
+    // Define specific landmark buildings [x, y, width, height, type, color]
+    mapBuildings.push({ x: 140, y: 140, w: 100, h: 220, type: 'Apartments', color: '#605040' });
+    mapBuildings.push({ x: 380, y: 140, w: 100, h: 100, type: 'Supermarket', color: '#4CAF50' });
+    mapBuildings.push({ x: 380, y: 380, w: 100, h: 100, type: 'Park', color: '#006400' });
+    mapBuildings.push({ x: 620, y: 140, w: 100, h: 100, type: 'CHP HQ', color: '#555' });
+
+    // Generate traffic lights
+    for(let x=roadSize; x<canvas.width; x+=roadSize) {
+        for(let y=roadSize; y<canvas.height; y+=roadSize) {
+            lights.push({ x, y, state: 'green', timer: Math.random() * 5000 });
+        }
+    }
+}
+
 function spawnUnit(type) {
+    // Spawn at HQ location
     units.push({ 
-        type, x: 60, y: 60, tx: 60, ty: 60, status: 'IDLE', 
+        type, x: 670, y: 120, tx: 670, ty: 120, status: 'IDLE', 
         patrolTarget: null, ...vehicleData[type], targetCrime: null 
     });
     updateUI();
@@ -91,10 +99,18 @@ function buyVehicle(type) {
 
 function spawnCrime() {
     const types = [{name: 'Bank Robbery', req: 3, reward: 2000, color: 'red'}];
-    const c = types[0];
-    let rx = Math.floor(Math.random() * (canvas.width/roadSize)) * roadSize + 60;
-    let ry = Math.floor(Math.random() * (canvas.height/roadSize)) * roadSize + 60;
+    const c = types[Math.floor(Math.random() * types.length)];
+    // Spawn on a random road coordinate
+    let rx = Math.floor(Math.random() * (canvas.width/roadSize)) * roadSize + laneOffset + (Math.random() * (roadSize - 2*laneOffset));
+    let ry = Math.floor(Math.random() * (canvas.height/roadSize)) * roadSize + laneOffset + (Math.random() * (roadSize - 2*laneOffset));
     crimes.push({ ...c, x: rx, y: ry, progress: 100 });
+}
+
+function getWaypoint() {
+    // Finds a random point within the road lanes
+    let rx = Math.floor(Math.random() * (canvas.width/roadSize)) * roadSize + laneOffset + 10;
+    let ry = Math.floor(Math.random() * (canvas.height/roadSize)) * roadSize + laneOffset + 10;
+    return {x: rx, y: ry};
 }
 
 function dispatchNearest() {
@@ -113,35 +129,29 @@ function dispatchAll() {
     dMenu.style.display = 'none';
 }
 
-function getPatrolPoint() {
-    let rx = Math.floor(Math.random() * (canvas.width/roadSize)) * roadSize + 60;
-    let ry = Math.floor(Math.random() * (canvas.height/roadSize)) * roadSize + 60;
-    return {x: rx, y: ry};
-}
-
 function gameLoop() {
     ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Draw Roads & Lanes
-    ctx.strokeStyle = "#444";
     for(let x=0; x<canvas.width; x+=roadSize) {
         for(let y=0; y<canvas.height; y+=roadSize) {
             ctx.fillStyle = "#222"; ctx.fillRect(x, y, roadSize, roadSize);
-            ctx.setLineDash([10, 10]); ctx.strokeStyle = "#F7B500";
-            ctx.beginPath(); ctx.moveTo(x + 60, y); ctx.lineTo(x + 60, y + roadSize); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x, y + 60); ctx.lineTo(x + roadSize, y + 60); ctx.stroke();
+            ctx.strokeStyle = "#F7B500"; ctx.setLineDash([10, 10]);
+            ctx.beginPath(); ctx.moveTo(x + roadSize/2, y); ctx.lineTo(x + roadSize/2, y + roadSize); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y + roadSize/2); ctx.lineTo(x + roadSize, y + roadSize/2); ctx.stroke();
+            ctx.setLineDash([]); 
         }
     }
 
     // Draw Buildings
-    ctx.fillStyle = "#0a0a0a";
-    for(let x=10; x<canvas.width; x+=roadSize) {
-        for(let y=10; y<canvas.height; y+=roadSize) {
-            ctx.fillRect(x, y, 100, 100);
-        }
-    }
+    mapBuildings.forEach(b => {
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.fillStyle = 'white'; ctx.font = '10px Arial';
+        ctx.fillText(b.type, b.x + 5, b.y + b.h - 10);
+    });
 
-    // Traffic Lights Logic
+    // Traffic Lights
     lights.forEach(l => {
         l.timer += 16;
         if(l.timer > 5000) { l.state = (l.state === 'green' ? 'red' : 'green'); l.timer = 0; }
@@ -160,15 +170,14 @@ function gameLoop() {
 
     // Units Logic (Patrol + Dispatch)
     units.forEach(u => {
-        let currentTarget = u.status === 'ENROUTE' ? u.targetCrime : u.patrolTarget;
-        if(!currentTarget && u.status === 'IDLE') u.patrolTarget = getPatrolPoint();
+        if(u.status === 'IDLE' && !u.patrolTarget) u.patrolTarget = getWaypoint();
         
-        if(currentTarget) {
-            let dx = currentTarget.x - u.x, dy = currentTarget.y - u.y, d = Math.sqrt(dx*dx+dy*dy);
+        let target = u.status === 'ENROUTE' ? u.targetCrime : u.patrolTarget;
+        if(target) {
+            let dx = target.x - u.x, dy = target.y - u.y, d = Math.sqrt(dx*dx+dy*dy);
             
-            // Traffic Light Collision
             let stopped = false;
-            if(u.status === 'IDLE') {
+            if(u.status === 'IDLE') { // Only respect lights when patrolling
                 lights.forEach(l => {
                     let ld = Math.sqrt((u.x-l.x)**2 + (u.y-l.y)**2);
                     if(ld < 40 && l.state === 'red') stopped = true;
@@ -176,18 +185,19 @@ function gameLoop() {
             }
 
             if(d > 5 && !stopped) {
+                // Ensure movement keeps unit on the road grid
                 u.x += (dx/d)*u.speed; u.y += (dy/d)*u.speed;
             } else if (d <= 5) {
-                if(u.status === 'ENROUTE') u.status = 'ON_SCENE';
-                else u.patrolTarget = getPatrolPoint();
+                if(u.status === 'ENROUTE') { u.status = 'ON_SCENE'; u.targetCrime = null; }
+                else u.patrolTarget = getWaypoint();
             }
         }
         
         // Render Car
-        ctx.fillStyle = u.color; ctx.fillRect(u.x-10, u.y-6, 20, 12);
-        if(u.status === 'ENROUTE') { 
-            ctx.fillStyle = (Date.now()%200<100)?'red':'blue'; ctx.fillRect(u.x-10, u.y-9, 20, 3); 
-        }
+        ctx.save(); ctx.translate(u.x, u.y);
+        ctx.fillStyle = u.color; ctx.fillRect(-10, -6, 20, 12);
+        if(u.status === 'ENROUTE') { ctx.fillStyle = (Date.now()%200<100)?'red':'blue'; ctx.fillRect(-10, -9, 20, 3); }
+        ctx.restore();
     });
 
     requestAnimationFrame(gameLoop);
@@ -198,6 +208,7 @@ canvas.addEventListener('mousedown', (e) => {
         if(Math.sqrt((e.offsetX-c.x)**2 + (e.offsetY-c.y)**2) < 30) {
             selectedCrime = c; dMenu.style.display = 'block';
             dMenu.style.left = e.clientX+'px'; dMenu.style.top = e.clientY+'px';
+            document.getElementById('crime-label').innerText = c.name;
         }
     });
 });
