@@ -9,11 +9,13 @@
         
         #menu { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; background: var(--chp-yellow); }
         #title { font-size: 70px; color: var(--bright-yellow); -webkit-text-stroke: 3px black; text-shadow: 4px 4px 0px #000; margin-bottom: 20px; text-align: center; }
-        .btn { padding: 20px 50px; font-size: 24px; background: var(--bright-yellow); border: 5px solid black; cursor: pointer; font-weight: bold; }
+        .btn { padding: 20px 50px; font-size: 24px; background: var(--bright-yellow); border: 5px solid black; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn:hover { transform: scale(1.05); background: white; }
 
         #game-ui { display: none; width: 100%; height: 100%; position: relative; }
         canvas { background: #111; cursor: crosshair; }
         
+        /* Floating Menus */
         .context-menu { 
             position: absolute; display: none; background: rgba(0,0,0,0.95); 
             border: 2px solid var(--chp-yellow); padding: 10px; border-radius: 4px; z-index: 500;
@@ -21,6 +23,7 @@
         }
         .dispatch-btn { width: 100%; padding: 10px; margin: 4px 0; border: none; cursor: pointer; font-weight: bold; font-size: 12px; border-radius: 2px; }
 
+        /* Fleet Bar at Bottom */
         #fleet-bar {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
             background: var(--chp-yellow); border-top: 5px solid black;
@@ -29,16 +32,17 @@
         }
         .fleet-unit { background: white; border: 2px solid black; padding: 5px 10px; height: 75px; min-width: 150px; font-size: 10px; display: flex; flex-direction: column; justify-content: center; color: black; }
 
+        /* Shop Sidebar */
         #shop-sidebar { 
             position: absolute; right: 0; top: 0; width: 230px; height: calc(100% - 100px); 
             background: rgba(0,0,0,0.9); border-left: 5px solid var(--chp-blue); color: white;
             padding: 15px; overflow-y: auto; z-index: 90; box-sizing: border-box;
         }
         .shop-card { background: #222; border: 1px solid #444; padding: 8px; margin-bottom: 12px; border-radius: 4px; }
-        .buy-btn { background: var(--chp-yellow); color: black; border: none; width: 100%; padding: 6px; cursor: pointer; font-weight: bold; }
+        .buy-btn { background: var(--chp-yellow); color: black; border: none; width: 100%; padding: 6px; cursor: pointer; font-weight: bold; transition: 0.1s; }
+        .buy-btn:active { transform: scale(0.95); }
 
         #station-stats { position: absolute; left: 20px; top: 20px; background: rgba(0,0,0,0.7); color: white; border-left: 5px solid var(--chp-yellow); padding: 10px; z-index: 80; font-size: 14px; }
-        #weather-info { color: #88ccff; font-style: italic; }
     </style>
 </head>
 <body>
@@ -61,11 +65,18 @@
         <strong>OPERATIONS HUB</strong><br>
         CASH: <span id="money" style="color:var(--bright-yellow); font-weight:bold;">$3000</span><br>
         WANTED LEVEL: <span id="wanted-level">☆☆☆☆☆</span><br>
-        WEATHER: <span id="weather-info">Clear</span>
+        WEATHER: <span id="weather-info" style="color:#88ccff;">Clear</span>
     </div>
 
     <div id="shop-sidebar">
-        <h3 style="color:var(--chp-yellow); margin-top:0;">PURCHASE</h3>
+        <!-- CHEAT BUTTON -->
+        <div class="shop-card" style="border: 2px solid gold;">
+            <span style="color: gold; font-weight: bold;">BUDGET BOOST</span><br>
+            Add $1,000,000<br>
+            <button class="buy-btn" style="background: gold; color: black;" onclick="gainMillion()">COLLECT</button>
+        </div>
+
+        <h3 style="color:var(--chp-yellow); margin-top:0;">PURCHASE FLEET</h3>
         <div class="shop-card">Crown Vic ($500) <button class="buy-btn" onclick="buyVehicle('CrownVic')">BUY</button></div>
         <div class="shop-card">Explorer ($800) <button class="buy-btn" onclick="buyVehicle('Explorer')">BUY</button></div>
     </div>
@@ -78,7 +89,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const dMenu = document.getElementById('dispatch-menu');
 let money = 3000, units = [], crimes = [], lights = [], peds = [], mapBuildings = [];
-let raindrops = [], isRaining = false, weatherTimer = 0;
+let raindrops = [], isRaining = false;
 let selectedCrime = null, wantedLevel = 0;
 const roadSize = 160;
 
@@ -110,7 +121,13 @@ function initGame() {
     
     requestAnimationFrame(gameLoop);
     setInterval(spawnCrime, 9000);
-    setInterval(toggleWeather, 20000); // Random weather check every 20s
+    setInterval(toggleWeather, 20000);
+}
+
+// --- NEW FUNCTION: GAIN 1 MILLION ---
+function gainMillion() {
+    money += 1000000;
+    updateUI();
 }
 
 function toggleWeather() {
@@ -161,11 +178,14 @@ function gameLoop() {
     ctx.fillStyle = isRaining ? "#0a0a12" : "#1a1a1a"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Roads
+    // Roads and Dual Lanes
     for(let x=0; x<canvas.width; x+=roadSize) {
         for(let y=0; y<canvas.height; y+=roadSize) {
             ctx.fillStyle = "#222"; ctx.fillRect(x, 0, 80, canvas.height); ctx.fillRect(0, y, canvas.width, 80);
-            ctx.fillStyle = "rgba(255,255,255,0.1)"; ctx.fillRect(x+20, y-10, 40, 20); ctx.fillRect(x-10, y+20, 20, 40);
+            ctx.strokeStyle = "#F7B500"; ctx.setLineDash([10, 10]);
+            ctx.beginPath(); ctx.moveTo(x + 40, 0); ctx.lineTo(x + 40, canvas.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, y + 40); ctx.lineTo(canvas.width, y + 40); ctx.stroke();
+            ctx.setLineDash([]);
         }
     }
 
@@ -176,16 +196,11 @@ function gameLoop() {
         ctx.fillStyle = l.state; ctx.beginPath(); ctx.arc(l.x+40, l.y+40, 6, 0, Math.PI*2); ctx.fill();
     });
 
-    // Weather Effect (Rain)
     if(isRaining) {
-        ctx.strokeStyle = "rgba(100,200,255,0.4)"; ctx.lineWidth = 1;
-        raindrops.forEach(r => {
-            ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x-2, r.y+r.s); ctx.stroke();
-            r.y += r.s; if(r.y > canvas.height) { r.y = -10; r.x = Math.random()*canvas.width; }
-        });
+        ctx.strokeStyle = "rgba(100,200,255,0.4)";
+        raindrops.forEach(r => { ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x-2, r.y+r.s); ctx.stroke(); r.y += r.s; if(r.y > canvas.height) r.y = -10; });
     }
 
-    // Pedestrians
     peds.forEach(p => {
         let dx = p.tx-p.x, dy = p.ty-p.y, d = Math.sqrt(dx*dx+dy*dy);
         if(d > 2) { p.x += (dx/d)*p.s; p.y += (dy/d)*p.s; } else { p.tx = Math.random()*canvas.width; p.ty = Math.random()*canvas.height; }
@@ -199,6 +214,7 @@ function gameLoop() {
         if(u.status === 'IDLE') {
             if(u.patrolDir === 'x') u.x += currentSpeed; else u.y += currentSpeed;
             if(u.x > canvas.width) u.x = 0; if(u.y > canvas.height) u.y = 0;
+            lights.forEach(l => { if(l.state === 'red' && Math.sqrt((u.x-(l.x+40))**2 + (u.y-(l.y+40))**2) < 50) u.x -= currentSpeed; });
         } else if(u.status === 'ENROUTE' && u.targetCrime) {
             let dx = u.targetCrime.x - u.x, dy = u.targetCrime.y - u.y;
             if(Math.abs(dx) > 5) u.x += Math.sign(dx) * currentSpeed;
@@ -206,8 +222,9 @@ function gameLoop() {
             else u.status = 'ON_SCENE';
         }
         
-        ctx.fillStyle = u.color; ctx.beginPath(); ctx.moveTo(u.x-10, u.y-5); ctx.lineTo(u.x+8, u.y-5); ctx.lineTo(u.x+10, u.y); ctx.lineTo(u.x+8, u.y+5); ctx.lineTo(u.x-10, u.y+5); ctx.fill();
-        if(u.status === 'ENROUTE') { ctx.fillStyle = (Date.now()%200<100)?'red':'blue'; ctx.fillRect(u.x-10, u.y-8, 20, 2); }
+        ctx.fillStyle = u.color; 
+        ctx.beginPath(); ctx.moveTo(u.x-12, u.y-6); ctx.lineTo(u.x+8, u.y-6); ctx.lineTo(u.x+12, u.y); ctx.lineTo(u.x+8, u.y+6); ctx.lineTo(u.x-12, u.y+6); ctx.fill();
+        if(u.status === 'ENROUTE') { ctx.fillStyle = (Date.now()%200<100)?'red':'blue'; ctx.fillRect(u.x-12, u.y-9, 24, 3); }
     });
 
     crimes.forEach((c, i) => {
@@ -232,7 +249,7 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 function updateUI() {
-    document.getElementById('money').innerText = `$${money}`;
+    document.getElementById('money').innerText = `$${money.toLocaleString()}`;
     let stars = "☆☆☆☆☆".split(""); for(let i=0; i<Math.floor(wantedLevel); i++) stars[i] = "★";
     document.getElementById('wanted-level').innerText = stars.join("");
     const bar = document.getElementById('fleet-bar');
