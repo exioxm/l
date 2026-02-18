@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Maintenance</title>
+    <style>
+        :root { --win-blue: #0078d7; --chrome-bg: #f1f3f4; --terminal-green: #00ff41; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: white; font-family: "Segoe UI", "Roboto", "Arial", sans-serif; }
+        
+        /* --- MENU --- */
+        #menu { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #121212; }
+        .btn-group { display: flex; gap: 20px; margin-top: 30px; }
+        button { padding: 15px 35px; border: 1px solid #444; background: #1e1e1e; color: white; cursor: pointer; border-radius: 4px; font-size: 16px; transition: 0.2s; }
+        button:hover { background: #333; border-color: #0078d4; }
+
+        /* --- DETAILED CHROMEOS RECOVERY --- */
+        #chrome-screen { display: none; background: var(--chrome-bg); height: 100vh; color: #3c4043; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .chrome-card { background: white; padding: 50px; border-radius: 8px; box-shadow: 0 1px 3px rgba(60,64,67,0.3); max-width: 600px; width: 90%; }
+        .chrome-icon { font-size: 80px; color: #d93025; margin-bottom: 20px; font-weight: bold; }
+        .chrome-h1 { font-size: 28px; margin: 0 0 15px 0; font-weight: 400; color: #202124; }
+        .chrome-p { font-size: 16px; color: #5f6368; line-height: 1.5; }
+        .chrome-model { margin-top: 30px; font-family: monospace; font-size: 12px; color: #9aa0a6; }
+        .chrome-progress-bg { width: 100%; height: 4px; background: #e8eaed; margin-top: 30px; overflow: hidden; }
+        #chrome-bar { width: 0%; height: 100%; background: #1a73e8; transition: width 0.3s; }
+
+        /* --- WINDOWS BSOD --- */
+        #win-screen { display: none; background: var(--win-blue); height: 100vh; padding: 10%; box-sizing: border-box; }
+        .sad-face { font-size: 120px; font-weight: 300; margin-bottom: 20px; }
+        .bsod-h1 { font-size: 32px; font-weight: 300; margin-bottom: 30px; }
+
+        /* --- HACKING TERMINAL --- */
+        #hacker { display: none; position: fixed; inset: 0; background: #000; color: var(--terminal-green); font-family: "Consolas", monospace; padding: 25px; z-index: 1000; overflow: hidden; }
+        .red { color: #ff3333; font-weight: bold; }
+        .blink { animation: cursor-blink 0.8s infinite; }
+        @keyframes cursor-blink { 50% { opacity: 0; } }
+
+        /* --- FAKE LOGIN DIALOG --- */
+        #login-dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 350px; background: #fff; color: #000; padding: 30px; border-radius: 2px; box-shadow: 0 0 50px rgba(0,0,0,0.8); z-index: 2000; }
+        .login-h1 { font-size: 20px; margin-bottom: 20px; color: #0078d4; }
+        input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; box-sizing: border-box; }
+        .login-btn { background: #0078d4; color: white; width: 100%; border: none; padding: 10px; cursor: pointer; }
+    </style>
+</head>
+<body onclick="startAudio()">
+
+    <div id="menu">
+        <h1 style="font-weight: 300;">System Boot Manager v4.0.2</h1>
+        <div class="btn-group">
+            <button onclick="launch('win')">Windows 11 Pro</button>
+            <button onclick="launch('chrome')">ChromeOS Recovery</button>
+        </div>
+    </div>
+
+    <!-- ChromeOS "Missing or Damaged" Screen -->
+    <div id="chrome-screen" style="display: none;">
+        <div class="chrome-card">
+            <div class="chrome-icon">!</div>
+            <h1 class="chrome-h1">ChromeOS is missing or damaged.</h1>
+            <p class="chrome-p">Please insert a recovery USB stick or SD card.<br>For help, visit <span style="color:#1a73e8">://google.com</span></p>
+            <div class="chrome-progress-bg"><div id="chrome-bar"></div></div>
+            <div class="chrome-model">Model: GOOGLE_C_EVO_LITE_2026 - HWID: 8203-0192-AC</div>
+        </div>
+    </div>
+
+    <!-- Windows BSOD -->
+    <div id="win-screen">
+        <div class="sad-face">:(</div>
+        <div class="bsod-h1">Your PC ran into a problem and needs to restart. We're just collecting some error info (0% complete).</div>
+    </div>
+
+    <!-- Hacking Terminal -->
+    <div id="hacker">
+        <div id="logs"></div>
+        <span class="blink">█</span>
+    </div>
+
+    <!-- Fake Login -->
+    <div id="login-dialog">
+        <div class="login-h1">Windows Security</div>
+        <p style="font-size: 13px;">Please enter your credentials to verify system ownership and stop the deletion process.</p>
+        <input type="text" placeholder="Username (Admin)">
+        <input type="password" placeholder="Password">
+        <button class="login-btn" onclick="alert('Password captured. System wipe finalising...')">Unlock & Repair</button>
+    </div>
+
+    <audio id="alarm" loop><source src="https://www.soundjay.com" type="audio/mpeg"></audio>
+
+    <script>
+        const alarm = document.getElementById('alarm');
+        let audioReady = false;
+        function startAudio() { audioReady = true; }
+
+        function launch(os) {
+            document.getElementById('menu').style.display = 'none';
+            if(os === 'win') {
+                document.getElementById('win-screen').style.display = 'block';
+                setTimeout(triggerHack, 3000);
+            } else {
+                document.getElementById('chrome-screen').style.display = 'flex';
+                let p = 0;
+                let intv = setInterval(() => {
+                    p += 2;
+                    document.getElementById('chrome-bar').style.width = p + "%";
+                    if(p >= 100) { clearInterval(intv); triggerHack(); }
+                }, 100);
+            }
+        }
+
+        function triggerHack() {
+            document.querySelectorAll('div:not(#hacker):not(#logs):not(#login-dialog)').forEach(d => d.style.display = 'none');
+            document.getElementById('hacker').style.display = 'block';
+            if(audioReady) alarm.play();
+
+            const lines = [
+                "> BOOTLOADER HIJACKED...",
+                "> DECRYPTING CHROME_SHADOW_PASSWORDS...",
+                "> ACCESSING C:\\Users\\%USER%\\AppData\\Roaming...",
+                "> EXFILTRATING 12.4GB OF PERSONAL ASSETS...",
+                " ",
+                "<span class='red'>[!] REMOTE ACCESS TROJAN (RAT) INSTALLED [!]</span>",
+                "> WEBCAM: ON",
+                "> MICROPHONE: ON",
+                " ",
+                "> LOCATING BROWSER COOKIES...",
+                "> FOUND: PAYPAL_SESSION, GOOGLE_AUTH_TOKEN",
+                " ",
+                "<span class='red'>CRITICAL: COMMENCING SYSTEM WIPE...</span>"
+            ];
+
+            let i = 0;
+            const logIntv = setInterval(() => {
+                if(i < lines.length) {
+                    const d = document.createElement('div');
+                    d.innerHTML = lines[i];
+                    document.getElementById('logs').appendChild(d);
+                    i++;
+                } else {
+                    clearInterval(logIntv);
+                    setTimeout(() => { document.getElementById('login-dialog').style.display = 'block'; }, 2000);
+                }
+            }, 600);
+        }
+    </script>
+</body>
+</html>
