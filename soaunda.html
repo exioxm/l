@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Siren Button</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #000; margin: 0; }
+        button { 
+            padding: 40px 80px; font-size: 3rem; cursor: pointer; border-radius: 20px; border: 4px solid #fff; 
+            background: radial-gradient(circle, #ff0000, #990000); color: white; font-weight: bold;
+            box-shadow: 0 0 20px #ff0000; transition: 0.1s;
+        }
+        button:active { transform: scale(0.95); box-shadow: 0 0 50px #ff0000; }
+    </style>
+</head>
+<body>
+
+    <button onclick="startSiren()">SIREN</button>
+
+    <script>
+        let audioCtx = null;
+
+        function startSiren() {
+            // Create audio context if it doesn't exist (required by browsers)
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            // 1. Create the main sound generator (Oscillator)
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sawtooth'; // Rougher, siren-like sound
+
+            // 2. Create a Volume control (Gain)
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            // Fade out the sound after 1.5 seconds
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+
+            // 3. Create the "Wailing" effect (LFO)
+            // This changes the pitch of the first oscillator up and down
+            const lfo = audioCtx.createOscillator();
+            lfo.frequency.value = 2; // Speed of the wail (2 times per second)
+            
+            const lfoGain = audioCtx.createGain();
+            lfoGain.gain.value = 200; // How high/low the pitch goes
+
+            // Connect everything
+            lfo.connect(lfoGain);
+            lfoGain.connect(oscillator.frequency);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Start and stop
+            oscillator.start();
+            lfo.start();
+            oscillator.stop(audioCtx.currentTime + 1.5);
+            lfo.stop(audioCtx.currentTime + 1.5);
+        }
+    </script>
+</body>
+</html>
