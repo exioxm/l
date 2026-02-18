@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chromebook Button</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; }
+        button { padding: 30px 60px; font-size: 2rem; cursor: pointer; border-radius: 15px; border: none; background: #ff4757; color: white; box-shadow: 0 8px #ff6b81; }
+        button:active { transform: translateY(4px); box-shadow: 0 4px #ff6b81; }
+    </style>
+</head>
+<body>
+
+    <button onclick="playBeep()">NOISE!</button>
+
+    <script>
+        function playBeep() {
+            // This is a "Data URI" - the sound is coded into this text
+            const beep = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTtvT197e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3o=");
+            beep.play();
+        }
+    </script>
+</body>
+</html>
