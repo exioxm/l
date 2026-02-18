@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Greg's Games | Play Free Online Games</title>
+    <style>
+        :root { --greg-orange: #ff6600; --chrome-red: #d93025; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: white; font-family: 'Segoe UI', sans-serif; cursor: default; }
+
+        /* --- MAIN MENU --- */
+        #game-site {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; background: radial-gradient(circle, #1a1a1a 0%, #050505 100%); text-align: center;
+        }
+        .logo { font-size: 72px; font-weight: 900; font-style: italic; color: var(--greg-orange); text-shadow: 0 0 20px rgba(255,102,0,0.4); }
+        .play-btn {
+            background: var(--greg-orange); color: white; border: none; padding: 25px 100px; font-size: 32px;
+            font-weight: 900; border-radius: 8px; cursor: pointer; box-shadow: 0 8px 0 #cc5200;
+        }
+        #win-trigger { position: fixed; bottom: 0; left: 0; width: 15px; height: 15px; cursor: pointer; opacity: 0.01; background: white; z-index: 99999; }
+
+        /* --- SCREENS --- */
+        #win-bsod, #chrome-console { display: none; position: fixed; inset: 0; z-index: 500; }
+        #win-bsod { background: #0078d7; padding: 10%; box-sizing: border-box; }
+        #chrome-console { background: #202124; color: #8ab4f8; font-family: 'Consolas', monospace; padding: 25px; font-size: 14px; }
+
+        /* --- WEBCAM ALERT --- */
+        #cam-alert { position: fixed; top: 20px; right: 20px; color: red; font-weight: bold; display: none; z-index: 10001; animation: blink 1s infinite; font-size: 18px; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- SECURITY MODAL --- */
+        #security-modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 420px; background: white; color: #3c4043; padding: 30px; border-radius: 12px;
+            box-shadow: 0 0 0 5000px rgba(0,0,0,0.96); z-index: 9000; text-align: left;
+        }
+        .timer-box { font-size: 48px; font-weight: bold; color: var(--chrome-red); text-align: center; margin: 15px 0; font-family: monospace; }
+        .input-field { width: 100%; padding: 14px; margin: 15px 0; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; color: black; outline: none; }
+        .verify-btn { background: #1a73e8; color: white; border: none; width: 100%; padding: 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; }
+
+        /* --- SCAM ADS --- */
+        .scam-ad {
+            position: fixed; width: 320px; border: 4px solid #ffcc00; background: #fff; color: #000; 
+            z-index: 10000; box-shadow: 12px 12px 0 #000; animation: pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+        .scam-header { background: linear-gradient(90deg, #ff0000, #ff6600); color: white; padding: 6px; font-weight: bold; font-size: 14px; text-align: center; }
+        .scam-body { padding: 20px; text-align: center; font-size: 20px; font-weight: 900; color: #d93025; text-transform: uppercase; }
+        
+        .meltdown { animation: shake 0.05s infinite; filter: invert(0.2) sepia(1) saturate(5) hue-rotate(320deg); }
+        @keyframes shake { 0% { transform: translate(3px, 3px); } 50% { transform: translate(-3px, -3px); } 100% { transform: translate(0, 0); } }
+    </style>
+</head>
+<body onclick="initAudio()">
+
+    <div id="game-site">
+        <div class="logo">GREG'S GAMES</div>
+        <p style="color: #555; letter-spacing: 2px;">SECURE SSL ENCRYPTED PORTAL</p>
+        <button class="play-btn" onclick="startChrome()">PLAY</button>
+        <div id="win-trigger" onclick="startWin()"></div>
+    </div>
+
+    <div id="cam-alert">● LIVE: WEBCAM & MIC ACTIVE</div>
+
+    <div id="win-bsod">
+        <div style="font-size: 130px; font-weight: 300;">:(</div>
+        <h1 style="font-weight: 300; font-size: 32px;">Your PC ran into a problem and needs to restart.</h1>
+        <p id="win-p" style="font-size: 20px;">Collecting error info: 0% complete</p>
+    </div>
+
+    <div id="chrome-console">
+        <div id="con-logs"></div>
+    </div>
+
+    <div id="security-modal">
+        <h2 style="color: var(--chrome-red); margin: 0; font-size: 22px;">🛡️ GOOGLE PROTECT</h2>
+        <p style="font-size: 14px; margin-top: 10px;">Security Breach! A script from <b>Greg's Games</b> is bypassing Chrome Sandboxing to steal local biometric data. Enter your master password to kill the process.</p>
+        <div class="timer-box" id="timer">00:30</div>
+        <input type="password" id="pass-box" class="input-field" placeholder="Google Account Password" autofocus>
+        <div id="err-text" style="color:red; font-size:12px; display:none; margin-bottom:10px; font-weight:bold;">WRONG PASSWORD. DATA DELETION ACCELERATING.</div>
+        <button class="verify-btn" onclick="handleVerify()">STOP DATA WIPE</button>
+    </div>
+
+    <audio id="siren" loop><source src="https://www.soundjay.com" type="audio/mpeg"></audio>
+    <audio id="pop-sound"><source src="https://www.soundjay.com" type="audio/mpeg"></audio>
+
+    <script>
+        const siren = document.getElementById('siren');
+        const popSound = document.getElementById('pop-sound');
+        let isHacking = false;
+        let timeLeft = 30;
+        let audioInit = false;
+
+        function initAudio() { audioInit = true; siren.volume = 0.4; popSound.volume = 0.6; }
+
+        window.onbeforeunload = (e) => { if(isHacking) { e.preventDefault(); e.returnValue = ''; } };
+
+        function startWin() { 
+            isHacking = true; document.getElementById('game-site').style.display='none'; 
+            document.getElementById('win-bsod').style.display='block'; 
+            let p=0; let i=setInterval(()=>{ p+=5; document.getElementById('win-p').innerText=`Collecting error info: ${p}% complete`; if(p>=100){clearInterval(i); triggerFinal();} }, 150);
+        }
+
+        function startChrome() {
+            isHacking = true; document.getElementById('game-site').style.display='none';
+            document.getElementById('chrome-console').style.display='block';
+            let i=0; const lines=["[INIT] Injecting ChromeOS payload...", "[SENSORS] Camera: ACCESS GRANTED", "[SENSORS] Mic: ACCESS GRANTED", "[NET] Uploading /Local State/Login Data...", "[SYS] Bypassing Google Authenticator...", "[!] ENCRYPTING HOME DIRECTORY..."];
+            const logIntv = setInterval(()=>{
+                if(i<lines.length){ 
+                    const d=document.createElement('div'); d.innerText=`[${new Date().toLocaleTimeString()}] ${lines[i]}`; 
+                    document.getElementById('chrome-console').appendChild(d); i++; 
+                } else { clearInterval(logIntv); document.getElementById('cam-alert').style.display='block'; triggerFinal(); }
+            }, 350);
+        }
+
+        function triggerFinal() {
+            document.getElementById('security-modal').style.display = 'block';
+            if(audioInit) siren.play();
+            const countdown = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = `00:${timeLeft < 10 ? '0' + timeLeft : timeLeft}`;
+                if (timeLeft <= 0) { clearInterval(countdown); startMeltdown(); }
+            }, 1000);
+        }
+
+        function handleVerify() {
+            if (document.getElementById('pass-box').value === "greg") {
+                isHacking = false; alert("Access Restored. System Cleaned."); location.reload();
+            } else {
+                document.getElementById('err-text').style.display = 'block';
+                document.getElementById('pass-box').value = "";
+                for(let i=0; i<4; i++) setTimeout(spawnScam, i * 100);
+            }
+        }
+
+        function startMeltdown() {
+            document.body.classList.add('meltdown');
+            setInterval(spawnScam, 150);
+        }
+
+        function spawnScam() {
+            if(audioInit) { popSound.pause(); popSound.currentTime = 0; popSound.play(); }
+            const ads = [
+                "💎 FREE 1M ROBUX! 💎",
+                "🎁 YOU WON AN IPHONE! 🎁",
+                "💰 $5,000 CASH CLAIM! 💰",
+                "🚀 DOWNLOAD MORE RAM! 🚀",
+                "⚠️ VIRUS DETECTED! ⚠️",
+                "🛑 PC HACKED! CALL NOW! 🛑"
+            ];
+            const ad = document.createElement('div');
+            ad.className = 'scam-ad';
+            ad.style.top = Math.random() * 75 + "%";
+            ad.style.left = Math.random() * 75 + "%";
+            ad.innerHTML = `<div class="scam-header">URGENT ALERT - CLICK TO FIX</div>
+                            <div class="scam-body">${ads[Math.floor(Math.random()*ads.length)]}</div>`;
+            document.body.appendChild(ad);
+        }
+    </script>
+</body>
+</html>
