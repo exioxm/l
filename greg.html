@@ -1,78 +1,188 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Greg's Official Game - 100% Legit</title>
+    <meta charset="UTF-8">
+    <title>Greg's Games - Official</title>
     <style>
-        body { 
-            background: #121212; color: #00ff00; font-family: 'Courier New', Courier, monospace;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;
-            overflow: hidden;
+        :root { --neon: #00f3ff; --error: #ff4757; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #000; }
+        
+        /* --- MAIN MENU --- */
+        #main-menu {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
+            background: radial-gradient(circle, #001a33 0%, #000 100%);
         }
-        .scam-box {
-            border: 2px solid #00ff00; padding: 40px; text-align: center; background: #000;
-            box-shadow: 0 0 15px #00ff00; border-radius: 10px;
+        .neon-title {
+            font-size: 5rem; color: var(--neon); text-transform: uppercase;
+            text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon), 0 0 40px var(--neon);
+            margin-bottom: 30px; letter-spacing: 10px; font-weight: 900;
         }
-        input { 
-            display: block; margin: 15px auto; padding: 10px; width: 250px; 
-            background: #222; border: 1px solid #00ff00; color: #fff;
+        .play-btn {
+            padding: 20px 60px; font-size: 1.5rem; background: transparent; color: var(--neon);
+            border: 3px solid var(--neon); border-radius: 50px; cursor: pointer;
+            box-shadow: 0 0 15px var(--neon), inset 0 0 15px var(--neon);
+            transition: 0.3s; font-weight: bold; text-transform: uppercase;
         }
-        button {
-            padding: 15px 30px; font-weight: bold; background: #00ff00; color: #000;
-            border: none; cursor: pointer; border-radius: 5px; font-size: 1.2rem;
+        .play-btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 50px var(--neon); }
+
+        /* --- CONSOLE LOG --- */
+        #console-screen { display: none; background: #0c0c0c; color: #00ff00; font-family: monospace; padding: 20px; height: 100vh; overflow-y: auto; }
+
+        /* --- CHROME RECOVERY --- */
+        #recovery-screen { 
+            display: none; background: #fff; color: #333; height: 100vh; 
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
         }
-        button:hover { background: #00cc00; }
-        .flash { animation: alert 0.2s infinite; }
-        @keyframes alert {
-            0% { background-color: red; }
-            50% { background-color: blue; }
-            100% { background-color: red; }
+        .recovery-icon { width: 100px; margin-bottom: 20px; }
+
+        /* --- CHROME SECURITY POPUP --- */
+        #security-popup {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 400px; background: #fff; border: 1px solid #ccc; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 20px; z-index: 100; border-radius: 8px;
         }
+        #security-popup input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; }
+        #security-popup button { width: 100%; padding: 10px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+        /* --- SCAM POPUPS --- */
+        .scam-popup {
+            position: absolute; width: 250px; background: #f1f1f1; border: 2px solid #333;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3); z-index: 999; cursor: move;
+        }
+        .scam-header { background: #333; color: white; padding: 5px 10px; display: flex; justify-content: space-between; cursor: grab; }
+        .scam-content { padding: 15px; text-align: center; color: #000; font-weight: bold; }
+        .close-btn { cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="scam-box" id="box">
-        <h1>GREG'S GAME V2.0</h1>
-        <p>Login to claim 1,000,000 Robux / V-Bucks!</p>
-        <input type="text" placeholder="Username">
-        <input type="password" placeholder="Password">
-        <button onclick="triggerScam()">LOGIN & DOWNLOAD</button>
+    <!-- Main Menu -->
+    <div id="main-menu">
+        <h1 class="neon-title">Greg's Games</h1>
+        <button class="play-btn" onclick="startSequence()">Play</button>
+    </div>
+
+    <!-- Console -->
+    <div id="console-screen"></div>
+
+    <!-- Chrome Recovery -->
+    <div id="recovery-screen">
+        <img class="recovery-icon" src="https://www.gstatic.com">
+        <h1>Chrome OS is missing or damaged.</h1>
+        <p>Please insert a recovery USB stick or SD card.</p>
+    </div>
+
+    <!-- Security Popup -->
+    <div id="security-popup">
+        <h2 style="color:#d93025; font-size: 1.2rem;">Chrome Security Alert</h2>
+        <p>Your Chromebook is locked. Enter Greg's Password to continue.</p>
+        <input type="password" id="pass" placeholder="Password">
+        <p id="err" style="color:red; font-size:12px; display:none;">Incorrect password. System lock in progress...</p>
+        <p id="timer" style="font-weight:bold; color:red;"></p>
+        <button onclick="checkPass()">Unlock</button>
     </div>
 
     <script>
-        let audioCtx = null;
+        function startSequence() {
+            document.getElementById('main-menu').style.display = 'none';
+            const consoleBox = document.getElementById('console-screen');
+            consoleBox.style.display = 'block';
 
-        function triggerScam() {
-            // Flash the background like a siren
-            document.body.classList.add('flash');
-            
-            // Generate the Siren Sound
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            const lfo = audioCtx.createOscillator();
-            const lfoGain = audioCtx.createGain();
+            const logs = [
+                "> INITIALIZING GREG_LOADER.EXE...",
+                "> TARGET: CHROMEBOOK_INTERNAL_STORAGE",
+                "> ACCESSING SAVED PASSWORDS...",
+                "> COPYING GOOGLE_AUTH_COOKIES...",
+                "> UPLOADING 4.2GB TO GREG_SERVER_CLOUD...",
+                "> PASSWORDS STOLEN SUCCESSFULLY.",
+                "> BYPASSING CHROME_OS_KERNEL...",
+                "> SYSTEM CRASH INITIATED."
+            ];
 
-            oscillator.type = 'sawtooth';
-            lfo.frequency.value = 2; // Wail speed
-            lfoGain.gain.value = 300; // Pitch range
+            let i = 0;
+            const interval = setInterval(() => {
+                if(i < logs.length) {
+                    consoleBox.innerHTML += `<p>${logs[i]}</p>`;
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(showRecovery, 2000);
+                }
+            }, 1200);
+        }
 
-            lfo.connect(lfoGain);
-            lfoGain.connect(oscillator.frequency);
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            oscillator.start();
-            lfo.start();
-
-            // Stop after 5 seconds
+        function showRecovery() {
+            document.getElementById('console-screen').style.display = 'none';
+            document.getElementById('recovery-screen').style.display = 'flex';
             setTimeout(() => {
-                oscillator.stop();
-                lfo.stop();
-                document.body.classList.remove('flash');
-                alert("SCAM DETECTED! Just kidding, Greg. Nice siren though.");
-            }, 5000);
+                document.getElementById('security-popup').style.display = 'block';
+            }, 4000);
+        }
+
+        function checkPass() {
+            const val = document.getElementById('pass').value;
+            if(val === 'greg') {
+                alert("Access Granted. Greg is watching.");
+            } else {
+                document.getElementById('err').style.display = 'block';
+                startTimer(15);
+            }
+        }
+
+        function startTimer(seconds) {
+            let timeLeft = seconds;
+            const timerEl = document.getElementById('timer');
+            const countdown = setInterval(() => {
+                timerEl.innerText = `System Wipe in: ${timeLeft}s`;
+                if(timeLeft <= 0) {
+                    clearInterval(countdown);
+                    spawnScams();
+                }
+                timeLeft--;
+            }, 1000);
+        }
+
+        function spawnScams() {
+            const scamTypes = [
+                "FREE ROBUX NO HUMAN VERIFICATION!",
+                "MCDONALDS 99% OFF DEALS",
+                "PUSD IT DEPARTMENT: URGENT FIX",
+                "GREG WANTS TO CHAT",
+                "VIRUS DETECTED: CLICK HERE"
+            ];
+            
+            setInterval(() => {
+                const type = scamTypes[Math.floor(Math.random() * scamTypes.length)];
+                createPopup(type);
+            }, 500);
+        }
+
+        function createPopup(text) {
+            const popup = document.createElement('div');
+            popup.className = 'scam-popup';
+            popup.style.top = Math.random() * 80 + '%';
+            popup.style.left = Math.random() * 80 + '%';
+            
+            popup.innerHTML = `
+                <div class="scam-header"><span>Alert</span><span class="close-btn" onclick="this.parentElement.parentElement.remove()">X</span></div>
+                <div class="scam-content">${text}</div>
+            `;
+            document.body.appendChild(popup);
+            makeDraggable(popup);
+        }
+
+        function makeDraggable(el) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            el.querySelector('.scam-header').onmousedown = (e) => {
+                pos3 = e.clientX; pos4 = e.clientY;
+                document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+                document.onmousemove = (e) => {
+                    pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX; pos4 = e.clientY;
+                    el.style.top = (el.offsetTop - pos2) + "px";
+                    el.style.left = (el.offsetLeft - pos1) + "px";
+                };
+            };
         }
     </script>
 </body>
