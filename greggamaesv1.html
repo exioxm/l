@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Greg's Games | Play Free Online Games</title>
     <style>
-        :root { --chrome-bg: #f1f3f4; --greg-orange: #ff6600; --chrome-red: #d93025; --win-blue: #0078d7; }
+        :root { --chrome-bg: #f1f3f4; --greg-orange: #ff6600; --chrome-red: #d93025; --chrome-blue: #1a73e8; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: white; font-family: 'Roboto', 'Segoe UI', sans-serif; cursor: default; }
 
         /* --- MAIN MENU --- */
@@ -20,84 +20,68 @@
         }
         #win-trigger { position: fixed; bottom: 0; left: 0; width: 15px; height: 15px; cursor: pointer; opacity: 0.01; background: white; z-index: 99999; }
 
-        /* --- DETAILED CHROMEOS RECOVERY --- */
+        /* --- CHROMEOS RECOVERY BACKDROP --- */
         #chrome-recovery {
             display: none; background: var(--chrome-bg); height: 100vh; color: #3c4043;
-            flex-direction: column; align-items: center; justify-content: center; text-align: center;
-            position: fixed; inset: 0; z-index: 500;
+            flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 500;
         }
-        .chrome-card { background: white; padding: 60px; border-radius: 8px; box-shadow: 0 1px 3px rgba(60,64,67,0.3); max-width: 600px; width: 90%; }
+        .chrome-card { background: white; padding: 60px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); max-width: 600px; width: 90%; }
         .chrome-icon { font-size: 80px; color: #d93025; margin-bottom: 20px; font-weight: bold; }
-        .chrome-model { margin-top: 30px; font-family: monospace; font-size: 11px; color: #9aa0a6; }
 
-        /* --- WINDOWS BSOD --- */
-        #win-bsod { display: none; background: var(--win-blue); height: 100vh; padding: 10%; position: fixed; inset: 0; z-index: 501; }
-
-        /* --- CHROME SECURITY MODAL (PASSWORD BOX) --- */
+        /* --- CHROME SECURITY MODAL --- */
         #security-modal {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 420px; background: white; color: #3c4043; padding: 35px; border-radius: 12px;
             box-shadow: 0 0 0 5000px rgba(0,0,0,0.85); z-index: 9000; text-align: left;
         }
         .timer-box { font-size: 40px; font-weight: bold; color: var(--chrome-red); text-align: center; margin: 15px 0; font-family: monospace; }
-        .input-field { width: 100%; padding: 14px; margin: 15px 0; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; color: black; box-sizing: border-box; }
-        .verify-btn { background: #1a73e8; color: white; border: none; width: 100%; padding: 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .input-field { width: 100%; padding: 14px; margin: 15px 0; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; color: black; box-sizing: border-box; outline: none; }
+        .verify-btn { background: var(--chrome-blue); color: white; border: none; width: 100%; padding: 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        /* --- DETAILED DRAGGABLE SCAM POPUPS --- */
+        /* --- DRAGGABLE CHROME POPUPS --- */
         .scam-window {
-            position: absolute; width: 320px; background: #ece9d8; border: 3px solid #0054e3;
-            border-radius: 8px 8px 0 0; z-index: 10000; box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
-            cursor: move; font-family: 'Tahoma', sans-serif; overflow: hidden;
+            position: absolute; width: 340px; background: #fff; border-radius: 8px;
+            z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: move; border: 1px solid #dadce0; overflow: hidden;
         }
         .scam-title {
-            background: linear-gradient(180deg, #0058e6 0%, #003db3 100%); color: white;
-            padding: 5px 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;
+            background: #f8f9fa; color: #202124; padding: 10px 15px; font-size: 13px; font-weight: 500;
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dadce0;
         }
-        .close-btn { background: #e04343; color: white; border: 1px solid white; width: 18px; height: 18px; line-height: 14px; text-align: center; cursor: pointer; border-radius: 2px; font-size: 12px; }
-        .scam-body { padding: 20px; background: #fff; color: #000; text-align: center; font-size: 14px; }
-        .scam-robux { color: #2e7d32; font-weight: bold; font-size: 18px; }
+        .close-btn { color: #5f6368; font-size: 18px; cursor: pointer; padding: 0 5px; }
+        .scam-body { padding: 20px; background: #fff; color: #3c4043; text-align: left; }
+        .scam-btn { margin-top: 15px; background: #1a73e8; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; width: 100%; }
 
-        /* --- MELTDOWN SHAKE --- */
-        .meltdown { animation: shake 0.1s infinite; }
-        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-3px, -1px); } 100% { transform: translate(1px, -2px); } }
+        .meltdown { animation: shake 0.15s infinite; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-2px, -1px); } 100% { transform: translate(1px, -2px); } }
     </style>
 </head>
-<body onclick="initAudio()">
+<body>
 
     <div id="game-site">
         <div class="logo">GREG'S GAMES</div>
-        <p style="color: #666;">LOADING SECURE ARCADE...</p>
-        <button class="play-btn" onclick="startChrome()">PLAY</button>
-        <div id="win-trigger" onclick="startWin()"></div>
+        <p style="color: #666;">LOADING SECURE GAMES...</p>
+        <button class="play-btn" onclick="startPrank('chrome')">PLAY</button>
+        <div id="win-trigger" onclick="startPrank('win')"></div>
     </div>
 
-    <!-- CHROME RECOVERY -->
     <div id="chrome-recovery">
         <div class="chrome-card">
             <div class="chrome-icon">!</div>
             <h1 style="font-size:28px; color:#202124; margin:0 0 15px 0;">ChromeOS is missing or damaged.</h1>
-            <p style="font-size:16px; color:#5f6368;">Please insert a recovery USB stick or SD card.<br>Model: GOOGLE_EVO_2026_PRO</p>
-            <div class="chrome-model">HWID: 0219-9942-88AC-J19</div>
+            <p style="font-size:16px; color:#5f6368;">Please insert a recovery USB stick.<br>Model: GOOGLE_C_EVO_LITE_2026</p>
         </div>
     </div>
 
-    <!-- WINDOWS BSOD -->
-    <div id="win-bsod">
-        <div style="font-size: 120px; font-weight: 300;">:(</div>
-        <h1 style="font-weight: 300;">Your PC ran into a problem and needs to restart.</h1>
-        <p id="win-p">Collecting error info: 0% complete</p>
-    </div>
-
-    <!-- PERSISTENT SECURITY TRAP -->
     <div id="security-modal">
-        <h2 style="color: var(--chrome-red); margin:0;">🛡️ CRITICAL BREACH</h2>
-        <p style="font-size: 14px; margin-top: 10px;">Unrecognized script from <b>Greg's Games</b> has hijacked the bootloader. Enter <b>Administrator Password</b> to secure files.</p>
+        <h2 style="color: var(--chrome-red); margin:0;">🛡️ Chrome Security Warning</h2>
+        <p style="font-size: 14px; margin-top: 10px;">An unauthorized script from <b>Greg's Games</b> is attempting to sync corrupted local data. Enter your password to abort the wipe.</p>
         <div class="timer-box" id="timer">00:10</div>
         <input type="password" id="pass-box" class="input-field" placeholder="System Password" autofocus>
-        <div id="err-text" style="color:red; font-size:12px; display:none; margin-bottom:10px; font-weight:bold;">AUTH ERROR. DATA DELETION ACCELERATING.</div>
-        <button class="verify-btn" onclick="handleVerify()">STOP WIPE</button>
+        <button class="verify-btn" onclick="handleVerify()">STOP PROCESS</button>
     </div>
 
+    <!-- Audio Elements -->
     <audio id="siren" loop><source src="https://www.soundjay.com" type="audio/mpeg"></audio>
     <audio id="pop-sound"><source src="https://www.soundjay.com" type="audio/mpeg"></audio>
 
@@ -106,28 +90,32 @@
         const popSound = document.getElementById('pop-sound');
         let isHacking = false;
         let timeLeft = 10;
-        let audioInit = false;
+
+        // Bypassing browser mute on first click
+        function startPrank(type) {
+            // Unlock audio on interaction
+            siren.play().then(() => {
+                siren.pause();
+                siren.currentTime = 0;
+            }).catch(e => console.log("Audio unlock failed:", e));
+
+            document.getElementById('game-site').style.display = 'none';
+            isHacking = true;
+
+            if (type === 'chrome') {
+                document.getElementById('chrome-recovery').style.display = 'flex';
+                setTimeout(triggerSecurity, 3000);
+            } else {
+                // Windows logic would go here
+                triggerSecurity();
+            }
+        }
 
         window.onbeforeunload = (e) => { if(isHacking) { e.preventDefault(); e.returnValue = ''; } };
 
-        function initAudio() { audioInit = true; siren.volume = 0.4; popSound.volume = 0.5; }
-
-        function startWin() { 
-            isHacking = true; document.getElementById('game-site').style.display='none'; 
-            document.getElementById('win-bsod').style.display='block'; 
-            let p=0; let i=setInterval(()=>{ p+=10; document.getElementById('win-p').innerText=`Collecting error info: ${p}% complete`; if(p>=100){clearInterval(i); triggerFinal();} }, 120);
-        }
-
-        function startChrome() {
-            isHacking = true;
-            document.getElementById('game-site').style.display='none';
-            document.getElementById('chrome-recovery').style.display='flex';
-            setTimeout(triggerFinal, 3000); // 3 second delay
-        }
-
-        function triggerFinal() {
+        function triggerSecurity() {
             document.getElementById('security-modal').style.display = 'block';
-            if(audioInit) siren.play();
+            siren.play(); // This should now work because of the initial click
             const countdown = setInterval(() => {
                 timeLeft--;
                 document.getElementById('timer').innerText = `00:${timeLeft < 10 ? '0' + timeLeft : timeLeft}`;
@@ -137,9 +125,8 @@
 
         function handleVerify() {
             if (document.getElementById('pass-box').value === "greg") {
-                isHacking = false; alert("Access Restored. Prank Ended."); location.reload();
+                isHacking = false; alert("Security override successful."); location.reload();
             } else {
-                document.getElementById('err-text').style.display = 'block';
                 document.getElementById('pass-box').value = "";
                 for(let i=0; i<3; i++) spawnScam();
             }
@@ -151,32 +138,29 @@
         }
 
         function spawnScam() {
-            if(audioInit) { popSound.pause(); popSound.currentTime = 0; popSound.play(); }
+            popSound.currentTime = 0;
+            popSound.play();
             const types = [
-                {t: "WINNER!", b: "<span class='scam-robux'>FREE 1,000,000 ROBUX!</span><br>Click to Claim Now!"},
-                {t: "Security Alert", b: "Your webcam is being recorded!<br><b>CALL SUPPORT: +1-800-GREG</b>"},
-                {t: "Apple Store", b: "🎁 You won an iPhone 16 Pro! 🎁<br>Limited time offer!"}
+                {t: "System Alert", h: "Free Rewards Found", b: "You have been selected for 1,000,000 Free Robux!", btn: "Claim Now"},
+                {t: "Chrome Update", h: "Webcam Recording", b: "Security breach detected. Webcam feed is being broadcast.", btn: "Disable Feed"}
             ];
             const type = types[Math.floor(Math.random()*types.length)];
-            
             const win = document.createElement('div');
             win.className = 'scam-window';
             win.style.top = Math.random() * 60 + 10 + "%";
             win.style.left = Math.random() * 60 + 10 + "%";
-            win.innerHTML = `<div class="scam-title"><span>${type.t}</span><div class="close-btn" onclick="this.parentElement.parentElement.remove()">X</div></div>
-                             <div class="scam-body">${type.b}</div>`;
+            win.innerHTML = `<div class="scam-title"><span>${type.t}</span><div class="close-btn" onclick="this.parentElement.parentElement.remove()">✕</div></div>
+                             <div class="scam-body"><span style="font-weight:bold;color:red;">${type.h}</span><p style="font-size:13px;">${type.b}</p><button class="scam-btn">${type.btn}</button></div>`;
             
-            // Make Draggable
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            // Drag Logic
             win.onmousedown = (e) => {
-                e.preventDefault();
-                pos3 = e.clientX; pos4 = e.clientY;
+                if(e.target.className === 'scam-btn') return;
+                let p3 = e.clientX, p4 = e.clientY;
                 document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
                 document.onmousemove = (e) => {
-                    pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
-                    pos3 = e.clientX; pos4 = e.clientY;
-                    win.style.top = (win.offsetTop - pos2) + "px";
-                    win.style.left = (win.offsetLeft - pos1) + "px";
+                    win.style.top = (win.offsetTop - (p4 - e.clientY)) + "px";
+                    win.style.left = (win.offsetLeft - (p3 - e.clientX)) + "px";
+                    p3 = e.clientX; p4 = e.clientY;
                 };
             };
             document.body.appendChild(win);
