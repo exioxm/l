@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Windows Boot Manager</title>
+    <style>
+        :root { --win-blue: #0078d7; --terminal-green: #00ff41; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: white; font-family: "Segoe UI", "Arial", sans-serif; cursor: default; }
+        
+        /* --- SELECTOR MENU --- */
+        #menu { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: radial-gradient(circle, #202020 0%, #000 100%); }
+        .btn-group { display: flex; gap: 20px; margin-top: 30px; }
+        button { padding: 12px 35px; border: 1px solid #555; background: #1a1a1a; color: white; cursor: pointer; border-radius: 3px; font-size: 14px; transition: 0.2s; }
+        button:hover { background: #333; border-color: #0078d4; box-shadow: 0 0 10px rgba(0,120,212,0.5); }
+
+        /* --- ACCURATE WIN11 BSOD --- */
+        #bsod { display: none; background: var(--win-blue); height: 100vh; padding: 8% 10%; box-sizing: border-box; user-select: none; }
+        .sad-face { font-size: 140px; font-weight: 300; margin-bottom: 25px; }
+        .bsod-header { font-size: 32px; font-weight: 300; line-height: 1.3; margin-bottom: 30px; }
+        .progress-text { font-size: 20px; margin-bottom: 50px; }
+        .bsod-info { display: flex; gap: 30px; align-items: flex-start; }
+        .qr-placeholder { width: 110px; height: 110px; background: white; padding: 8px; box-sizing: border-box; }
+        .qr-placeholder img { width: 100%; height: 100%; filter: contrast(150%); }
+        .stop-details { font-size: 14px; line-height: 1.7; color: #e0e0e0; }
+
+        /* --- ADVANCED HACKING TERMINAL --- */
+        #hacker { display: none; position: fixed; inset: 0; background: #000; color: var(--terminal-green); font-family: "Consolas", "Lucida Console", monospace; padding: 25px; z-index: 1000; font-size: 15px; line-height: 1.4; overflow: hidden; }
+        .red { color: #ff3333; font-weight: bold; }
+        .yellow { color: #ffff00; }
+        .blink { animation: cursor-blink 0.8s infinite; }
+        @keyframes cursor-blink { 50% { opacity: 0; } }
+        #webcam-alert { position: absolute; top: 20px; right: 20px; border: 2px solid red; padding: 10px; color: red; display: none; animation: flash 1s infinite; font-weight: bold; }
+        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body onclick="enableAudio()">
+
+    <div id="menu">
+        <h1 style="font-weight: 400; font-size: 28px;">Choose an operating system</h1>
+        <div class="btn-group">
+            <button onclick="launch('win')">Windows 11 (Home Edition)</button>
+            <button onclick="launch('chrome')">ChromeOS Flex</button>
+        </div>
+        <p style="color: #666; font-size: 12px; margin-top: 40px;">Click anywhere to ensure audio alerts are active.</p>
+    </div>
+
+    <div id="bsod">
+        <div class="sad-face">:(</div>
+        <div class="bsod-header">Your device ran into a problem and needs to restart. We're just collecting some error info, and then we'll restart for you.</div>
+        <div class="progress-text" id="prog">0% complete</div>
+        <div class="bsod-info">
+            <div class="qr-placeholder"><img src="https://api.qrserver.com"></div>
+            <div class="stop-details">
+                For more information about this issue and possible fixes, visit https://www.windows.com<br><br>
+                If you call a support person, give them this info:<br>
+                Stop code: <span id="stopcode">SYSTEM_SERVICE_EXCEPTION</span><br>
+                What failed: <span id="failed-file">win32kfull.sys</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="hacker">
+        <div id="webcam-alert">REC ● LIVE FEED ACTIVE</div>
+        <div id="logs"></div>
+        <span class="blink">█</span>
+    </div>
+
+    <audio id="siren" loop><source src="https://www.soundjay.com" type="audio/mpeg"></audio>
+
+    <script>
+        const logsContainer = document.getElementById('logs');
+        const siren = document.getElementById('siren');
+        let audioAllowed = false;
+
+        function enableAudio() { audioAllowed = true; }
+
+        function launch(os) {
+            document.getElementById('menu').style.display = 'none';
+            if(os === 'win') {
+                document.getElementById('bsod').style.display = 'block';
+                runBsod();
+            }
+        }
+
+        function runBsod() {
+            let p = 0;
+            const stopCodes = ["PAGE_FAULT_IN_NONPAGED_AREA", "IRQL_NOT_LESS_OR_EQUAL", "KMODE_EXCEPTION_NOT_HANDLED"];
+            const drivers = ["dxgkrnl.sys", "HDAudBus.sys", "tcpip.sys"];
+            
+            document.getElementById('stopcode').innerText = stopCodes[Math.floor(Math.random()*stopCodes.length)];
+            document.getElementById('failed-file').innerText = drivers[Math.floor(Math.random()*drivers.length)];
+
+            const intv = setInterval(() => {
+                p += Math.floor(Math.random() * 7) + 1;
+                if(p >= 100) {
+                    p = 100;
+                    clearInterval(intv);
+                    setTimeout(triggerHack, 1500);
+                }
+                document.getElementById('prog').innerText = p + "% complete";
+            }, 350);
+        }
+
+        function triggerHack() {
+            document.getElementById('bsod').style.display = 'none';
+            document.getElementById('hacker').style.display = 'block';
+            if(audioAllowed) siren.play();
+            
+            const scripts = [
+                "C:\\Windows\\system32> tasklist /v /fi \"STATUS eq running\"",
+                "> Identifying active security modules... <span class='yellow'>MsMpEng.exe [BYPASSED]</span>",
+                "C:\\Windows\\system32> netsh wlan show profiles",
+                "> Dumping Wi-Fi credentials... <span class='yellow'>SUCCESS</span>",
+                "C:\\Windows\\system32> reg query \"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\"",
+                "> Extracting Windows Product Key... [*****-*****-KJ83K]",
+                "C:\\Windows\\system32> cd \"C:\\Users\\%USERNAME%\\AppData\\Local\\Google\\Chrome\\User Data\"",
+                "> Accessing Login Data SQLite database...",
+                "> Decrypting passwords via DPAPI... <span class='yellow'>Found 42 saved logins.</span>",
+                " ",
+                "--- <span class='red'>MALWARE INJECTION INITIALIZED</span> ---",
+                "> Injecting payload into svchost.exe (PID: 1402)",
+                "> Establishing reverse shell to C2 Server (IP: 185.12.9.4)",
+                " ",
+                "[!] <span class='red'>ATTENTION: WEBCAM HARDWARE OVERRIDE ENABLED</span>",
+                "> Uploading 1080p stream to remote host...",
+                " ",
+                "C:\\> tree C:\\Users /f",
+                "|-- Documents",
+                "|   |-- Bank_Statement_2024.pdf ... <span class='yellow'>STOLEN</span>",
+                "|   |-- Password_List.xlsx ... <span class='yellow'>STOLEN</span>",
+                "|-- Pictures",
+                "|   |-- IMG_4922.jpg ... <span class='yellow'>STOLEN</span>",
+                " ",
+                "<span class='red'>[CRITICAL] SYSTEM32 DIRECTORY ENCRYPTED.</span>",
+                "<span class='red'>YOUR FILES ARE NOW LOCKED. REBOOT IS DISABLED.</span>"
+            ];
+
+            let i = 0;
+            const logIntv = setInterval(() => {
+                if(i < scripts.length) {
+                    const div = document.createElement('div');
+                    div.innerHTML = scripts[i];
+                    logsContainer.appendChild(div);
+                    i++;
+                    if(i === 15) document.getElementById('webcam-alert').style.display = 'block';
+                } else {
+                    clearInterval(logIntv);
+                }
+            }, 500);
+        }
+    </script>
+</body>
+</html>
