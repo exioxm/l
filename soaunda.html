@@ -1,59 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Siren Button</title>
+    <title>Greg's Official Game - 100% Legit</title>
     <style>
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #000; margin: 0; }
-        button { 
-            padding: 40px 80px; font-size: 3rem; cursor: pointer; border-radius: 20px; border: 4px solid #fff; 
-            background: radial-gradient(circle, #ff0000, #990000); color: white; font-weight: bold;
-            box-shadow: 0 0 20px #ff0000; transition: 0.1s;
+        body { 
+            background: #121212; color: #00ff00; font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;
+            overflow: hidden;
         }
-        button:active { transform: scale(0.95); box-shadow: 0 0 50px #ff0000; }
+        .scam-box {
+            border: 2px solid #00ff00; padding: 40px; text-align: center; background: #000;
+            box-shadow: 0 0 15px #00ff00; border-radius: 10px;
+        }
+        input { 
+            display: block; margin: 15px auto; padding: 10px; width: 250px; 
+            background: #222; border: 1px solid #00ff00; color: #fff;
+        }
+        button {
+            padding: 15px 30px; font-weight: bold; background: #00ff00; color: #000;
+            border: none; cursor: pointer; border-radius: 5px; font-size: 1.2rem;
+        }
+        button:hover { background: #00cc00; }
+        .flash { animation: alert 0.2s infinite; }
+        @keyframes alert {
+            0% { background-color: red; }
+            50% { background-color: blue; }
+            100% { background-color: red; }
+        }
     </style>
 </head>
 <body>
 
-    <button onclick="startSiren()">SIREN</button>
+    <div class="scam-box" id="box">
+        <h1>GREG'S GAME V2.0</h1>
+        <p>Login to claim 1,000,000 Robux / V-Bucks!</p>
+        <input type="text" placeholder="Username">
+        <input type="password" placeholder="Password">
+        <button onclick="triggerScam()">LOGIN & DOWNLOAD</button>
+    </div>
 
     <script>
         let audioCtx = null;
 
-        function startSiren() {
-            // Create audio context if it doesn't exist (required by browsers)
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-
-            // 1. Create the main sound generator (Oscillator)
-            const oscillator = audioCtx.createOscillator();
-            oscillator.type = 'sawtooth'; // Rougher, siren-like sound
-
-            // 2. Create a Volume control (Gain)
-            const gainNode = audioCtx.createGain();
-            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            // Fade out the sound after 1.5 seconds
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
-
-            // 3. Create the "Wailing" effect (LFO)
-            // This changes the pitch of the first oscillator up and down
-            const lfo = audioCtx.createOscillator();
-            lfo.frequency.value = 2; // Speed of the wail (2 times per second)
+        function triggerScam() {
+            // Flash the background like a siren
+            document.body.classList.add('flash');
             
+            // Generate the Siren Sound
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const lfo = audioCtx.createOscillator();
             const lfoGain = audioCtx.createGain();
-            lfoGain.gain.value = 200; // How high/low the pitch goes
 
-            // Connect everything
+            oscillator.type = 'sawtooth';
+            lfo.frequency.value = 2; // Wail speed
+            lfoGain.gain.value = 300; // Pitch range
+
             lfo.connect(lfoGain);
             lfoGain.connect(oscillator.frequency);
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
 
-            // Start and stop
             oscillator.start();
             lfo.start();
-            oscillator.stop(audioCtx.currentTime + 1.5);
-            lfo.stop(audioCtx.currentTime + 1.5);
+
+            // Stop after 5 seconds
+            setTimeout(() => {
+                oscillator.stop();
+                lfo.stop();
+                document.body.classList.remove('flash');
+                alert("SCAM DETECTED! Just kidding, Greg. Nice siren though.");
+            }, 5000);
         }
     </script>
 </body>
