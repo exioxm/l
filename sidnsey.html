@@ -5,121 +5,166 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SidneyStellar</title>
     <style>
+        :root {
+            --bg-color: #0b0b0b;
+            --nav-text: #ffffff;
+            --accent-gray: #1a1a1a;
+        }
+
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            font-family: 'Inter', sans-serif;
-            background-color: #121212;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
             color: white;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Navbar Styling */
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 40px;
-            background: rgba(0, 0, 0, 0.2);
+        /* Realistic Logo in Top Left */
+        .logo-box {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            background: white;
+            color: black;
+            padding: 2px 10px;
+            font-weight: 900;
+            font-size: 22px;
+            border-radius: 4px;
+            z-index: 10;
         }
 
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
+        /* Top Navigation with White Emojis */
+        nav {
+            display: flex;
+            justify-content: flex-end; /* Pushes links to the right */
+            align-items: center;
+            padding: 20px 40px;
+            z-index: 10;
         }
 
         .nav-links {
             display: flex;
-            gap: 20px;
+            gap: 25px;
         }
 
         .nav-links a {
-            color: #ccc;
+            color: white;
             text-decoration: none;
             text-transform: uppercase;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
-        /* Main Content Area */
+        /* Main Content with Top-Center Branding */
         main {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            margin-top: 100px; /* Positions branding toward the top-center */
             text-align: center;
-            background: radial-gradient(circle at bottom, #2c2c2c 0%, #121212 70%);
+            z-index: 5;
         }
 
         h1 {
-            font-size: 64px;
+            font-size: 72px;
             margin: 0;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
+            font-weight: 800;
         }
 
-        .discord-link {
+        .sub-text {
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
             margin-top: 5px;
-            margin-bottom: 30px;
         }
 
-        /* Search Bar */
         .search-container {
             width: 100%;
-            max-width: 600px;
+            max-width: 550px;
+            margin-top: 40px;
         }
 
         input {
             width: 100%;
-            padding: 15px 25px;
-            border-radius: 8px;
+            padding: 14px 20px;
+            border-radius: 6px;
             border: none;
-            background: rgba(255, 255, 255, 0.05);
+            background: #1e1e1e;
             color: white;
-            font-size: 16px;
+            font-size: 14px;
             text-align: center;
             outline: none;
-            transition: background 0.3s;
         }
 
-        input::placeholder {
-            color: #555;
+        /* Bottom Shapes (Animated Waves) */
+        .waves-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30vh;
+            background: var(--bg-color);
+            z-index: 1;
         }
 
-        input:focus {
-            background: rgba(255, 255, 255, 0.1);
+        .wave {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org"><path fill="%231a1a1a" d="M0,160L80,176C160,192,320,224,480,213.3C640,203,800,149,960,138.7C1120,128,1280,160,1360,176L1440,192L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path></svg>');
+            background-size: 50% 100%;
+            animation: move-wave 15s linear infinite;
+        }
+
+        .wave:nth-child(2) {
+            opacity: 0.5;
+            animation: move-wave 10s linear infinite reverse;
+            height: 80%;
+        }
+
+        @keyframes move-wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
     </style>
 </head>
 <body>
 
+    <div class="logo-box">IN</div>
+
     <nav>
-        <div class="logo">IN</div>
         <div class="nav-links">
-            <a href="#">🎮 Games</a>
-            <a href="#">📞 Apps</a>
-            <a href="#">💻 Tabs</a>
-            <a href="#">📁 Tools</a>
-            <a href="#">⚙️ Settings</a>
+            <a href="#">🎮 GAMES</a>
+            <a href="#">📞 APPS</a>
+            <a href="#">💻 TABS</a>
+            <a href="#">📁 TOOLS</a>
+            <a href="#">⚙️ SETTINGS</a>
         </div>
     </nav>
 
     <main>
         <h1>SIDNEYSTELLAR</h1>
-        <div class="discord-link">Check out discord.gg/interstellar :)</div>
+        <div class="sub-text">Check out discord.gg/interstellar :)</div>
         
         <div class="search-container">
             <input type="text" placeholder="Search with Google or enter address">
         </div>
     </main>
+
+    <div class="waves-container">
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
 
 </body>
 </html>
