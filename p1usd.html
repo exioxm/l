@@ -5,78 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PUSD Portal</title>
     <style>
-        /* General Reset */
         body, html {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             background-color: #f0f4f7;
             height: 100%;
             display: flex;
             flex-direction: column;
         }
 
-        /* Top Blue Bar */
         header {
             background-color: #1a2a4d;
             color: white;
-            padding: 10px 0;
+            padding: 12px 0;
             text-align: center;
             font-size: 18px;
             width: 100%;
+            font-weight: 500;
         }
 
-        /* Main Container */
         .container {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 20px;
+            padding-top: 30px;
             width: 100%;
-            max-width: 450px;
+            max-width: 400px;
             margin: 0 auto;
         }
 
-        /* Seal Image */
+        /* Fixed Seal Styling */
         .seal {
-            width: 250px;
-            margin-bottom: 20px;
+            width: 260px;
+            height: auto;
+            margin-bottom: 25px;
         }
 
-        /* Form Area */
         .login-box {
             width: 100%;
             padding: 0 20px;
             box-sizing: border-box;
         }
 
-        .login-row {
+        .login-header {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
             margin-bottom: 15px;
         }
 
-        .login-row h2 {
+        .login-header h2 {
             margin: 0;
-            color: #555;
+            color: #444;
             font-weight: 400;
-            font-size: 24px;
+            font-size: 22px;
         }
 
-        .login-row a {
-            color: #888;
+        .login-header a {
+            color: #777;
             text-decoration: none;
             font-size: 14px;
         }
 
-        /* Inputs and Buttons */
         input {
             width: 100%;
             padding: 12px;
             margin-bottom: 15px;
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
             font-size: 16px;
@@ -85,46 +82,41 @@
         .btn {
             width: 100%;
             padding: 12px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
+            color: white;
+            background-color: #34495e;
             display: flex;
             justify-content: center;
-            align-items: center;
+            position: relative;
             font-weight: 600;
-            transition: background 0.2s;
         }
 
-        .btn-primary {
-            background-color: #34495e;
-            color: white;
+        .btn:hover { background-color: #2c3e50; }
+
+        .btn .arrow {
+            position: absolute;
+            right: 15px;
+            font-weight: normal;
         }
 
-        .btn-primary:hover {
-            background-color: #2c3e50;
-        }
-
-        /* Footer/Claim Text */
         .claim-text {
             text-align: center;
             font-size: 13px;
-            color: #777;
-            margin-top: 15px;
-            margin-bottom: 15px;
+            color: #666;
+            margin: 15px 0;
         }
 
         .claim-text a {
             color: #34495e;
             text-decoration: none;
+            border-bottom: 1px solid transparent;
         }
 
-        /* Right Arrow Icon Utility */
-        .arrow {
-            margin-left: auto;
-            font-weight: bold;
-        }
+        .claim-text a:hover { border-bottom: 1px solid #34495e; }
     </style>
 </head>
 <body>
@@ -132,30 +124,25 @@
     <header>PUSD Portal</header>
 
     <div class="container">
-        <!-- Placeholder for the Seal -->
+        <!-- Stable Seal Image Link -->
         <img src="https://upload.wikimedia.org" alt="PUSD Seal" class="seal">
 
         <div class="login-box">
-            <div class="login-row">
+            <div class="login-header">
                 <h2>Login</h2>
                 <a href="#">Need help?</a>
             </div>
 
             <input type="text" placeholder="Username">
 
-            <button class="btn btn-primary">
-                Go <span class="arrow">></span>
-            </button>
-
-            <button class="btn btn-primary">
-                Scan QR Code <span class="arrow">></span>
-            </button>
+            <button class="btn">Go <span class="arrow">></span></button>
+            <button class="btn">Scan QR Code <span class="arrow">></span></button>
 
             <div class="claim-text">
                 Don't have an account yet? <a href="#">Claim your account.</a>
             </div>
 
-            <button class="btn btn-primary">Claim My Account</button>
+            <button class="btn">Claim My Account</button>
         </div>
     </div>
 
