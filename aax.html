@@ -5,96 +5,112 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sidney's Games | Main Menu</title>
     <style>
-        /* 1. Animated Moving Background */
+        /* 1. ANIMATED BACKGROUND */
         body {
             margin: 0;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #6a11cb);
-            background-size: 400% 400%;
-            animation: gradientMove 15s ease infinite;
+            font-family: 'Orbitron', sans-serif; /* Recommended for gaming UI */
+            background: radial-gradient(circle at center, #0a2e0a 0%, #000000 100%);
             overflow: hidden;
+            position: relative;
         }
 
-        @keyframes gradientMove {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        /* Moving background light effect */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, #22c55e, transparent 30%);
+            animation: rotate 10s linear infinite;
+            opacity: 0.15;
+            z-index: 0;
         }
 
-        /* 2. Glassmorphism Container */
-        .menu-container {
-            background: rgba(255, 255, 255, 0.1);
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 2. MENU CONTAINER */
+        .menu-card {
+            position: relative;
+            z-index: 1;
+            background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 3rem;
-            border-radius: 20px;
+            padding: 4rem;
+            border-radius: 30px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
             text-align: center;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
         h1 {
-            color: #fff;
-            font-size: 3rem;
-            margin-bottom: 2rem;
+            color: #22c55e; /* Primary Green */
+            font-size: 4rem;
+            margin-bottom: 3rem;
             text-transform: uppercase;
-            letter-spacing: 5px;
-            text-shadow: 0 0 15px #6a11cb;
+            letter-spacing: 8px;
+            text-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+            animation: pulse 2s ease-in-out infinite;
         }
 
-        /* 3. Moving Menu Buttons */
-        .menu-list {
-            list-style: none;
-            padding: 0;
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.8; }
         }
 
-        .menu-item {
-            margin: 15px 0;
-        }
-
-        .menu-link {
-            text-decoration: none;
-            color: #fff;
-            font-size: 1.5rem;
-            padding: 12px 40px;
-            border: 2px solid transparent;
+        /* 3. THE GREEN PLAY BUTTON */
+        .play-btn {
+            background: #22c55e;
+            color: #000;
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 20px 80px;
+            border: none;
             border-radius: 50px;
-            display: inline-block;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
             position: relative;
             overflow: hidden;
         }
 
-        /* Hover "Moving" Effects */
-        .menu-link:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #6a11cb;
-            transform: scale(1.1) translateY(-5px);
-            box-shadow: 0 10px 20px rgba(106, 17, 203, 0.4);
+        .play-btn:hover {
+            transform: scale(1.15) translateY(-5px);
+            background: #4ade80;
+            box-shadow: 0 0 40px rgba(34, 197, 94, 0.8);
         }
 
-        /* Particle effect background (Optional visual) */
-        .particles {
+        /* Animated shine on the button */
+        .play-btn::after {
+            content: '';
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1;
-            pointer-events: none;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            transition: 0.5s;
+        }
+
+        .play-btn:hover::after {
+            left: 100%;
+            top: 100%;
         }
     </style>
 </head>
 <body>
 
-    <div class="menu-container">
+    <div class="menu-card">
         <h1>Sidney's Games</h1>
-        <ul class="menu-list">
-            <li class="menu-item"><a href="#" class="menu-link">NEW GAME</a></li>
-            <li class="menu-item"><a href="#" class="menu-link">LOAD GAME</a></li>
-            <li class="menu-item"><a href="#" class="menu-link">SETTINGS</a></li>
-            <li class="menu-item"><a href="#" class="menu-link">QUIT</a></li>
-        </ul>
+        <button class="play-btn">Play</button>
     </div>
 
 </body>
