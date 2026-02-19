@@ -2,126 +2,133 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sidney's Games | Ultra Menu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidney's Games | 2026 Edition</title>
     <style>
-        /* 1. LATEST: Native Nesting & Container Queries */
+        /* Modern CSS Variables & Setup */
         :root {
-            --primary-green: #22c55e;
-            --dark-bg: #050505;
+            --bg-dark-green: #061a06;
+            --accent-green: #0a2f0a;
+            --border-white: #ffffff;
+            --text-white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            cursor: crosshair; /* Gaming feel */
         }
 
         body {
             margin: 0;
+            padding: 0;
+            width: 100vw;
             height: 100vh;
-            background: var(--dark-bg);
-            color: white;
-            font-family: 'Orbitron', sans-serif;
-            display: grid;
-            place-items: center;
+            background-color: var(--bg-dark-green);
+            /* Moving "Stuff": Animated radial light that follows a path */
+            background-image: 
+                radial-gradient(circle at 50% 50%, var(--accent-green) 0%, transparent 70%),
+                repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(255,255,255,0.02) 50px);
+            background-size: 100% 100%, 100% 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center Middle */
+            justify-content: flex-start; /* For Top alignment */
             overflow: hidden;
-            /* 2026 Feature: View Transitions for smooth page morphing */
-            view-transition-name: main-ui;
+            border: 15px solid var(--border-white); /* Full screen white border */
         }
 
-        /* 2. SCROLL-DRIVEN BACKGROUND (Moving Stuff) */
-        .bg-fx {
-            position: fixed;
-            inset: 0;
-            background: 
-                radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.15), transparent 60%),
-                repeating-linear-gradient(45deg, #111 0px, #111 2px, transparent 2px, transparent 10px);
-            z-index: -1;
-            /* Using modern keyframes for constant motion */
-            animation: bg-pan 20s linear infinite;
-        }
-
-        @keyframes bg-pan {
-            from { background-position: 0% 0%; }
-            to { background-position: 100% 100%; }
-        }
-
-        /* 3. SCI-FI NOTCH DESIGN (New corner-shape property concept) */
-        .menu-frame {
-            padding: 4rem;
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(34, 197, 94, 0.2);
-            /* Latest: Modern "notch" look using clip-path/shape */
-            clip-path: polygon(10% 0, 90% 0, 100% 15%, 100% 85%, 90% 100%, 10% 100%, 0 85%, 0 15%);
+        /* Container for the Stack */
+        .menu-wrapper {
+            margin-top: 15vh; /* Positions it at the Top-Middle */
             text-align: center;
-            /* Staggered Entry: Animates on load */
-            animation: slideIn 0.8s cubic-bezier(0.2, 1, 0.3, 1) backwards;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+
+        /* Title Style */
+        .title-box {
+            padding: 20px 60px;
+            border: 4px solid var(--border-white);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: float 4s ease-in-out infinite;
         }
 
         h1 {
-            font-size: 4rem;
-            color: var(--primary-green);
+            color: var(--text-white);
+            font-family: 'Courier New', Courier, monospace; /* Sharp, techy look */
+            font-size: clamp(2rem, 8vw, 5rem);
+            margin: 0;
             text-transform: uppercase;
-            letter-spacing: 12px;
-            margin-bottom: 2rem;
-            filter: drop-shadow(0 0 15px var(--primary-green));
+            letter-spacing: 10px;
         }
 
-        /* 4. THE ULTIMATE PLAY BUTTON */
-        .play-btn {
-            appearance: none;
-            background: var(--primary-green);
-            color: black;
-            border: none;
-            padding: 1.5rem 5rem;
-            font-size: 2rem;
-            font-weight: 900;
-            text-transform: uppercase;
+        /* The Moving Play Button */
+        .play-button {
+            background: transparent;
+            color: var(--text-white);
+            font-size: 2.5rem;
+            font-family: inherit;
+            padding: 15px 100px;
+            border: 4px solid var(--border-white);
             cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-            
-            /* Modern hover: Glow expansion */
-            &:hover {
-                transform: scale(1.1) skew(-5deg);
-                box-shadow: 0 0 40px var(--primary-green);
-                letter-spacing: 8px;
-            }
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            font-weight: bold;
+            overflow: hidden;
         }
 
-        /* 5. NATIVE MODAL (No-JS Popups) */
-        dialog {
-            background: #111;
-            color: var(--primary-green);
-            border: 2px solid var(--primary-green);
-            border-radius: 10px;
-            padding: 2rem;
-            &::backdrop {
-                background: rgba(0, 0, 0, 0.8);
-                backdrop-filter: blur(5px);
-            }
+        /* Hover Movement Logic */
+        .play-button:hover {
+            background: var(--border-white);
+            color: var(--bg-dark-green);
+            transform: translateY(-15px) scale(1.1); /* Jumps up on hover */
+            box-shadow: 0 20px 0px rgba(255, 255, 255, 0.2);
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(50px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Hover "Moving Stuff": Inverted scanline effect */
+        .play-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: 0.5s;
+        }
+
+        .play-button:hover::before {
+            left: 100%;
+        }
+
+        /* Global Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* 2026 Feature: Scroll-driven background motion (even without scrolling) */
+        @keyframes bg-move {
+            from { background-position: 0 0; }
+            to { background-position: 0 1000px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="bg-fx"></div>
-
-    <main class="menu-frame">
-        <h1>Sidney's Games</h1>
+    <div class="menu-wrapper">
+        <div class="title-box">
+            <h1>Sidney's Games</h1>
+        </div>
         
-        <!-- 2026 Feature: commandfor opens dialogs without JS logic -->
-        <button class="play-btn" commandfor="start-modal" command="show-modal">
-            PLAY
+        <button class="play-button">
+            Play
         </button>
-    </main>
-
-    <!-- Native HTML Dialog for "Loading" or "Start" screen -->
-    <dialog id="start-modal">
-        <p>INITIALIZING CORE SYSTEMS...</p>
-        <button commandfor="start-modal" command="close" style="background:none; border:1px solid; color:green; cursor:pointer;">ABORT</button>
-    </dialog>
+    </div>
 
 </body>
 </html>
