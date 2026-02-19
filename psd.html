@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUSD Portal</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f1f4f8; /* Matches the site's light grey/blue */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navigation Bar */
+        header {
+            background-color: #1a2a4d;
+            color: white;
+            padding: 14px 0;
+            text-align: center;
+            font-size: 19px;
+            width: 100%;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        /* Seal Image */
+        .seal {
+            width: 250px;
+            height: auto;
+            margin-bottom: 30px;
+        }
+
+        .login-box {
+            width: 100%;
+            padding: 0 25px;
+            box-sizing: border-box;
+        }
+
+        .login-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+        }
+
+        .login-header h2 {
+            margin: 0;
+            color: #4c4c4c;
+            font-weight: 400;
+            font-size: 24px;
+        }
+
+        .login-header a {
+            color: #7a7a7a;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        /* Input Styling */
+        input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+            outline-color: #1a2a4d;
+        }
+
+        /* Button Styling */
+        .btn {
+            width: 100%;
+            padding: 13px;
+            margin-bottom: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            color: white;
+            background-color: #33475b; /* Exact slate blue from PUSD buttons */
+            display: flex;
+            justify-content: center;
+            position: relative;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #263645;
+        }
+
+        .btn .arrow {
+            position: absolute;
+            right: 20px;
+            font-weight: normal;
+        }
+
+        /* Claim Account Section */
+        .claim-text {
+            text-align: center;
+            font-size: 13.5px;
+            color: #666;
+            margin: 20px 0 10px 0;
+        }
+
+        .claim-text a {
+            color: #33475b;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .claim-text a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <header>PUSD Portal</header>
+
+    <div class="container">
+        <!-- Embedded Base64 Image -->
+        <img class="seal" src="data:image/png;base64,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" alt="PUSD Seal">
+
+        <div class="login-box">
+            <div class="login-header">
+                <h2>Login</h2>
+                <a href="#">Need help?</a>
+            </div>
+
+            <input type="text" placeholder="Username">
+
+            <button class="btn">Go <span class="arrow">></span></button>
+            <button class="btn">Scan QR Code <span class="arrow">></span></button>
+
+            <div class="claim-text">
+                Don't have an account yet? <a href="#">Claim your account.</a>
+            </div>
+
+            <button class="btn">Claim My Account</button>
+        </div>
+    </div>
+
+</body>
+</html>
