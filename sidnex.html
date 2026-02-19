@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SidneyStellar</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --white: #ffffff;
+            --gray: #666;
+            --box-bg: #111;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--white);
+            font-family: 'Inter', -apple-system, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Improved "IN" Logo Box */
+        .brand-logo {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            background: var(--white);
+            color: black;
+            font-weight: 900;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+
+        /* Top Navigation with Detailed CSS Icons */
+        nav {
+            display: flex;
+            justify-content: flex-end;
+            padding: 30px 50px;
+            z-index: 100;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 35px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--white);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        /* Detailed CSS-Only Icons */
+        .icon-css { width: 16px; height: 16px; display: inline-block; position: relative; border: 1.5px solid white; box-sizing: border-box; }
+        .icon-games { border-radius: 2px; } /* Rounded Square */
+        .icon-apps { border-radius: 50%; } /* Circle */
+        .icon-tabs { width: 18px; border-radius: 1px; } /* Rectangle */
+        .icon-tools { transform: rotate(45deg); width: 12px; height: 12px; } /* Diamond */
+        .icon-settings { border: 2px dotted white; border-radius: 50%; } /* Dotted Circle */
+
+        /* Main Branding Content */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: -50px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 90px;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: 6px;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .discord-sub {
+            color: #444;
+            font-size: 13px;
+            margin: 15px 0 45px 0;
+        }
+
+        .search-bar {
+            width: 620px;
+            background: #121212;
+            border: none;
+            padding: 20px;
+            border-radius: 6px;
+            color: white;
+            text-align: center;
+            font-size: 16px;
+            outline: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        /* Vivid Bottom Shapes (The Waves) */
+        .vivid-shapes {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 350px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Large glowing blobs for visible texture */
+        .glow-shape {
+            position: absolute;
+            bottom: -150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            filter: blur(80px);
+        }
+
+        .shape-left { width: 1000px; height: 500px; left: -200px; opacity: 0.6; }
+        .shape-right { width: 1200px; height: 600px; right: -300px; bottom: -200px; opacity: 0.4; }
+
+        /* Actual Wavy Layer */
+        .wavy-layer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to top, #111 0%, transparent 100%);
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="brand-logo">IN</div>
+
+    <nav>
+        <div class="nav-links">
+            <a href="#" class="nav-item"><span class="icon-css icon-games"></span> GAMES</a>
+            <a href="#" class="nav-item"><span class="icon-css icon-apps"></span> APPS</a>
+            <a href="#" class="nav-item"><span class="icon-css icon-tabs"></span> TABS</a>
+            <a href="#" class="nav-item"><span class="icon-css icon-tools"></span> TOOLS</a>
+            <a href="#" class="nav-item"><span class="icon-css icon-settings"></span> SETTINGS</a>
+        </div>
+    </nav>
+
+    <main>
+        <h1>SIDNEYSTELLAR</h1>
+        <div class="discord-sub">Check out discord.gg/interstellar :)</div>
+        <input type="text" class="search-bar" placeholder="Search with Google or enter address">
+    </main>
+
+    <!-- Bottom Atmosphere & Shapes -->
+    <div class="vivid-shapes">
+        <div class="glow-shape shape-left"></div>
+        <div class="glow-shape shape-right"></div>
+        <div class="wavy-layer"></div>
+    </div>
+
+</body>
+</html>
