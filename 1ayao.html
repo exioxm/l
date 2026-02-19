@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PUSD Portal</title>
     <style>
+        /* Exact PUSD Brand Colors and Layout */
         body, html {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f1f4f8;
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f7;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -18,94 +19,99 @@
         header {
             background-color: #1a2a4d;
             color: white;
-            padding: 15px 0;
+            padding: 12px 0;
             text-align: center;
-            font-size: 18px;
-            width: 100%;
+            font-size: 16px;
             font-weight: 500;
+            width: 100%;
         }
 
-        .container {
+        .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 40px;
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             margin: 0 auto;
+            padding: 30px 20px;
+            box-sizing: border-box;
         }
 
         .seal {
-            width: 250px;
+            width: 280px;
             height: auto;
             margin-bottom: 30px;
-            background-color: #ddd; /* Gray box if image fails */
-            min-height: 100px;
-        }
-
-        .login-box {
-            width: 100%;
-            padding: 0 25px;
-            box-sizing: border-box;
         }
 
         .login-header {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 12px;
+            align-items: flex-end;
+            width: 100%;
+            margin-bottom: 15px;
         }
 
         .login-header h2 {
             margin: 0;
-            color: #4c4c4c;
-            font-weight: 400;
             font-size: 24px;
+            color: #555;
+            font-weight: 400;
         }
 
         .login-header a {
-            color: #7a7a7a;
-            text-decoration: none;
             font-size: 14px;
+            color: #888;
+            text-decoration: none;
         }
 
         input {
             width: 100%;
-            padding: 14px;
-            margin-bottom: 18px;
-            border: 2px solid #333;
-            border-radius: 6px;
-            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
             font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            background-color: white;
         }
 
         .btn {
             width: 100%;
-            padding: 13px;
-            margin-bottom: 12px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background-color: #34495e;
+            color: white;
             border: none;
             border-radius: 4px;
-            cursor: pointer;
             font-size: 16px;
-            color: white;
-            background-color: #33475b;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        .btn span.arrow {
+            position: absolute;
+            right: 15px;
+            font-weight: normal;
         }
 
         .claim-text {
             text-align: center;
             font-size: 13px;
-            color: #666;
-            margin: 20px 0 10px 0;
+            color: #777;
+            margin: 20px 0 15px 0;
         }
 
         .claim-text a {
-            color: #33475b;
+            color: #34495e;
             text-decoration: none;
+        }
+
+        .btn-claim {
+            justify-content: center;
         }
     </style>
 </head>
@@ -113,27 +119,30 @@
 
     <header>PUSD Portal</header>
 
-    <div class="container">
-        <!-- GUARANTEED IMAGE LINK FOR TESTING -->
-        <img class="seal" src="https://www.pusd.us" alt="PUSD Seal">
+    <div class="main-content">
+        <!-- THE SEAL (Embedded directly so it never breaks) -->
+        <img class="seal" src="data:image/png;base64,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" alt="PUSD Seal">
 
-        <div class="login-box">
-            <div class="login-header">
-                <h2>Login</h2>
-                <a href="#">Need help?</a>
-            </div>
-
-            <input type="text" placeholder="Username">
-
-            <button class="btn"><span>Go</span><span>&gt;</span></button>
-            <button class="btn"><span>Scan QR Code</span><span>&gt;</span></button>
-
-            <div class="claim-text">
-                Don't have an account yet? <a href="#">Claim your account.</a>
-            </div>
-
-            <button class="btn" style="justify-content: center;">Claim My Account</button>
+        <div class="login-header">
+            <h2>Login</h2>
+            <a href="#">Need help?</a>
         </div>
+
+        <input type="text" placeholder="Username">
+
+        <button class="btn">
+            Go <span class="arrow">&gt;</span>
+        </button>
+
+        <button class="btn">
+            Scan QR Code <span class="arrow">&gt;</span>
+        </button>
+
+        <div class="claim-text">
+            Don't have an account yet? <a href="#">Claim your account.</a>
+        </div>
+
+        <button class="btn btn-claim">Claim My Account</button>
     </div>
 
 </body>
