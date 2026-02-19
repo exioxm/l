@@ -1,80 +1,142 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD Portal</title>
+    <title>Mk48.io - Full Prototype 2026</title>
     <style>
-        body, html {
-            margin: 0; padding: 0;
-            font-family: "Segoe UI", Arial, sans-serif;
-            background-color: #f1f4f8;
-            display: flex; flex-direction: column; height: 100%;
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; color: #0f0; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; z-index: 10; }
+        /* Minimap Styling */
+        #minimap-container {
+            position: absolute; bottom: 20px; right: 20px;
+            width: 150px; height: 150px;
+            background: rgba(0, 40, 80, 0.7);
+            border: 2px solid #0f0;
+            border-radius: 4px;
         }
-        header {
-            background-color: #1a2a4d; color: white;
-            padding: 12px 0; text-align: center; width: 100%;
-        }
-        .container {
-            flex: 1; display: flex; flex-direction: column; align-items: center;
-            max-width: 420px; margin: 0 auto; padding: 30px 20px;
-        }
-        /* SVG Seal Styling */
-        .seal-svg { width: 240px; height: 240px; margin-bottom: 25px; }
-        .seal-text { font-family: "Georgia", serif; font-weight: bold; fill: #1a2a4d; text-transform: uppercase; }
-        
-        .login-header { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-bottom: 12px; }
-        .login-header h2 { margin: 0; font-size: 24px; color: #4a4a4a; font-weight: 400; }
-        .login-header a { font-size: 14px; color: #888; text-decoration: none; }
-        input { width: 100%; padding: 14px; border: 2px solid #333; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; font-size: 16px; }
-        .btn { width: 100%; padding: 12px 15px; margin-bottom: 10px; background-color: #34495e; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .claim-text { text-align: center; font-size: 13px; color: #666; margin: 20px 0 15px 0; }
-        .claim-text a { color: #34495e; text-decoration: none; }
     </style>
 </head>
 <body>
-    <header>PUSD Portal</header>
-    <div class="container">
-        <!-- SVG REPRODUCTION OF THE SEAL -->
-        <svg class="seal-svg" viewBox="0 0 200 200">
-            <defs>
-                <path id="topCurve" d="M 30,100 A 70,70 0 1,1 170,100" />
-                <path id="bottomCurve" d="M 30,100 A 70,70 0 1,0 170,100" />
-            </defs>
-            <!-- Outer Rings -->
-            <circle cx="100" cy="100" r="95" fill="none" stroke="#1a2a4d" stroke-width="2""")/>>
-            <circle cx="100" cy="100" r="88" fill="none" stroke="#1a2a4d" stroke-width="1" stroke-dasharray="2,2""")/>>
-            <circle cx="100" cy="100" r="75" fill="none" stroke="#1a2a4d" stroke-width="2""")/>>
-            
-            <!-- Circular Text -->
-            <text class="seal-text" font-size="10">
-                <textPath href="#topCurve" startOffset="50%" text-anchor="middle">★ SEAL OF THE PASADENA UNIFIED SCHOOL DISTRICT ★</textPath>
-            </text>
-            <text class="seal-text" font-size="16">
-                <textPath href="#bottomCurve" startOffset="50%" text-anchor="middle">CALIFORNIA</textPath>
-            </text>
-            
-            <!-- Shield & Center Elements -->
-            <path d="M 70,60 L 130,60 L 125,120 Q 100,150 75,120 Z" fill="none" stroke="#1a2a4d" stroke-width="2""")/>>
-            <rect x="85" y="80" width="30" height="20" rx="2" fill="none" stroke="#1a2a4d" stroke-width="1.5""")/>> <!-- Book -->
-            <line x1="100" y1="80" x2="100" y2="100" stroke="#1a2a4d" stroke-width="1""")/>>
-            <path d="M 80,90 L 90,120" stroke="#1a2a4d" stroke-width="2" stroke-linecap="round""")/>> <!-- Torch -->
-            <path d="M 120,90 L 110,120" stroke="#1a2a4d" stroke-width="2" stroke-linecap="round""")/>> <!-- Feather -->
-            
-            <!-- Banner -->
-            <path d="M 60,140 Q 100,155 140,140" fill="none" stroke="#1a2a4d" stroke-width="1.5""")/>>
-            <text x="100" y="148" font-size="5" text-anchor="middle" font-weight="bold" fill="#1a2a4d">RESPICE FUTURUM</text>
-        </svg>
-
-        <div class="login-header">
-            <h2>Login</h2>
-            <a href="#">Need help?</a>
-        </div>
-        <input type="text" placeholder="Username">
-        <button class="btn"><span>Go</span><span>&gt;</span></button>
-        <button class="btn"><span>Scan QR Code</span><span>&gt;</span></button>
-        <div class="claim-text">Don't have an account yet? <a href="#">Claim your account.</a></div>
-        <button class="btn" style="justify-content: center;">Claim My Account</button>
+    <div id="ui">
+        <div>HULL: <span id="hp">100</span>% | XP: <span id="xp">0</span></div>
+        <div>SENSOR: <span id="sensorMode">PASSIVE</span> (Z)</div>
     </div>
+    <div id="minimap-container">
+        <canvas id="minimapCanvas" width="150" height="150"></canvas>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mCanvas = document.getElementById('minimapCanvas');
+const mCtx = mCanvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// --- World Config ---
+const WORLD_SIZE = 4000;
+let player = { x: 2000, y: 2000, angle: 0, speed: 2.5, curSpeed: 0, hp: 100, xp: 0, sensor: 500, activeSonar: false };
+let enemies = [], projectiles = [], particles = [];
+let keys = {};
+
+// --- Particle System ---
+class Particle {
+    constructor(x, y, vx, vy, color, life) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.color = color; this.life = life; this.maxLife = life;
+    }
+    update() { this.x += this.vx; this.y += this.vy; this.life--; }
+}
+
+// --- Logic ---
+function update() {
+    // Movement
+    if (keys['w']) player.curSpeed = Math.min(player.curSpeed + 0.05, player.speed);
+    else player.curSpeed *= 0.98;
+    if (keys['a']) player.angle -= 0.04;
+    if (keys['d']) player.angle += 0.04;
+    
+    player.x = Math.max(0, Math.min(WORLD_SIZE, player.x + Math.cos(player.angle) * player.curSpeed));
+    player.y = Math.max(0, Math.min(WORLD_SIZE, player.y + Math.sin(player.angle) * player.curSpeed));
+
+    // Particle Wakes
+    if (player.curSpeed > 0.5 && Math.random() > 0.5) {
+        particles.push(new Particle(player.x, player.y, (Math.random()-0.5), (Math.random()-0.5), '#fff', 30));
+    }
+    particles.forEach((p, i) => { p.update(); if (p.life <= 0) particles.splice(i, 1); });
+
+    // Enemy Spawning
+    if (enemies.length < 8) {
+        enemies.push({ x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, id: Math.random() });
+    }
+}
+
+function drawMinimap() {
+    mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+    const scale = mCanvas.width / WORLD_SIZE;
+
+    // Draw Player dot
+    mCtx.fillStyle = '#0f0';
+    mCtx.beginPath();
+    mCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI*2);
+    mCtx.fill();
+
+    // Draw Detected Enemies
+    const viewDist = player.activeSonar ? player.sensor * 2 : player.sensor;
+    enemies.forEach(en => {
+        if (Math.hypot(player.x - en.x, player.y - en.y) < viewDist) {
+            mCtx.fillStyle = 'red';
+            mCtx.fillRect(en.x * scale - 1, en.y * scale - 1, 3, 3);
+        }
+    });
+}
+
+function draw() {
+    ctx.fillStyle = '#00142b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const camX = player.x - canvas.width/2;
+    const camY = player.y - canvas.height/2;
+
+    // Grid Lines (Sea Floor)
+    ctx.strokeStyle = '#002a55';
+    for(let i=0; i<WORLD_SIZE; i+=200) {
+        ctx.beginPath(); ctx.moveTo(i-camX, 0-camY); ctx.lineTo(i-camX, WORLD_SIZE-camY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0-camX, i-camY); ctx.lineTo(WORLD_SIZE-camX, i-camY); ctx.stroke();
+    }
+
+    // Particles
+    particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life/p.maxLife;
+        ctx.fillRect(p.x - camX, p.y - camY, 2, 2);
+    });
+    ctx.globalAlpha = 1;
+
+    // Player
+    ctx.save();
+    ctx.translate(player.x - camX, player.y - camY);
+    ctx.rotate(player.angle);
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath(); ctx.moveTo(20,0); ctx.lineTo(-12,-8); ctx.lineTo(-12,8); ctx.fill();
+    ctx.restore();
+
+    drawMinimap();
+    requestAnimationFrame(() => { update(); draw(); });
+}
+
+window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key.toLowerCase() === 'z') {
+        player.activeSonar = !player.activeSonar;
+        document.getElementById('sensorMode').innerText = player.activeSonar ? "ACTIVE" : "PASSIVE";
+    }
+});
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+draw();
+</script>
 </body>
 </html>
