@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SidneyStellar</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --white: #ffffff;
+            --gray: #666;
+            --box-bg: #111;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--white);
+            font-family: 'Open Sans', 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- CHROME OS ERROR SCREEN --- */
+        #chrome-error {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            color: #5a5a5a;
+            z-index: 10000;
+            text-align: center;
+            padding-top: 10vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .error-icon {
+            font-size: 120px;
+            color: #d93025;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .error-sub {
+            font-size: 18px;
+            margin-bottom: 40px;
+        }
+
+        .error-code {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 12px;
+            color: #999;
+            text-align: left;
+        }
+
+        .yellow-exclamation {
+            display: inline-block;
+            width: 100px;
+            height: 100px;
+            background-color: #f4b400;
+            color: white;
+            font-size: 70px;
+            line-height: 100px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        /* --- ORIGINAL INTERSTELLAR STYLES --- */
+        .brand-logo {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            background: var(--white);
+            color: black;
+            font-weight: 900;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: flex-end;
+            padding: 30px 50px;
+            z-index: 100;
+        }
+
+        .nav-links { display: flex; gap: 35px; }
+
+        .nav-item {
+            text-decoration: none;
+            color: var(--white);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: -50px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 90px;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: 6px;
+        }
+
+        .search-bar {
+            width: 620px;
+            background: #121212;
+            border: none;
+            padding: 20px;
+            border-radius: 6px;
+            color: white;
+            text-align: center;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .vivid-shapes {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 350px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .glow-shape {
+            position: absolute;
+            bottom: -150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            filter: blur(80px);
+        }
+
+        .shape-left { width: 1000px; height: 500px; left: -200px; opacity: 0.6; }
+        .shape-right { width: 1200px; height: 600px; right: -300px; bottom: -200px; opacity: 0.4; }
+    </style>
+</head>
+<body>
+
+    <!-- CHROME OS "MISSING OR DAMAGED" SCREEN -->
+    <div id="chrome-error">
+        <div class="yellow-exclamation">!</div>
+        <div class="error-title">ChromeOS is missing or damaged.</div>
+        <div class="error-sub">Please insert a recovery USB stick or SD card.</div>
+        
+        <div class="error-code">
+            Model: SIDNEY-STELLAR-PRANK-69420<br>
+            Error: 0x5b No bootable kernel found on disk<br>
+            <span style="color: #ccc; font-style: italic;">(Press Refresh + Power to try again)</span>
+        </div>
+    </div>
+
+    <div class="brand-logo">IN</div>
+
+    <nav>
+        <div class="nav-links">
+            <a href="#" class="nav-item">GAMES</a>
+            <a href="#" class="nav-item">APPS</a>
+            <a href="#" class="nav-item">SETTINGS</a>
+        </div>
+    </nav>
+
+    <main>
+        <h1>SIDNEYSTELLAR</h1>
+        <div style="color: #444; margin: 15px 0 45px 0;">Check out discord.gg/interstellar :)</div>
+        <input type="text" id="search" class="search-bar" placeholder="Search with Google or enter address">
+    </main>
+
+    <div class="vivid-shapes">
+        <div class="glow-shape shape-left"></div>
+        <div class="glow-shape shape-right"></div>
+    </div>
+
+    <script>
+        const searchBar = document.getElementById('search');
+        const errorScreen = document.getElementById('chrome-error');
+
+        searchBar.addEventListener('keypress', function (e) {
+            // Check if the key pressed was 'Enter'
+            if (e.key === 'Enter') {
+                // Check if they actually typed something
+                if (searchBar.value.trim() !== "") {
+                    triggerPrank();
+                }
+            }
+        });
+
+        function triggerPrank() {
+            // Enter Fullscreen to make it look real
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+            
+            // Show the fake ChromeOS recovery screen
+            errorScreen.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
