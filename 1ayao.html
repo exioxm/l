@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUSD Portal</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f4f8;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #1a2a4d;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            font-size: 18px;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .seal {
+            width: 250px;
+            height: auto;
+            margin-bottom: 30px;
+            background-color: #ddd; /* Gray box if image fails */
+            min-height: 100px;
+        }
+
+        .login-box {
+            width: 100%;
+            padding: 0 25px;
+            box-sizing: border-box;
+        }
+
+        .login-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+        }
+
+        .login-header h2 {
+            margin: 0;
+            color: #4c4c4c;
+            font-weight: 400;
+            font-size: 24px;
+        }
+
+        .login-header a {
+            color: #7a7a7a;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 18px;
+            border: 2px solid #333;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            margin-bottom: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            color: white;
+            background-color: #33475b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .claim-text {
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+            margin: 20px 0 10px 0;
+        }
+
+        .claim-text a {
+            color: #33475b;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>PUSD Portal</header>
+
+    <div class="container">
+        <!-- GUARANTEED IMAGE LINK FOR TESTING -->
+        <img class="seal" src="https://www.pusd.us" alt="PUSD Seal">
+
+        <div class="login-box">
+            <div class="login-header">
+                <h2>Login</h2>
+                <a href="#">Need help?</a>
+            </div>
+
+            <input type="text" placeholder="Username">
+
+            <button class="btn"><span>Go</span><span>&gt;</span></button>
+            <button class="btn"><span>Scan QR Code</span><span>&gt;</span></button>
+
+            <div class="claim-text">
+                Don't have an account yet? <a href="#">Claim your account.</a>
+            </div>
+
+            <button class="btn" style="justify-content: center;">Claim My Account</button>
+        </div>
+    </div>
+
+</body>
+</html>
