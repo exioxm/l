@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Red Button</title>
+    <style>
+        :root {
+            --neon-red: #ff0033;
+            --neon-glow: rgba(255, 0, 51, 0.6);
+            --black-base: #111;
+        }
+
+        body, html {
+            height: 100%; margin: 0;
+            background-color: #050505; color: white;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; user-select: none;
+        }
+
+        .screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+        .active { display: flex; }
+
+        /* Better Main Menu */
+        #menu-screen h1 {
+            font-size: 3rem; letter-spacing: 10px;
+            color: var(--neon-red); text-shadow: 0 0 20px var(--neon-red);
+            margin-bottom: 40px; text-align: center;
+        }
+
+        .play-btn {
+            background: transparent; color: white;
+            border: 2px solid var(--neon-red); padding: 15px 60px;
+            font-size: 1.5rem; cursor: pointer; border-radius: 4px;
+            transition: 0.3s; box-shadow: 0 0 10px var(--neon-glow);
+        }
+
+        .play-btn:hover {
+            background: var(--neon-red); box-shadow: 0 0 30px var(--neon-red);
+            transform: scale(1.05);
+        }
+
+        /* Neon Button Design */
+        .container { position: relative; width: 220px; height: 240px; }
+
+        .black-bottom {
+            position: absolute; bottom: 0;
+            width: 220px; height: 80px;
+            background: var(--black-base); border-radius: 20px;
+            border-bottom: 10px solid #000;
+        }
+
+        #red-button {
+            position: absolute; top: 0; left: 10px;
+            width: 200px; height: 150px;
+            background: var(--neon-red); border: none;
+            border-radius: 15px; cursor: pointer;
+            box-shadow: 0 15px 0 #800, 0 0 30px var(--neon-glow);
+            transition: transform 0.05s, box-shadow 0.05s;
+            outline: none;
+        }
+
+        #red-button:active {
+            transform: translateY(12px);
+            box-shadow: 0 3px 0 #500, 0 0 50px var(--neon-red);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu-screen" class="screen active">
+        <h1>SYSTEM READY</h1>
+        <button class="play-btn" onclick="initGame()">PLAY</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="container">
+            <div class="black-bottom"></div>
+            <button id="red-button"></button>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+
+        function createSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine'; 
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        // Sequences
+        async function playSequence(times) {
+            for (let i = 0; i < times; i++) {
+                createSound();
+                if (i < times - 1) {
+                    await new Promise(res => setTimeout(res, 500)); // 0.5s delay
+                }
+            }
+        }
+
+        function initGame() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Menu Action: Sound once, wait 0.5s, sound again
+            playSequence(2);
+
+            document.getElementById('menu-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+        }
+
+        document.getElementById('red-button').addEventListener('mousedown', () => {
+            // Button Action: Sound 3 times with 0.5s gaps
+            playSequence(3);
+        });
+    </script>
+</body>
+</html>
