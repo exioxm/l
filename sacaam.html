@@ -3,98 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Red Button Game</title>
+    <title>Neon Red Button</title>
     <style>
+        :root {
+            --neon-red: #ff0033;
+            --neon-glow: #ff0033aa;
+            --black-base: #1a1a1a;
+        }
+
         body, html {
             height: 100%; margin: 0;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            background-color: #222; color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
+            background-color: #050505;
+            color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
         }
 
         /* Screen Management */
-        .screen { display: none; flex-direction: column; align-items: center; }
-        .active { display: flex; }
+        .screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+        .active { display: flex; animation: fadeIn 0.5s ease-out; }
 
-        /* Menu Styles */
-        h1 { font-size: 48px; color: red; margin-bottom: 30px; }
-        .menu-btn {
-            padding: 15px 40px; font-size: 20px; cursor: pointer;
-            background: white; border: none; border-radius: 5px;
-            font-weight: bold; transition: 0.2s;
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Enhanced Main Menu */
+        #menu-screen h1 {
+            font-size: 3.5rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            color: var(--neon-red);
+            text-shadow: 0 0 20px var(--neon-glow);
         }
-        .menu-btn:hover { background: #ccc; transform: scale(1.05); }
 
-        /* Game Styles */
-        #score-container { font-size: 40px; margin-bottom: 20px; }
+        .start-btn {
+            background: transparent;
+            color: white;
+            border: 2px solid var(--neon-red);
+            padding: 15px 50px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px var(--neon-glow);
+        }
+
+        .start-btn:hover {
+            background: var(--neon-red);
+            box-shadow: 0 0 30px var(--neon-red);
+            transform: scale(1.1);
+        }
+
+        /* Neon Button Design */
+        .button-container {
+            position: relative;
+            width: 220px;
+            height: 240px;
+        }
+
+        /* The Black Bottom */
+        .button-base {
+            position: absolute;
+            bottom: 0;
+            width: 220px;
+            height: 100px;
+            background: var(--black-base);
+            border-radius: 20px;
+            border-bottom: 8px solid #000;
+        }
+
+        /* The Neon Red Top */
         #game-button {
-            background-color: red; color: white; border: none;
-            width: 200px; height: 200px; font-size: 24px; font-weight: bold;
-            border-radius: 50%; cursor: pointer;
-            box-shadow: 0 10px #900; transition: 0.1s;
+            position: absolute;
+            top: 0; left: 10px;
+            width: 200px;
+            height: 140px;
+            background: var(--neon-red);
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 
+                0 15px 0 #900, 
+                0 0 25px var(--neon-glow);
+            transition: all 0.05s;
+            outline: none;
         }
+
         #game-button:active {
-            box-shadow: 0 3px #600; transform: translateY(7px);
+            transform: translateY(12px);
+            box-shadow: 
+                0 3px 0 #600, 
+                0 0 50px var(--neon-red);
         }
+
     </style>
 </head>
 <body>
 
-    <!-- Main Menu Screen -->
+    <!-- Main Menu -->
     <div id="menu-screen" class="screen active">
-        <h1>RED BUTTON</h1>
-        <button class="menu-btn" onclick="startGame()">START GAME</button>
+        <h1>System Active</h1>
+        <button class="start-btn" onclick="startGame()">ENTER TERMINAL</button>
     </div>
 
     <!-- Game Screen -->
     <div id="game-screen" class="screen">
-        <div id="score-container">Score: <span id="score">0</span></div>
-        <button id="game-button">PUSH</button>
+        <div class="button-container">
+            <div class="button-base"></div>
+            <button id="game-button"></button>
+        </div>
     </div>
 
     <script>
-        let count = 0;
         let audioCtx = null;
-
         const menuScreen = document.getElementById('menu-screen');
         const gameScreen = document.getElementById('game-screen');
-        const scoreSpan = document.getElementById('score');
         const btn = document.getElementById('game-button');
 
         function startGame() {
-            // Initialize Audio Context (Browser requirement)
+            // Unlock Audio Context for 2026 browser standards
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
-            // Switch screens
             menuScreen.classList.remove('active');
             gameScreen.classList.add('active');
         }
 
-        // Professional Sound Generator (No Base64 needed, works every time)
-        function playSound() {
+        function playNeonSound() {
             if (!audioCtx) return;
+
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
-            osc.type = 'square'; // Retro "beep" sound
-            osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4 note
-            
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            
+
+            // A punchy, electronic click sound
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
+
             osc.start();
             osc.stop(audioCtx.currentTime + 0.1);
         }
 
-        btn.addEventListener('click', () => {
-            count++;
-            scoreSpan.textContent = count;
-            playSound();
+        btn.addEventListener('mousedown', () => {
+            playNeonSound();
+        });
+
+        // Optional: Trigger sound on touch for mobile devices
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            playNeonSound();
         });
     </script>
 </body>
