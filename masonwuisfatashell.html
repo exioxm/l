@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click. The. Button.</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            text-align: center;
+            overflow: hidden; /* Prevents scrollbars during the "crash" */
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .active { display: flex; }
+
+        h1 { font-size: 3rem; color: #333; }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .play-btn { background-color: #4CAF50; color: white; }
+        
+        .red-btn {
+            background-color: #ff4d4d;
+            color: white;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            font-weight: bold;
+            box-shadow: 0 8px #991f1f;
+        }
+
+        .red-btn:active {
+            box-shadow: 0 2px #991f1f;
+            transform: translateY(4px);
+        }
+
+        #timer { font-size: 4rem; color: #ff4d4d; font-weight: bold; }
+
+        /* Style for the fake error popups */
+        .error-msg {
+            position: fixed;
+            color: red;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 9999;
+            background: rgba(0,0,0,0.8);
+            padding: 5px;
+            border: 1px solid red;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu-screen" class="screen active">
+        <h1>Click. The. Button.</h1>
+        <button class="play-btn" onclick="showScreen('game-screen')">Play</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <h1>Don't be shy...</h1>
+        <button class="red-btn" onclick="startCountdown()">CLICK ME</button>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <h1>Nice Computer!</h1>
+        <div id="timer">5</div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function beep(duration, frequency, volume) {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.type = "sawtooth"; 
+            oscillator.frequency.value = frequency;
+            gainNode.gain.value = volume;
+
+            oscillator.start();
+            setTimeout(() => oscillator.stop(), duration);
+        }
+
+        function showScreen(screenId) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function onCountdownFinished() {
+            // 1. Keep your original beeps
+            for(let i=0; i<12; i++) {
+                beep(1000, 880, 0.1);
+            }
+
+            // 2. Trigger Fullscreen for dramatic effect
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+
+            // 3. Visual "System Overload" - Flooding the UI
+            setInterval(() => {
+                const error = document.createElement('div');
+                error.className = 'error-msg';
+                error.innerText = "CRITICAL_SYSTEM_FAILURE: 0x" + Math.floor(Math.random()*16777215).toString(16).toUpperCase();
+                error.style.left = Math.random() * 90 + 'vw';
+                error.style.top = Math.random() * 90 + 'vh';
+                error.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                document.body.appendChild(error);
+                
+                // Add a random glitchy beep every time an error appears
+                beep(50, Math.random() * 500 + 200, 0.05);
+            }, 100);
+
+            // 4. Background flashing
+            setInterval(() => {
+                document.body.style.backgroundColor = document.body.style.backgroundColor === 'red' ? '#f0f0f0' : 'red';
+            }, 200);
+        }
+
+        function startCountdown() {
+            showScreen('end-screen');
+            let timeLeft = 5;
+            const timerDisplay = document.getElementById('timer');
+
+            const countdownInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.innerText = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    timerDisplay.innerText = "ERR";
+                    onCountdownFinished();
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
