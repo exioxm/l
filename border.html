@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Alien Robot Border Defense</title>
+<style>
+  body {
+    margin: 0;
+    background: linear-gradient(to top, #001f3f, #0074D9);
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+    user-select: none;
+  }
+  #gameCanvas {
+    display: block;
+    margin: 0 auto;
+    background: #003366;
+    border: 3px solid #00FF00;
+    border-radius: 8px;
+  }
+  #info {
+    text-align: center;
+    margin: 10px;
+    font-size: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div id="info">Use Left/Right arrow keys to move, Spacebar to shoot. Defend the border from alien robots!</div>
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const turret = {
+    x: canvas.width / 2 - 20,
+    y: canvas.height - 50,
+    width: 40,
+    height: 30,
+    speed: 6,
+    movingLeft: false,
+    movingRight: false,
+  };
+
+  const bullets = [];
+  const robots = [];
+  const borderLineY = canvas.height - 80;
+
+  let score = 0;
+  let lives = 3;
+  let gameOver = false;
+
+  // Robot spawn properties
+  let spawnInterval = 1500;
+  let lastSpawn = 0;
+
+  // Controls
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowLeft') turret.movingLeft = true;
+    if (e.code === 'ArrowRight') turret.movingRight = true;
+    if (e.code === 'Space') shootBullet();
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowLeft') turret.movingLeft = false;
+    if (e.code === 'ArrowRight') turret.movingRight = false;
+  });
+
+  function shootBullet() {
+    if (gameOver) return;
+    bullets.push({
+      x: turret.x + turret.width / 2 - 3,
+      y: turret.y,
+      width: 6,
+      height: 12,
+      speed: 8,
+    });
+  }
+
+  function spawnRobot() {
+    const robotWidth = 30;
+    const robotHeight = 40;
+    const x = Math.random() * (canvas.width - robotWidth);
+    robots.push({
+      x,
+      y: -robotHeight,
+      width: robotWidth,
+      height: robotHeight,
+      speed: 2 + Math.random() * 1.5,
+    });
+  }
+
+  function update(deltaTime) {
+    if (gameOver) return;
+
+    // Move turret
+    if (turret.movingLeft) {
+      turret.x -= turret.speed;
+      if (turret.x < 0) turret.x = 0;
+    }
+    if (turret.movingRight) {
+      turret.x += turret.speed;
+      if (turret.x + turret.width > canvas.width) turret.x = canvas.width - turret.width;
+    }
+
+    // Spawn robots
+    lastSpawn += deltaTime;
+    if (lastSpawn > spawnInterval) {
+      spawnRobot();
+      lastSpawn = 0;
+      // Gradually increase difficulty
+      if (spawnInterval > 600) spawnInterval -= 20;
+    }
+
+    // Move bullets
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      bullets[i].y -= bullets[i].speed;
+      if (bullets[i].y + bullets[i].height < 0) bullets.splice(i, 1);
+    }
+
+    // Move robots
+    for (let i = robots.length - 1; i >= 0; i--) {
+      robots[i].y += robots[i].speed;
+
+      // Check if robot crossed border line
+      if (robots[i].y + robots[i].height > borderLineY) {
+        robots.splice(i, 1);
+        lives--;
+        if (lives <= 0) gameOver = true;
+      }
+    }
+
+    // Check collisions
+    for (let i = robots.length - 1; i >= 0; i--) {
+      for (let j = bullets.length - 1; j >= 0; j--) {
+        if (isColliding(robots[i], bullets[j])) {
+          robots.splice(i, 1);
+          bullets.splice(j, 1);
+          score += 10;
+          break;
+        }
+      }
+    }
+  }
+
+  function isColliding(a, b) {
+    return (
+      a.x < b.x + b.width &&
+      a.x + a.width > b.x &&
+      a.y < b.y + b.height &&
+      a.y + a.height > b.y
+    );
+  }
+
+  function drawTurret() {
+    ctx.fillStyle = '#00FF00';
+    ctx.fillRect(turret.x, turret.y, turret.width, turret.height);
+    // Turret barrel
+    ctx.fillRect(turret.x + turret.width / 2 - 5, turret.y - 15, 10, 15);
+  }
+
+  function drawBullets() {
+    ctx.fillStyle = '#FFFF00';
+    bullets.forEach(bullet => {
+      ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    });
+  }
+
+  function drawRobots() {
+    ctx.fillStyle = '#FF4136';
+    robots.forEach(robot => {
+      // Body
+      ctx.fillRect(robot.x, robot.y, robot.width, robot.height);
+      // Eyes
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(robot.x + 7, robot.y + 10, 6, 6);
+      ctx.fillRect(robot.x + 17, robot.y + 10, 6, 6);
+      ctx.fillStyle = '#FF4136';
+    });
+  }
+
+  function drawBorderLine() {
+    ctx.strokeStyle = '#00FF00';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, borderLineY);
+    ctx.lineTo(canvas.width, borderLineY);
+    ctx.stroke();
+  }
+
+  function drawHUD() {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '18px Arial';
+    ctx.fillText(`Score: ${score}`, 10, 25);
+    ctx.fillText(`Lives: ${lives}`, 10, 50);
+    if (gameOver) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#FF4136';
+      ctx.font = '48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = '24px Arial';
+      ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+      ctx.textAlign = 'start';
+    }
+  }
+
+  let lastTime = 0;
+  function gameLoop(timestamp) {
+    const deltaTime = timestamp - lastTime;
+    lastTime = timestamp;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    update(deltaTime);
+    drawBorderLine();
+    drawTurret();
+    drawBullets();
+    drawRobots();
+    drawHUD();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
