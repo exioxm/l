@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>US Border Defense Game</title>
+<style>
+  body {
+    margin: 0;
+    background: #f4e7c1; /* desert sand */
+    font-family: Arial, sans-serif;
+    user-select: none;
+  }
+  #gameCanvas {
+    background: linear-gradient(to bottom, #f4e7c1 0%, #d9c89e 100%);
+    display: block;
+    margin: 0 auto;
+    border: 2px solid #333;
+  }
+  #ui {
+    text-align: center;
+    margin: 10px auto;
+    width: 800px;
+  }
+  button {
+    margin: 5px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  #info {
+    margin-top: 10px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="ui">
+  <button id="upgradeCram">Upgrade CRAM (Cost: 50)</button>
+  <button id="buyAutoTurret">Buy Auto Turret (Cost: 30)</button>
+  <button id="sendTroop">Send Troop (Cost: 20)</button>
+  <div id="info">Money: 100 | Enemies Defeated: 0</div>
+</div>
+
+<script>
+// Game constants
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const width = canvas.width;
+const height = canvas.height;
+
+// Game state
+let money = 100;
+let enemiesDefeated = 0;
+
+const borderLineY = height - 100; // Border line near bottom
+
+// Player controlled CRAM turret (center)
+const cram = {
+  x: width / 2,
+  y: borderLineY - 50,
+  size: 40,
+  level: 1,
+  reloadTime: 1000, // ms
+  lastShot: 0,
+  range: 200,
+  damage: 10,
+  angle: 0,
+};
+
+// Auto turrets placed by player
+const autoTurrets = [];
+
+// Troops sent by player
+const troops = [];
+
+// Enemies (alien robots)
+const enemies = [];
+
+// Projectiles fired by turrets and troops
+const projectiles = [];
+
+// Controls
+let mouseX = 0;
+let mouseY = 0;
+let mouseDown = false;
+
+// Utility functions
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+// Classes for game entities
+class Enemy {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 20;
+    this.speed = 0.7 + Math.random() * 0.3;
+    this.health = 30;
+    this.dead = false;
+  }
+
+  update() {
+    // Move downward toward border line
+    this.y += this.speed;
+    if (this.y > borderLineY + 20) {
+      // Enemy crossed border - game over or penalty could be implemented
+      this.dead = true;
+      money -= 10; // penalty for letting enemy cross
+      if (money < 0) money = 0;
+    }
+  }
+
+  draw() {
+    ctx.fillStyle = 'red';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    // Alien robot eyes
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(this.x - 5, this.y - 3, 3, 0, Math.PI * 2);
+    ctx.arc(this.x + 5, this.y - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.x - 5, this.y - 3, 1.5, 0, Math.PI * 2);
+    ctx.arc(this.x + 5, this.y - 3, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+class AutoTurret {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 30;
+    this.reloadTime = 1500;
+    this.lastShot = 0;
+    this.range = 180;
+    this.damage = 8;
+  }
+
+  update(time) {
+    // Find nearest enemy in range
+    let target = null;
+    let minDist = Infinity;
+    for (const enemy of enemies) {
+      if (!enemy.dead) {
+        const dist = distance(this, enemy);
+        if (dist < this.range && dist < minDist) {
+          minDist = dist;
+          target = enemy;
+        }
+      }
+    }
+    if (target && time - this.lastShot > this.reloadTime) {
+      this.lastShot = time;
+      shootProjectile(this.x, this.y, target, this.damage);
+    }
+  }
+
+  draw() {
+    ctx.fillStyle = 'blue';
+    ctx.beginPath();
+    ctx.rect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.fillText('AT', this.x - 10, this.y + 5);
+  }
+}
+
+class Troop {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 20;
+    this.speed = 1.2;
+    this.health = 50;
+    this.dead = false;
+    this.targetX = x;
+    this.targetY = y;
+    this.reloadTime = 1200;
+    this.lastShot = 0;
+    this.range = 150;
+    this.damage = 12;
+  }
+
+  update(time) {
+    // Move toward target position
+    const dx = this.targetX - this.x;
+    const dy = this.targetY - this.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 2) {
+      this.x += (dx / dist) * this.speed;
+      this.y += (dy / dist) * this.speed;
+    }
+
+    // Find nearest enemy in range
+    let target = null;
+    let minDist = Infinity;
+    for (const enemy of enemies) {
+      if (!enemy.dead) {
+        const distEnemy = distance(this, enemy);
+        if (distEnemy < this.range && distEnemy < minDist) {
+          minDist = distEnemy;
+          target = enemy;
+        }
+      }
+    }
+    if (target && time - this.lastShot > this.reloadTime) {
+      this.lastShot = time;
+      shootProjectile(this.x, this.y, target, this.damage);
+    }
+  }
+
+  draw() {
+    ctx.fillStyle = 'green';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'black';
+    ctx.fillText('T', this.x - 5, this.y + 5);
+  }
+}
+
+// Projectiles
+class Projectile {
+  constructor(x, y, target, damage) {
+    this.x = x;
+    this.y = y;
+    this.target = target;
+    this.speed = 6;
+    this.damage = damage;
+    this.dead = false;
+  }
+
+  update() {
+    const dx = this.target.x - this.x;
+    const dy = this.target.y - this.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < this.speed || this.target.dead) {
+      // Hit target
+      this.target.health -= this.damage;
+      if (this.target.health <= 0) {
+        this.target.dead = true;
+        enemiesDefeated++;
+        money += 15; // reward for kill
+      }
+      this.dead = true;
+    } else {
+      this.x += (dx / dist) * this.speed;
+      this.y += (dy / dist) * this.speed;
+    }
+  }
+
+  draw() {
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// Shoot projectile helper
+function shootProjectile(x, y, target, damage) {
+  projectiles.push(new Projectile(x, y, target, damage));
+}
+
+// Spawn enemies periodically
+let lastEnemySpawn = 0;
+const enemySpawnInterval = 2000; // ms
+
+// Game loop
+function gameLoop(timestamp = 0) {
+  ctx.clearRect(0, 0, width, height);
+
+  // Draw desert ground and border
+  ctx.fillStyle = '#d2b48c';
+  ctx.fillRect(0, borderLineY, width, height - borderLineY);
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, borderLineY);
+  ctx.lineTo(width, borderLineY);
+  ctx.stroke();
+
+  // Spawn enemies
+  if (timestamp - lastEnemySpawn > enemySpawnInterval) {
+    lastEnemySpawn = timestamp;
+    const ex = Math.random() * width;
+    enemies.push(new Enemy(ex, -20));
+  }
+
+  // Update and draw enemies
+  for (const enemy of enemies) {
+    if (!enemy.dead) enemy.update();
+    enemy.draw();
+  }
+
+  // Update and draw auto turrets
+  for (const turret of autoTurrets) {
+    turret.update(timestamp);
+    turret.draw();
+  }
+
+  // Update and draw troops
+  for (const troop of troops) {
+    if (!troop.dead) troop.update(timestamp);
+    troop.draw();
+  }
+
+  // Update and draw projectiles
+  for (const proj of projectiles) {
+    if (!proj.dead) proj.update();
+    proj.draw();
+  }
+
+  // Remove dead enemies and projectiles
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (enemies[i].dead) enemies.splice(i, 1);
+  }
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    if (projectiles[i].dead) projectiles.splice(i, 1);
+  }
+  for (let i = troops.length - 1; i >= 0; i--) {
+    if (troops[i].dead) troops.splice(i, 1);
+  }
+
+  // CRAM turret aiming & shooting
+  // Aim toward mouse
+  const dx = mouseX - cram.x;
+  const dy = mouseY - cram.y;
+  cram.angle = Math.atan2(dy, dx);
+
+  // Draw CRAM turret base
+  ctx.fillStyle = 'gray';
+  ctx.beginPath();
+  ctx.arc(cram.x, cram.y, cram.size / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw CRAM barrel
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(cram.x, cram.y);
+  ctx.lineTo(cram.x + Math.cos(cram.angle) * cram.size, cram.y + Math.sin(cram.angle) * cram.size);
+  ctx.stroke();
+
+  // CRAM shooting on mouse click
+  if (mouseDown && timestamp - cram.lastShot > cram.reloadTime) {
+    cram.lastShot = timestamp;
+
+    // Find nearest enemy in direction of aim within range
+    let target = null;
+    let minDist = cram.range;
+    for (const enemy of enemies) {
+      if (!enemy.dead) {
+        const angleToEnemy = Math.atan2(enemy.y - cram.y, enemy.x - cram.x);
+        const angleDiff = Math.abs(angleToEnemy - cram.angle);
+        const distEnemy = distance(cram, enemy);
+        if (angleDiff < 0.3 && distEnemy < minDist) {
+          minDist = distEnemy;
+          target = enemy;
+        }
+      }
+    }
+    if (target) {
+      shootProjectile(cram.x, cram.y, target, cram.damage);
+    }
+  }
+
+  // Draw border patrol trucks (simplified as rectangles)
+  for (const troop of troops) {
+    // For now troops only
+  }
+
+  // Update UI
+  document.getElementById('info').textContent = `Money: ${money} | Enemies Defeated: ${enemiesDefeated}`;
+
+  requestAnimationFrame(gameLoop);
+}
+
+// Mouse events
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = e.clientX - rect.left;
+  mouseY = e.clientY - rect.top;
+});
+canvas.addEventListener('mousedown', () => {
+  mouseDown = true;
+});
+canvas.addEventListener('mouseup', () => {
+  mouseDown = false;
+});
+
+// UI buttons
+document.getElementById('upgradeCram').addEventListener('click', () => {
+  const cost = 50;
+  if (money >= cost) {
+    money -= cost;
+    cram.level++;
+    cram.damage += 5;
+    cram.reloadTime = Math.max(300, cram.reloadTime - 150);
+  }
+});
+
+document.getElementById('buyAutoTurret').addEventListener('click', () => {
+  const cost = 30;
+  if (money >= cost) {
+    money -= cost;
+    // Place turret randomly near border line for demo
+    const x = Math.random() * (width - 100) + 50;
+    const y = borderLineY - 30;
+    autoTurrets.push(new AutoTurret(x, y));
+  }
+});
+
+document.getElementById('sendTroop').addEventListener('click', () => {
+  const cost = 20;
+  if (money >= cost) {
+    money -= cost;
+    // Spawn troop near bottom center
+    const troop = new Troop(width / 2, borderLineY + 30);
+    troops.push(troop);
+  }
+});
+
+// Move troops by clicking on canvas
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  // Move all troops to clicked location (simplified)
+  for (const troop of troops) {
+    troop.targetX = clickX;
+    troop.targetY = clickY;
+  }
+});
+
+// Start game loop
+requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
