@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simple Tower Defense Game</title>
+<style>
+  body {
+    margin: 0;
+    background: #222;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    user-select: none;
+  }
+  #gameCanvas {
+    background: #333;
+    display: block;
+    margin: 20px auto;
+    border: 2px solid #555;
+  }
+  #info {
+    text-align: center;
+    margin-top: 10px;
+  }
+  #instructions {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 14px;
+    color: #aaa;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<div id="info">Gold: <span id="gold">100</span> | Lives: <span id="lives">10</span></div>
+<div id="instructions">Click to place towers (cost 50 gold). Towers shoot enemies automatically.</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const goldEl = document.getElementById('gold');
+  const livesEl = document.getElementById('lives');
+
+  const TILE_SIZE = 40;
+  const ROWS = canvas.height / TILE_SIZE;
+  const COLS = canvas.width / TILE_SIZE;
+
+  let gold = 100;
+  let lives = 10;
+
+  // Path for enemies (a simple horizontal path)
+  const path = [];
+  for(let i = 0; i < COLS; i++) {
+    path.push({x: i * TILE_SIZE + TILE_SIZE/2, y: canvas.height/2});
+  }
+
+  class Enemy {
+    constructor() {
+      this.x = path[0].x;
+      this.y = path[0].y;
+      this.speed = 1;
+      this.health = 100;
+      this.maxHealth = 100;
+      this.pathIndex = 0;
+      this.radius = 12;
+      this.alive = true;
+    }
+    update() {
+      if(this.pathIndex < path.length - 1) {
+        let target = path[this.pathIndex + 1];
+        let dx = target.x - this.x;
+        let dy = target.y - this.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < this.speed) {
+          this.x = target.x;
+          this.y = target.y;
+          this.pathIndex++;
+        } else {
+          this.x += (dx / dist) * this.speed;
+          this.y += (dy / dist) * this.speed;
+        }
+      } else {
+        // Reached end of path
+        this.alive = false;
+        lives--;
+        updateLives();
+      }
+    }
+    draw() {
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+      ctx.fill();
+
+      // Health bar
+      ctx.fillStyle = 'black';
+      ctx.fillRect(this.x - 15, this.y - 20, 30, 5);
+      ctx.fillStyle = 'lime';
+      ctx.fillRect(this.x - 15, this.y - 20, 30 * (this.health / this.maxHealth), 5);
+    }
+  }
+
+  class Tower {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.range = 100;
+      this.fireRate = 60; // frames per shot
+      this.fireCooldown = 0;
+      this.radius = 15;
+    }
+    update(enemies) {
+      if(this.fireCooldown > 0) {
+        this.fireCooldown--;
+        return;
+      }
+      // Find first enemy in range
+      for(let enemy of enemies) {
+        if(enemy.alive) {
+          let dx = enemy.x - this.x;
+          let dy = enemy.y - this.y;
+          let dist = Math.sqrt(dx*dx + dy*dy);
+          if(dist <= this.range) {
+            // Shoot enemy
+            enemy.health -= 20;
+            if(enemy.health <= 0) {
+              enemy.alive = false;
+              gold += 10;
+              updateGold();
+            }
+            this.fireCooldown = this.fireRate;
+            break;
+          }
+        }
+      }
+    }
+    draw() {
+      ctx.fillStyle = 'blue';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+      ctx.fill();
+
+      // Draw range circle (transparent)
+      ctx.strokeStyle = 'rgba(0,0,255,0.3)';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.range, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+
+  let enemies = [];
+  let towers = [];
+
+  function spawnEnemy() {
+    enemies.push(new Enemy());
+  }
+
+  function updateGold() {
+    goldEl.textContent = gold;
+  }
+  function updateLives() {
+    livesEl.textContent = lives;
+    if(lives <= 0) {
+      alert('Game Over!');
+      resetGame();
+    }
+  }
+
+  function resetGame() {
+    gold = 100;
+    lives = 10;
+    enemies = [];
+    towers = [];
+    updateGold();
+    updateLives();
+  }
+
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Snap to grid
+    const gridX = Math.floor(mouseX / TILE_SIZE) * TILE_SIZE + TILE_SIZE/2;
+    const gridY = Math.floor(mouseY / TILE_SIZE) * TILE_SIZE + TILE_SIZE/2;
+
+    // Check if tower already exists here
+    for(let tower of towers) {
+      if(tower.x === gridX && tower.y === gridY) return;
+    }
+
+    // Check if on path (don't allow towers on path)
+    for(let p of path) {
+      if(Math.abs(p.x - gridX) < TILE_SIZE/2 && Math.abs(p.y - gridY) < TILE_SIZE/2) {
+        return;
+      }
+    }
+
+    if(gold >= 50) {
+      towers.push(new Tower(gridX, gridY));
+      gold -= 50;
+      updateGold();
+    }
+  });
+
+  let frameCount = 0;
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw path
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = TILE_SIZE;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for(let p of path) {
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+
+    // Spawn enemies every 120 frames (~2 seconds at 60fps)
+    if(frameCount % 120 === 0) {
+      spawnEnemy();
+    }
+
+    // Update and draw enemies
+    for(let enemy of enemies) {
+      if(enemy.alive) {
+        enemy.update();
+        enemy.draw();
+      }
+    }
+
+    // Update and draw towers
+    for(let tower of towers) {
+      tower.update(enemies);
+      tower.draw();
+    }
+
+    // Remove dead enemies
+    enemies = enemies.filter(e => e.alive);
+
+    frameCount++;
+    requestAnimationFrame(gameLoop);
+  }
+
+  updateGold();
+  updateLives();
+  gameLoop();
+})();
+</script>
+
+</body>
+</html>
